@@ -15,5 +15,10 @@ export interface ChatOverlayEvent {
   content: string;
   rating: RatingBadge | null;
   sentAt: string;
+  source?: {
+    provider: "chzzk";
+    channelId: string;
+    senderChannelId: string;
+    messageTime: number;
+  };
 }
-

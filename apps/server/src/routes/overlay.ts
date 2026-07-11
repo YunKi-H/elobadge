@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { ChatOverlayEvent } from "@chessbadge/core";
+import { subscribeChatOverlayEvents } from "../realtime/overlay-events.js";
 
 const sampleEvent: ChatOverlayEvent = {
   id: "sample-1",
@@ -33,16 +34,16 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
 
     send(sampleEvent);
 
-    const interval = setInterval(() => {
-      send({
-        ...sampleEvent,
-        id: crypto.randomUUID(),
-        sentAt: new Date().toISOString()
-      });
-    }, 5000);
+    const unsubscribe = subscribeChatOverlayEvents(send);
+
+    const heartbeat = setInterval(() => {
+      reply.raw.write(`event: heartbeat\n`);
+      reply.raw.write(`data: ${JSON.stringify({ at: new Date().toISOString() })}\n\n`);
+    }, 15000);
 
     _request.raw.on("close", () => {
-      clearInterval(interval);
+      unsubscribe();
+      clearInterval(heartbeat);
     });
   });
 }

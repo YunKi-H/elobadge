@@ -1,11 +1,13 @@
 import socketIoClient from "socket.io-client";
 import { z } from "zod";
 import type { FastifyBaseLogger } from "fastify";
+import type { ChatOverlayEvent } from "@chessbadge/core";
 import type { ChzzkAuthConfig } from "../auth/chzzk/client.js";
 import {
   createChzzkUserSession,
   subscribeChzzkChatEvent
 } from "../auth/chzzk/client.js";
+import { publishChatOverlayEvent } from "../realtime/overlay-events.js";
 
 interface ChzzkSocket {
   on(event: string, listener: (...args: unknown[]) => void): void;
@@ -204,6 +206,8 @@ class ChzzkSessionManager {
       },
       "Chzzk chat message received"
     );
+
+    publishChatOverlayEvent(toChatOverlayEvent(parsed.data));
   }
 }
 
@@ -242,6 +246,22 @@ function normalizeSocketPayload(payload: unknown): unknown {
   } catch {
     return payload;
   }
+}
+
+function toChatOverlayEvent(message: z.infer<typeof chatMessageSchema>): ChatOverlayEvent {
+  return {
+    id: `chzzk:${message.channelId}:${message.senderChannelId}:${message.messageTime}`,
+    nickname: message.profile.nickname,
+    content: message.content,
+    rating: null,
+    sentAt: new Date(message.messageTime).toISOString(),
+    source: {
+      provider: "chzzk",
+      channelId: message.channelId,
+      senderChannelId: message.senderChannelId,
+      messageTime: message.messageTime
+    }
+  };
 }
 
 function redactSessionUrl(url: string) {
