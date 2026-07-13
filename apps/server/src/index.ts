@@ -5,6 +5,7 @@ import fastifyStatic from "@fastify/static";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerChzzkAuthRoutes } from "./auth/chzzk/routes.js";
+import { registerFirebaseRoutes } from "./firebase/routes.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerOverlayRoutes } from "./routes/overlay.js";
 
@@ -41,6 +42,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 await registerHealthRoutes(app);
+await registerFirebaseRoutes(app);
 await registerOverlayRoutes(app);
 await registerChzzkAuthRoutes(app);
 

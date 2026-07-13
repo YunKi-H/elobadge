@@ -6,8 +6,8 @@ ChessBadge is a Chzzk-first chess rating chat overlay for streamers.
 
 - Frontend: React, Vite, Tailwind CSS
 - Backend: Fastify, TypeScript
-- Database/Auth: Supabase Postgres, Supabase Auth
-- ORM: Prisma
+- Database/Auth: Cloud Firestore, Firebase Authentication
+- Firebase access: Firebase Admin SDK on the server, Firebase Web SDK for auth
 - Realtime: SSE first, WebSocket later if needed
 - Deploy target: ECS Fargate
 
@@ -19,8 +19,33 @@ apps/
   web/      React/Vite dashboard and OBS overlay UI
 packages/
   core/     Shared domain types and rating rules
-prisma/     Database schema and migrations
+docs/       Architecture and Firestore data model
 ```
+
+The browser does not access Firestore directly. React authenticates with Firebase,
+then calls the Fastify API. Fastify verifies the Firebase ID token and accesses
+Firestore through the Admin SDK.
+
+## Chzzk Login Flow
+
+```text
+GET /api/auth/chzzk/start
+  -> Chzzk OAuth
+  -> GET /open/v1/users/me
+  -> Firestore user upsert
+  -> Firebase Custom Token creation
+  -> web callback with a short-lived one-time code
+  -> POST /api/auth/firebase/exchange
+  -> Firebase browser sign-in
+```
+
+The Custom Token is never placed in the callback URL. The one-time login code is
+kept in server memory for two minutes and can be consumed only once. This is valid
+for the single-task MVP. Move the exchange store to Redis before running multiple
+ECS tasks.
+
+Use `GET /api/firebase/status` to verify both Firebase Authentication and Firestore
+server connectivity.
 
 ## First Milestone
 
@@ -32,3 +57,13 @@ The first product risk to remove is Chzzk chat ingestion:
 4. Print `senderChannelId`, `nickname`, `content`, and `messageTime`.
 5. Forward those events to `/events/test` via SSE.
 
+## Firebase Setup
+
+1. Create a Firebase project.
+2. Enable Firebase Authentication and Cloud Firestore.
+3. Create a service account for the Fastify server.
+4. Copy `.env.example` to `.env` and fill in the Firebase values.
+5. Deploy `firestore.rules` before allowing production traffic.
+
+The existing Chzzk chat proof of concept still runs without Firebase credentials.
+Firebase is initialized lazily when an auth or database feature first uses it.

@@ -1,6 +1,11 @@
 import { OverlayPreview } from "./OverlayPreview";
+import { ChzzkAuthCallback } from "./ChzzkAuthCallback";
 
 export function App() {
+  if (window.location.pathname === "/auth/chzzk/callback") {
+    return <ChzzkAuthCallback />;
+  }
+
   return (
     <main className="min-h-screen px-6 py-8">
       <div className="mx-auto max-w-4xl">
@@ -15,4 +20,3 @@ export function App() {
     </main>
   );
 }
-

@@ -12,6 +12,11 @@ const sessionResponseSchema = z.object({
   url: z.string().url()
 });
 
+const userResponseSchema = z.object({
+  channelId: z.string().min(1),
+  channelName: z.string().min(1)
+});
+
 export interface ChzzkAuthConfig {
   clientId: string;
   clientSecret: string;
@@ -29,6 +34,11 @@ export interface ChzzkTokenResponse {
 
 export interface ChzzkSessionResponse {
   url: string;
+}
+
+export interface ChzzkUserResponse {
+  channelId: string;
+  channelName: string;
 }
 
 export function getChzzkAuthConfig(): ChzzkAuthConfig {
@@ -116,6 +126,27 @@ export async function createChzzkUserSession(
   }
 
   return sessionResponseSchema.parse(unwrapChzzkContent(body));
+}
+
+export async function getChzzkCurrentUser(
+  config: ChzzkAuthConfig,
+  accessToken: string
+): Promise<ChzzkUserResponse> {
+  const response = await fetch(`${config.openApiBaseUrl}/open/v1/users/me`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json"
+    }
+  });
+
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(`Chzzk user request failed: ${response.status} ${JSON.stringify(body)}`);
+  }
+
+  return userResponseSchema.parse(unwrapChzzkContent(body));
 }
 
 export async function subscribeChzzkChatEvent(
