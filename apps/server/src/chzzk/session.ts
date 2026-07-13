@@ -159,6 +159,15 @@ class ChzzkSessionManager {
     return { ...this.status };
   }
 
+  updateAccessToken(ownerUid: string, accessToken: string): boolean {
+    if (ownerUid !== this.ownerUid) {
+      return false;
+    }
+
+    this.accessToken = accessToken;
+    return true;
+  }
+
   private async handleSystemMessage(message: unknown) {
     const normalizedMessage = normalizeSocketPayload(message);
     const parsed = systemMessageSchema.safeParse(normalizedMessage);

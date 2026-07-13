@@ -3,14 +3,26 @@ import type { ChzzkTokenResponse } from "../auth/chzzk/client.js";
 import { getChzzkTokenCipher } from "../security/token-cipher.js";
 import { getFirestoreDb } from "./admin.js";
 
+export interface StoredChzzkTokens {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresAt: Date;
+  scope: string | null;
+}
+
 export async function saveChzzkStreamerTokens(
   uid: string,
   token: ChzzkTokenResponse
 ): Promise<void> {
   const cipher = getChzzkTokenCipher();
-  const tokenRef = getFirestoreDb().collection("chzzkTokens").doc(uid);
+  const db = getFirestoreDb();
+  const tokenRef = db.collection("chzzkTokens").doc(uid);
+  const streamerRef = db.collection("streamers").doc(uid);
+  const batch = db.batch();
 
-  await tokenRef.set(
+  batch.set(
+    tokenRef,
     {
       encryptedAccessToken: cipher.encrypt(
         token.accessToken,
@@ -24,6 +36,70 @@ export async function saveChzzkStreamerTokens(
       expiresAt: Timestamp.fromMillis(Date.now() + token.expiresIn * 1_000),
       scope: token.scope,
       encryptionVersion: 1,
+      updatedAt: FieldValue.serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  batch.set(
+    streamerRef,
+    {
+      tokenStatus: "active",
+      tokenErrorAt: null,
+      updatedAt: FieldValue.serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  await batch.commit();
+}
+
+export async function loadChzzkStreamerTokens(
+  uid: string
+): Promise<StoredChzzkTokens | null> {
+  const snapshot = await getFirestoreDb().collection("chzzkTokens").doc(uid).get();
+
+  if (!snapshot.exists) {
+    return null;
+  }
+
+  const data = snapshot.data();
+
+  if (
+    !data ||
+    typeof data.encryptedAccessToken !== "string" ||
+    typeof data.encryptedRefreshToken !== "string" ||
+    typeof data.tokenType !== "string" ||
+    !(data.expiresAt instanceof Timestamp) ||
+    (data.scope !== null && typeof data.scope !== "string")
+  ) {
+    throw new Error(`Invalid stored Chzzk token document for ${uid}`);
+  }
+
+  const cipher = getChzzkTokenCipher();
+
+  return {
+    accessToken: cipher.decrypt(
+      data.encryptedAccessToken,
+      encryptionContext(uid, "access")
+    ),
+    refreshToken: cipher.decrypt(
+      data.encryptedRefreshToken,
+      encryptionContext(uid, "refresh")
+    ),
+    tokenType: data.tokenType,
+    expiresAt: data.expiresAt.toDate(),
+    scope: data.scope
+  };
+}
+
+export async function markChzzkStreamerReauthenticationRequired(
+  uid: string
+): Promise<void> {
+  await getFirestoreDb().collection("streamers").doc(uid).set(
+    {
+      tokenStatus: "reauth_required",
+      tokenErrorAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp()
     },
     { merge: true }

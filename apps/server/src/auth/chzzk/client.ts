@@ -4,7 +4,7 @@ const tokenResponseSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
   tokenType: z.string(),
-  expiresIn: z.union([z.string(), z.number()]),
+  expiresIn: z.coerce.number().positive(),
   scope: z.string().optional()
 });
 
@@ -41,6 +41,13 @@ export interface ChzzkUserResponse {
   channelName: string;
 }
 
+export class ChzzkTokenRequestError extends Error {
+  constructor(readonly status: number) {
+    super(`Chzzk token request failed with status ${status}`);
+    this.name = "ChzzkTokenRequestError";
+  }
+}
+
 export function getChzzkAuthConfig(): ChzzkAuthConfig {
   const clientId = process.env.CHZZK_CLIENT_ID;
   const clientSecret = process.env.CHZZK_CLIENT_SECRET;
@@ -75,24 +82,43 @@ export async function exchangeChzzkAuthorizationCode(
   code: string,
   state: string
 ): Promise<ChzzkTokenResponse> {
+  return requestChzzkToken(config, {
+    grantType: "authorization_code",
+    clientId: config.clientId,
+    clientSecret: config.clientSecret,
+    code,
+    state
+  });
+}
+
+export async function refreshChzzkAccessToken(
+  config: ChzzkAuthConfig,
+  refreshToken: string
+): Promise<ChzzkTokenResponse> {
+  return requestChzzkToken(config, {
+    grantType: "refresh_token",
+    refreshToken,
+    clientId: config.clientId,
+    clientSecret: config.clientSecret
+  });
+}
+
+async function requestChzzkToken(
+  config: ChzzkAuthConfig,
+  requestBody: Record<string, string>
+): Promise<ChzzkTokenResponse> {
   const response = await fetch(`${config.openApiBaseUrl}/auth/v1/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      grantType: "authorization_code",
-      clientId: config.clientId,
-      clientSecret: config.clientSecret,
-      code,
-      state
-    })
+    body: JSON.stringify(requestBody)
   });
 
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(`Chzzk token request failed: ${response.status} ${JSON.stringify(body)}`);
+    throw new ChzzkTokenRequestError(response.status);
   }
 
   const content = unwrapChzzkContent(body);
@@ -102,7 +128,7 @@ export async function exchangeChzzkAuthorizationCode(
     accessToken: parsed.accessToken,
     refreshToken: parsed.refreshToken,
     tokenType: parsed.tokenType,
-    expiresIn: Number(parsed.expiresIn),
+    expiresIn: parsed.expiresIn,
     scope: parsed.scope ?? null
   };
 }

@@ -49,7 +49,13 @@ Viewer OAuth credentials are used only to call Chzzk's current-user API during
 the callback and are not persisted. Streamer access and refresh tokens are
 encrypted with AES-256-GCM before being stored in Firestore. The active streamer
 access token also lives in the in-memory chat session and is cleared when that
-session stops. Refresh-token rotation is separate upcoming work.
+session stops. The server schedules a refresh five minutes before access-token
+expiration, atomically writes both newly issued tokens, and updates the active
+chat session. A rejected refresh token marks the streamer as requiring login.
+
+The refresh scheduler and duplicate-refresh guard currently live in process
+memory. Run one server task for the MVP; distributed coordination is required
+before multiple ECS tasks can refresh the same one-time token safely.
 
 The Custom Token is never placed in the callback URL. The one-time login code is
 kept in server memory for two minutes and can be consumed only once. This is valid

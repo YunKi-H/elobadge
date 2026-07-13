@@ -62,6 +62,8 @@ viewer.
 {
   chzzkChannelId: string;
   displayName: string;
+  tokenStatus: "active" | "reauth_required";
+  tokenErrorAt: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -89,6 +91,10 @@ token kind before being written. `scope` preserves the provider response as-is.
 
 Never return this document to the browser. Token encryption keys belong in the
 server environment or a secret manager, not in Firestore.
+
+Access tokens are refreshed five minutes before expiration. Chzzk refresh tokens
+are one-time credentials, so a successful refresh always replaces both encrypted
+token fields. The current in-process refresh lock assumes one ECS server task.
 
 ### `overlays/{publicToken}`
 

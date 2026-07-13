@@ -8,6 +8,7 @@ import {
   getChzzkAuthConfig
 } from "./client.js";
 import { chzzkSessionManager } from "../../chzzk/session.js";
+import { chzzkTokenManager } from "../../chzzk/token-manager.js";
 import { getFirebaseAuth } from "../../firebase/admin.js";
 import { saveChzzkStreamerTokens } from "../../firebase/chzzk-tokens.js";
 import { issueFirebaseLoginCode } from "../../firebase/login-exchange.js";
@@ -86,6 +87,12 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
       } catch (error) {
         request.log.error({ err: error }, "Chzzk chat session did not start after login");
       }
+
+      try {
+        await chzzkTokenManager.startAutoRefresh(firebaseUid, config, request.log);
+      } catch (error) {
+        request.log.error({ err: error }, "Chzzk token auto-refresh did not start");
+      }
     }
 
     // Viewer credentials are used only for identity lookup and are never persisted.
@@ -135,6 +142,7 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
     async (request) => {
       const user = getRequiredFirebaseUser(request);
       const stopped = chzzkSessionManager.stop(user.uid);
+      chzzkTokenManager.stopAutoRefresh(user.uid);
 
       return {
         ok: true,
