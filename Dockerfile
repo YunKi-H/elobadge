@@ -24,7 +24,8 @@ ENV VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN
 ENV VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
 ENV VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
 COPY . .
-RUN pnpm build
+RUN node -e 'const names=["VITE_FIREBASE_API_KEY","VITE_FIREBASE_AUTH_DOMAIN","VITE_FIREBASE_PROJECT_ID","VITE_FIREBASE_APP_ID"]; const missing=names.filter((name)=>!process.env[name]); if(missing.length){throw new Error(`Missing Docker build arguments: ${missing.join(", ")}`)}' \
+  && pnpm build
 
 FROM base AS runner
 ENV NODE_ENV=production
