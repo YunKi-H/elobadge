@@ -28,9 +28,14 @@ export async function ensureHighestChessComBadge(
       ...ratingRefs.map((ratingRef) => transaction.get(ratingRef)),
       transaction.get(chzzkAccountRef)
     ]);
-    const accountSnapshot = snapshots[0]!;
+    const accountSnapshot = snapshots[0];
     const ratingSnapshots = snapshots.slice(1, 4);
-    const chzzkAccountSnapshot = snapshots[4]!;
+    const chzzkAccountSnapshot = snapshots[4];
+
+    if (!chzzkAccountSnapshot) {
+      return false;
+    }
+
     const account = accountSnapshot.data();
 
     if (

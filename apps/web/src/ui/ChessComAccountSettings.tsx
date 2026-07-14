@@ -225,7 +225,12 @@ export function ChessComAccountSettings() {
         ) : null}
       </div>
 
-      <form className="mt-6 flex max-w-xl flex-col gap-3 sm:flex-row" onSubmit={submit}>
+      <form
+        className="mt-6 flex max-w-xl flex-col gap-3 sm:flex-row"
+        onSubmit={(event) => {
+          void submit(event);
+        }}
+      >
         <label className="min-w-0 flex-1">
           <span className="sr-only">Chess.com 사용자명</span>
           <input

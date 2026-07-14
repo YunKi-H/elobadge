@@ -18,7 +18,13 @@ export function getFirebaseClientAuth(): Auth {
   return getAuth(getFirebaseClientApp());
 }
 
-function requiredEnv(name: keyof ImportMetaEnv): string {
+type FirebaseEnvName =
+  | "VITE_FIREBASE_API_KEY"
+  | "VITE_FIREBASE_AUTH_DOMAIN"
+  | "VITE_FIREBASE_PROJECT_ID"
+  | "VITE_FIREBASE_APP_ID";
+
+function requiredEnv(name: FirebaseEnvName): string {
   const value = import.meta.env[name];
 
   if (!value) {

@@ -2,7 +2,7 @@ import type {
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
-  preHandlerHookHandler
+  preHandlerAsyncHookHandler
 } from "fastify";
 import { getFirebaseAuth } from "../firebase/admin.js";
 
@@ -36,12 +36,13 @@ export const requireFirebaseUser = createFirebaseAuthPreHandler();
 
 export function createFirebaseAuthPreHandler(
   verifyToken: VerifyFirebaseToken = verifyFirebaseIdToken
-): preHandlerHookHandler {
+): preHandlerAsyncHookHandler {
   return async (request, reply) => {
     const idToken = extractBearerToken(request.headers.authorization);
 
     if (!idToken) {
-      return sendUnauthorized(reply);
+      sendUnauthorized(reply);
+      return;
     }
 
     try {
@@ -55,7 +56,7 @@ export function createFirebaseAuthPreHandler(
       };
     } catch (error) {
       request.log.warn({ err: error }, "Firebase ID token rejected");
-      return sendUnauthorized(reply);
+      sendUnauthorized(reply);
     }
   };
 }

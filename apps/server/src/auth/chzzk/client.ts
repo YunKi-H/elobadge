@@ -270,7 +270,7 @@ export async function getChzzkUserSessions(
 
 function unwrapChzzkContent(body: unknown) {
   if (body && typeof body === "object" && "content" in body) {
-    return (body as { content: unknown }).content;
+    return body.content;
   }
 
   return body;

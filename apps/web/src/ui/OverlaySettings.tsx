@@ -29,7 +29,7 @@ export function OverlaySettings() {
 
       void getOverlayAccess()
         .then((overlay) => setState({ status: "ready", overlay }))
-        .catch((error: unknown) => setError(error));
+        .catch((error: unknown) => setState(toErrorState(error)));
     });
   }, []);
 
@@ -41,17 +41,10 @@ export function OverlaySettings() {
       const overlay = await operation();
       setState({ status: "ready", overlay });
     } catch (error) {
-      setError(error);
+      setState(toErrorState(error));
     } finally {
       setUpdating(false);
     }
-  };
-
-  const setError = (error: unknown) => {
-    setState({
-      status: "error",
-      message: error instanceof Error ? error.message : "요청에 실패했습니다."
-    });
   };
 
   const overlay = state.status === "ready" ? state.overlay : null;
@@ -147,4 +140,11 @@ export function OverlaySettings() {
       ) : null}
     </section>
   );
+}
+
+function toErrorState(error: unknown): SettingsState {
+  return {
+    status: "error",
+    message: error instanceof Error ? error.message : "요청에 실패했습니다."
+  };
 }

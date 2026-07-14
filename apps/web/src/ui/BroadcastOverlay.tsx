@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ChatOverlayEvent } from "@chessbadge/core";
+import { parseChatOverlayEvent } from "../realtime/chat-event";
 
 const MESSAGE_LIFETIME_MS = 20_000;
 
@@ -12,7 +13,11 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
     const removalTimers = new Set<number>();
 
     events.addEventListener("chat", (event) => {
-      const message = JSON.parse(event.data) as ChatOverlayEvent;
+      const message = parseChatOverlayEvent(event.data);
+
+      if (!message) {
+        return;
+      }
       setMessages((current) => [
         ...current.filter((item) => item.id !== message.id),
         message

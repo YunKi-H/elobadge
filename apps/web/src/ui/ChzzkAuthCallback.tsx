@@ -21,13 +21,17 @@ interface LoginExchangeResponse {
 const pendingLogins = new Map<string, Promise<LoginExchangeResponse>>();
 
 export function ChzzkAuthCallback() {
-  const [state, setState] = useState<LoginState>({ status: "loading" });
+  const [code] = useState(() =>
+    new URLSearchParams(window.location.search).get("code")
+  );
+  const [state, setState] = useState<LoginState>(() =>
+    code
+      ? { status: "loading" }
+      : { status: "error", message: "로그인 코드가 없습니다." }
+  );
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("code");
-
     if (!code) {
-      setState({ status: "error", message: "로그인 코드가 없습니다." });
       return;
     }
 
@@ -44,7 +48,7 @@ export function ChzzkAuthCallback() {
         const message = error instanceof Error ? error.message : "로그인에 실패했습니다.";
         setState({ status: "error", message });
       });
-  }, []);
+  }, [code]);
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6">

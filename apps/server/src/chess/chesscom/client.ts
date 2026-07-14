@@ -132,7 +132,7 @@ export function createChessComClient(options: ChessComClientOptions) {
         );
       }
 
-      return response.json();
+      return (await response.json()) as unknown;
     });
 
   return {

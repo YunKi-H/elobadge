@@ -1,7 +1,7 @@
 import type {
   FastifyInstance,
   FastifyReply,
-  preHandlerHookHandler
+  preHandlerAsyncHookHandler
 } from "fastify";
 import { z } from "zod";
 import { getRequiredFirebaseUser, requireFirebaseUser } from "../../auth/firebase.js";
@@ -40,7 +40,7 @@ const linkBodySchema = z.object({
 });
 
 export interface ChessComRouteDependencies {
-  authenticate: preHandlerHookHandler;
+  authenticate: preHandlerAsyncHookHandler;
   getPlayer(username: string): Promise<ChessComPlayer>;
   getProfile(username: string): Promise<ChessComProfile>;
   getAccount(uid: string): Promise<StoredChessComAccount | null>;
