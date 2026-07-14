@@ -14,6 +14,7 @@ chzzkTokens/{firebaseUid}
 overlays/{publicToken}
 chessAccounts/{accountId}
 chessAccounts/{accountId}/ratings/{speed}
+chessVerificationChallenges/{accountId}
 ```
 
 ### `users/{firebaseUid}`
@@ -138,6 +139,11 @@ infrastructure access logs must redact the token path segment.
   providerUserId: string | null;
   verifiedAt: Timestamp | null;
   verificationMethod: string | null;
+  profileUrl: string;
+  avatarUrl: string | null;
+  accountStatus: string;
+  ratingsFetchedAt: Timestamp;
+  disconnectedAt: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -146,6 +152,54 @@ infrastructure access logs must redact the token path segment.
 Ratings live under `chessAccounts/{accountId}/ratings/{speed}`. Updating the
 user's selected rating must also update `chzzkAccounts/{chzzkChannelId}.badge`
 in the same transaction or batch.
+
+For Chess.com, the first registration uses the read-only PubAPI and therefore
+always writes `verifiedAt: null`. A public username and public rating are not
+proof of account ownership. Unverified accounts must never populate the
+denormalized Chzzk badge. The initial supported Chess.com rating documents are
+`bullet`, `blitz`, and `rapid`; Chess.com Daily is not mapped to classical.
+
+The owning user stores a direct pointer at
+`users/{firebaseUid}.chessAccountIds.chesscom`. This avoids a collection query
+when loading the viewer settings page. A rating document contains:
+
+```ts
+{
+  speed: "bullet" | "blitz" | "rapid";
+  value: number;
+  ratingDeviation: number;
+  providerUpdatedAt: Timestamp;
+  fetchedAt: Timestamp;
+}
+```
+
+### `chessVerificationChallenges/{accountId}`
+
+Chess.com ownership verification asks the viewer to temporarily place a
+one-time code in the public profile Location field. The challenge document is
+server-only and stores only the SHA-256 hash of that code.
+
+```ts
+{
+  uid: string;
+  accountId: string;
+  provider: "chesscom";
+  providerUserId: string;
+  codeHash: string;
+  failedAttempts: number;
+  expiresAt: Timestamp;
+  createdAt: Timestamp;
+  lastAttemptAt?: Timestamp;
+}
+```
+
+Creating a new challenge replaces the previous one. Challenges expire after 48
+hours and allow at most ten failed checks. Confirmation must match the current
+user, account document, stable Chess.com player ID, and an exact trimmed
+Location value before setting `verificationMethod: "profile_location"`.
+Successful verification deletes the challenge document. PubAPI caching can
+delay visibility of a newly edited Location, so a mismatch is retryable and
+does not consume or replace the challenge immediately.
 
 ## Chat Lookup
 

@@ -33,6 +33,78 @@ export interface OverlayAccess {
   url: string;
 }
 
+export interface ChessComAccount {
+  provider: "chesscom";
+  username: string;
+  profileUrl: string;
+  avatarUrl: string | null;
+  verified: boolean;
+  ratings: Array<{
+    speed: "bullet" | "blitz" | "rapid";
+    value: number;
+    ratingDeviation: number;
+    providerUpdatedAt: string;
+  }>;
+}
+
+export interface ChessComVerificationChallenge {
+  code: string;
+  expiresAt: string;
+}
+
+export async function getChessComAccount(): Promise<ChessComAccount | null> {
+  const response = await authenticatedFetch("/api/chess/chesscom/account");
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok || !isChessComAccountResponse(body)) {
+    throw new Error(apiError(body, "Chess.com 계정 정보를 불러오지 못했습니다."));
+  }
+
+  return body.account;
+}
+
+export async function linkChessComAccount(username: string): Promise<ChessComAccount> {
+  const response = await authenticatedFetch("/api/chess/chesscom/account", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username })
+  });
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok || !isChessComAccountResponse(body) || !body.account) {
+    throw new Error(apiError(body, "Chess.com 계정을 연결하지 못했습니다."));
+  }
+
+  return body.account;
+}
+
+export async function createChessComVerification(): Promise<ChessComVerificationChallenge> {
+  const response = await authenticatedFetch("/api/chess/chesscom/verification", {
+    method: "POST"
+  });
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok || !isChessComVerificationResponse(body)) {
+    throw new Error(apiError(body, "Chess.com 인증 코드를 생성하지 못했습니다."));
+  }
+
+  return body.verification;
+}
+
+export async function confirmChessComVerification(): Promise<ChessComAccount> {
+  const response = await authenticatedFetch(
+    "/api/chess/chesscom/verification/confirm",
+    { method: "POST" }
+  );
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok || !isChessComAccountResponse(body) || !body.account) {
+    throw new Error(apiError(body, "Chess.com 계정 인증에 실패했습니다."));
+  }
+
+  return body.account;
+}
+
 export async function getCurrentApiUser(): Promise<CurrentApiUser> {
   const response = await authenticatedFetch("/api/me");
   const body: unknown = await response.json().catch(() => null);
@@ -131,4 +203,65 @@ function isOverlayResponse(
     typeof response.overlay.active === "boolean" &&
     typeof response.overlay.url === "string"
   );
+}
+
+function isChessComAccountResponse(
+  value: unknown
+): value is { ok: true; account: ChessComAccount | null } {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const response = value as {
+    ok?: unknown;
+    account?: Partial<ChessComAccount> | null;
+  };
+
+  if (response.ok !== true || response.account === undefined) {
+    return false;
+  }
+
+  if (response.account === null) {
+    return true;
+  }
+
+  return (
+    response.account.provider === "chesscom" &&
+    typeof response.account.username === "string" &&
+    typeof response.account.profileUrl === "string" &&
+    typeof response.account.verified === "boolean" &&
+    Array.isArray(response.account.ratings)
+  );
+}
+
+function isChessComVerificationResponse(
+  value: unknown
+): value is { ok: true; verification: ChessComVerificationChallenge } {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const response = value as {
+    ok?: unknown;
+    verification?: Partial<ChessComVerificationChallenge>;
+  };
+
+  return (
+    response.ok === true &&
+    typeof response.verification?.code === "string" &&
+    typeof response.verification.expiresAt === "string"
+  );
+}
+
+function apiError(value: unknown, fallback: string): string {
+  if (
+    value &&
+    typeof value === "object" &&
+    "error" in value &&
+    typeof value.error === "string"
+  ) {
+    return value.error;
+  }
+
+  return fallback;
 }

@@ -58,6 +58,12 @@ export function ChzzkAuthCallback() {
             <p className="mt-2 text-slate-300">
               {state.displayName} 계정을 {loginModeLabel(state.mode)} 모드로 연결했습니다.
             </p>
+            <a
+              href={`/${state.mode}`}
+              className="mt-5 inline-flex rounded-md bg-emerald-500 px-4 py-2 font-semibold text-slate-950 transition hover:bg-emerald-400"
+            >
+              계속하기
+            </a>
           </>
         ) : null}
         {state.status === "error" ? (

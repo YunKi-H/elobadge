@@ -5,6 +5,7 @@ import fastifyStatic from "@fastify/static";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerChzzkAuthRoutes } from "./auth/chzzk/routes.js";
+import { registerChessComRoutes } from "./chess/chesscom/routes.js";
 import { getChzzkAuthConfig } from "./auth/chzzk/client.js";
 import { registerFirebaseAuthentication } from "./auth/firebase.js";
 import { chzzkSessionService } from "./chzzk/session-service.js";
@@ -51,6 +52,7 @@ if (process.env.NODE_ENV === "production") {
 
 await registerHealthRoutes(app);
 await registerFirebaseRoutes(app);
+await registerChessComRoutes(app);
 await registerOverlayRoutes(app);
 await registerChzzkAuthRoutes(app);
 

@@ -108,10 +108,33 @@ endpoints are:
 GET  /api/me
 GET  /api/chzzk/session/status
 POST /api/chzzk/session/stop
+GET  /api/chess/chesscom/account
+POST /api/chess/chesscom/account
 ```
 
 The Chzzk session manager also records the owning Firebase UID, so an authenticated
 user cannot inspect or stop another user's active session.
+
+## Chess.com Rating Link
+
+The viewer page at `/viewer` can register a Chess.com username. Fastify reads
+the public profile and Bullet, Blitz, and Rapid stats through the Chess.com
+PubAPI, then stores the account and rating snapshots in Firestore. PubAPI calls
+are serialized in process to avoid parallel-request rate limits and use the
+identifying `CHESS_COM_USER_AGENT` value from `.env`.
+
+This is intentionally not treated as account ownership verification. Newly
+registered Chess.com accounts have `verifiedAt: null`, and their ratings cannot
+be copied into the Chzzk badge or shown on an overlay.
+
+For the MVP, viewers can generate a 48-hour one-time code and temporarily place
+it in their Chess.com profile Location. Fastify checks the public profile's
+stable player ID and Location, then records
+`verificationMethod="profile_location"`. Only the code hash is stored, a new
+challenge invalidates the previous code, and ten failed checks exhaust a
+challenge. Chess.com PubAPI caching means a correct profile edit may not be
+visible immediately. Approved Chess.com OAuth remains the preferred long-term
+replacement for this flow.
 
 ## First Milestone
 
