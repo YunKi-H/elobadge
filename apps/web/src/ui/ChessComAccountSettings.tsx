@@ -5,6 +5,7 @@ import {
   ExternalLink,
   Link,
   LoaderCircle,
+  RefreshCw,
   ShieldAlert,
   Unlink
 } from "lucide-react";
@@ -15,6 +16,7 @@ import {
   disconnectChessComAccount,
   getChessComAccount,
   linkChessComAccount,
+  refreshChessComAccount,
   type ChessComAccount,
   type ChessComVerificationChallenge
 } from "../api/client";
@@ -40,6 +42,8 @@ export function ChessComAccountSettings() {
   const [verifying, setVerifying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [clock, setClock] = useState(() => Date.now());
 
   useEffect(() => {
     return onAuthStateChanged(getFirebaseClientAuth(), (user) => {
@@ -63,6 +67,11 @@ export function ChessComAccountSettings() {
           });
         });
     });
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -149,6 +158,24 @@ export function ChessComAccountSettings() {
     }
   };
 
+  const refreshAccount = async () => {
+    setRefreshing(true);
+
+    try {
+      const refreshedAccount = await refreshChessComAccount();
+      setState({ status: "ready", account: refreshedAccount });
+      setClock(
+        refreshedAccount.ratingsFetchedAt
+          ? Date.parse(refreshedAccount.ratingsFetchedAt)
+          : clock
+      );
+    } catch (error) {
+      setVerificationError(error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const setVerificationError = (error: unknown) => {
     setState((current) => ({
       status: "error",
@@ -187,6 +214,11 @@ export function ChessComAccountSettings() {
   }
 
   const account = state.account;
+  const refreshAvailableAt = account?.manualRefreshAvailableAt
+    ? Date.parse(account.manualRefreshAvailableAt)
+    : 0;
+  const refreshCooldownMs = Math.max(0, refreshAvailableAt - clock);
+  const refreshOnCooldown = refreshCooldownMs > 0;
 
   return (
     <section className="border-y border-white/10 py-8">
@@ -198,7 +230,7 @@ export function ChessComAccountSettings() {
           </p>
         </div>
         {account ? (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <a
               href={account.profileUrl}
               target="_blank"
@@ -208,6 +240,25 @@ export function ChessComAccountSettings() {
               {account.username}
               <ExternalLink aria-hidden="true" size={15} />
             </a>
+            {account.verified ? (
+              <button
+                type="button"
+                disabled={refreshing || disconnecting || refreshOnCooldown}
+                onClick={() => void refreshAccount()}
+                title="Chess.com 레이팅 갱신"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-800 px-3 text-sm font-medium text-slate-100 ring-1 ring-white/10 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw
+                  className={refreshing ? "animate-spin" : undefined}
+                  size={15}
+                />
+                {refreshing
+                  ? "갱신 중"
+                  : refreshOnCooldown
+                    ? `${Math.ceil(refreshCooldownMs / 60_000)}분 후 갱신`
+                    : "레이팅 갱신"}
+              </button>
+            ) : null}
             <button
               type="button"
               disabled={disconnecting}
@@ -225,34 +276,36 @@ export function ChessComAccountSettings() {
         ) : null}
       </div>
 
-      <form
-        className="mt-6 flex max-w-xl flex-col gap-3 sm:flex-row"
-        onSubmit={(event) => {
-          void submit(event);
-        }}
-      >
-        <label className="min-w-0 flex-1">
-          <span className="sr-only">Chess.com 사용자명</span>
-          <input
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            minLength={3}
-            maxLength={25}
-            pattern="[A-Za-z0-9_-]+"
-            autoComplete="off"
-            placeholder="Chess.com 사용자명"
-            className="h-10 w-full rounded-md border border-white/15 bg-slate-950 px-3 text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+      {!account ? (
+        <form
+          className="mt-6 flex max-w-xl flex-col gap-3 sm:flex-row"
+          onSubmit={(event) => {
+            void submit(event);
+          }}
         >
-          {submitting ? <LoaderCircle className="animate-spin" size={18} /> : <Link size={18} />}
-          {account ? "다시 조회" : "계정 조회"}
-        </button>
-      </form>
+          <label className="min-w-0 flex-1">
+            <span className="sr-only">Chess.com 사용자명</span>
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              minLength={3}
+              maxLength={25}
+              pattern="[A-Za-z0-9_-]+"
+              autoComplete="off"
+              placeholder="Chess.com 사용자명"
+              className="h-10 w-full rounded-md border border-white/15 bg-slate-950 px-3 text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitting ? <LoaderCircle className="animate-spin" size={18} /> : <Link size={18} />}
+            계정 조회
+          </button>
+        </form>
+      ) : null}
 
       {state.status === "error" ? (
         <p className="mt-3 text-sm text-red-300">{state.message}</p>
@@ -260,6 +313,11 @@ export function ChessComAccountSettings() {
 
       {account ? (
         <div className="mt-6">
+          {account.ratingsFetchedAt ? (
+            <p className="mb-4 text-xs text-slate-400">
+              마지막 갱신 {formatDateTime(account.ratingsFetchedAt)}
+            </p>
+          ) : null}
           {account.verified ? (
             <div className="flex items-center gap-3 border-l-2 border-emerald-400 pl-3 text-sm text-emerald-100">
               <CheckCircle2 className="shrink-0" size={18} />
@@ -356,4 +414,11 @@ export function ChessComAccountSettings() {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "요청을 처리하지 못했습니다.";
+}
+
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
 }

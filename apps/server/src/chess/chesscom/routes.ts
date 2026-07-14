@@ -29,6 +29,8 @@ import {
 } from "../../firebase/chess-verifications.js";
 import { ratingBadgeCache } from "../badge-cache.js";
 import { ensureHighestChessComBadge } from "../../firebase/chess-badges.js";
+import { ChessRatingRefreshError } from "../../firebase/chess-rating-refresh.js";
+import { chessComRatingRefreshService } from "./rating-refresh-service.js";
 
 const linkBodySchema = z.object({
   username: z
@@ -55,6 +57,7 @@ export interface ChessComRouteDependencies {
     location: string | null
   ): Promise<void>;
   ensureHighestBadge(uid: string, chzzkChannelId: string): Promise<boolean>;
+  refreshAccount(uid: string): Promise<void>;
   invalidateBadge(channelId: string): void;
 }
 
@@ -98,9 +101,18 @@ export async function registerChessComRoutes(
       }
 
       try {
+        const uid = getRequiredFirebaseUser(request).uid;
+        const existingAccount = await dependencies.getAccount(uid);
+
+        if (existingAccount) {
+          return reply.code(409).send({
+            error: "이미 연결된 계정이 있습니다. 레이팅 갱신 버튼을 사용해 주세요."
+          });
+        }
+
         const player = await dependencies.getPlayer(body.data.username);
         const account = await dependencies.saveAccount(
-          getRequiredFirebaseUser(request).uid,
+          uid,
           player
         );
         const channelId = getRequiredFirebaseUser(request).chzzkChannelId;
@@ -110,6 +122,27 @@ export async function registerChessComRoutes(
         }
 
         return reply.code(201).send({ ok: true, account: toResponse(account) });
+      } catch (error) {
+        return sendChessComError(error, reply);
+      }
+    }
+  );
+
+  app.post(
+    "/api/chess/chesscom/account/refresh",
+    { preHandler: dependencies.authenticate },
+    async (request, reply) => {
+      const uid = getRequiredFirebaseUser(request).uid;
+
+      try {
+        await dependencies.refreshAccount(uid);
+        const account = await dependencies.getAccount(uid);
+
+        if (!account) {
+          throw new ChessRatingRefreshError("account_missing");
+        }
+
+        return { ok: true, account: toResponse(account) };
       } catch (error) {
         return sendChessComError(error, reply);
       }
@@ -210,6 +243,7 @@ function defaultDependencies(): ChessComRouteDependencies {
     getPendingVerification: getPendingChessComLocationChallenge,
     completeVerification: completeChessComLocationVerification,
     ensureHighestBadge: ensureHighestChessComBadge,
+    refreshAccount: (uid) => chessComRatingRefreshService.refreshManual(uid),
     invalidateBadge: (channelId) => ratingBadgeCache.invalidate(channelId)
   };
 }
@@ -222,6 +256,9 @@ function toResponse(account: StoredChessComAccount) {
     avatarUrl: account.avatarUrl,
     verified: account.verified,
     selectedSpeed: account.selectedSpeed,
+    ratingsFetchedAt: account.ratingsFetchedAt?.toISOString() ?? null,
+    manualRefreshAvailableAt:
+      account.manualRefreshAvailableAt?.toISOString() ?? null,
     ratings: account.ratings
       .map((rating) => ({
         speed: rating.speed,
@@ -248,6 +285,33 @@ function sendChessComError(error: unknown, reply: FastifyReply) {
     }
 
     return reply.code(502).send({ error: "Chess.com 정보를 가져오지 못했습니다." });
+  }
+
+  if (error instanceof ChessRatingRefreshError) {
+    switch (error.code) {
+      case "account_missing":
+        return reply.code(404).send({ error: "연결된 Chess.com 계정이 없습니다." });
+      case "not_verified":
+        return reply.code(409).send({ error: "계정 소유 인증을 먼저 완료해 주세요." });
+      case "cooldown": {
+        const retryAfter = error.retryAt
+          ? Math.max(1, Math.ceil((error.retryAt.getTime() - Date.now()) / 1_000))
+          : 300;
+        return reply
+          .header("Retry-After", String(retryAfter))
+          .code(429)
+          .send({
+            error: "레이팅은 5분에 한 번만 직접 갱신할 수 있습니다.",
+            retryAt: error.retryAt?.toISOString() ?? null
+          });
+      }
+      case "in_progress":
+        return reply.code(409).send({ error: "레이팅을 이미 갱신하고 있습니다." });
+      case "identity_changed":
+        return reply.code(409).send({
+          error: "Chess.com 계정 식별자가 변경되었습니다. 계정을 다시 연결해 주세요."
+        });
+    }
   }
 
   if (error instanceof ChessVerificationError) {

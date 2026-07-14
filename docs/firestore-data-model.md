@@ -144,6 +144,14 @@ infrastructure access logs must redact the token path segment.
   avatarUrl: string | null;
   accountStatus: string;
   ratingsFetchedAt: Timestamp;
+  nextRatingRefreshAt: Timestamp;
+  manualRefreshAvailableAt: Timestamp;
+  lastRatingRefreshAttemptAt: Timestamp;
+  ratingRefreshStatus: "idle" | "refreshing" | "failed";
+  ratingRefreshFailureCount: number;
+  lastRatingRefreshError?: string;
+  ratingRefreshLeaseId?: string;
+  ratingRefreshLeaseUntil?: Timestamp;
   disconnectedAt: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -159,6 +167,14 @@ chooses the numerically highest Bullet, Blitz, or Rapid rating and copies it to
 the denormalized Chzzk badge. Ties prefer Rapid, then Blitz, then Bullet.
 Refreshing the same Chess.com account recalculates and refreshes the badge;
 changing accounts or losing all supported ratings clears it.
+
+Verified Chess.com accounts refresh automatically after 12 hours with up to 30
+minutes of random jitter. Fastify scans for due accounts every 15 minutes and
+processes PubAPI calls serially. Failed attempts retry with exponential backoff
+from 5 minutes to 6 hours while preserving the last valid rating and badge. A
+2-minute Firestore lease prevents duplicate work across concurrent server tasks
+and expires automatically after an interrupted refresh. Manual refreshes use a
+persisted 5-minute cooldown shared across browsers and server restarts.
 
 Disconnecting clears the user pointer, verification fields, selected speed,
 pending challenge, and Chzzk badge in one transaction. The detached account and

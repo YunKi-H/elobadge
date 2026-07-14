@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, beforeEach, test } from "node:test";
 import { deleteApp } from "firebase-admin/app";
+import { Timestamp } from "firebase-admin/firestore";
 import type { ChessComPlayer } from "../../chess/chesscom/client.js";
 import {
   ChessAccountConflictError,
@@ -15,6 +16,11 @@ import {
   completeChessComLocationVerification,
   createChessComLocationChallenge
 } from "../chess-verifications.js";
+import {
+  ChessRatingRefreshError,
+  claimManualChessComRatingRefresh,
+  completeChessComRatingRefresh
+} from "../chess-rating-refresh.js";
 
 const projectId = "demo-chessbadge-emulator";
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
@@ -88,6 +94,44 @@ test("Chess.com verification selects the highest badge and disconnect clears it"
   assert.equal(
     (await db.collection("chessVerificationChallenges").doc(accountId).get()).exists,
     false
+  );
+
+  const refreshTime = new Date("2026-07-15T12:00:00.000Z");
+  await db.collection("chessAccounts").doc(accountId).update({
+    manualRefreshAvailableAt: Timestamp.fromMillis(refreshTime.getTime() - 1)
+  });
+  const refreshClaim = await claimManualChessComRatingRefresh(uid, refreshTime);
+  const refreshedPlayer = {
+    ...player,
+    ratings: [
+      { ...player.ratings[0]!, value: 1900 },
+      { ...player.ratings[2]!, value: 1850 }
+    ]
+  };
+  await completeChessComRatingRefresh(
+    refreshClaim,
+    refreshedPlayer,
+    refreshTime,
+    new Date("2026-07-16T00:00:00.000Z")
+  );
+
+  assert.deepEqual(await getChzzkRatingBadge(channelId), {
+    provider: "chesscom",
+    speed: "bullet",
+    value: 1900,
+    provisional: false
+  });
+  assert.equal(
+    (await db.collection("chessAccounts").doc(accountId).collection("ratings").doc("blitz").get()).exists,
+    false
+  );
+  await assert.rejects(
+    claimManualChessComRatingRefresh(
+      uid,
+      new Date(refreshTime.getTime() + 60_000)
+    ),
+    (error: unknown) =>
+      error instanceof ChessRatingRefreshError && error.code === "cooldown"
   );
 
   assert.equal(await disconnectChessComAccount(uid, channelId), true);

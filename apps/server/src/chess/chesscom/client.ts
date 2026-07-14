@@ -204,10 +204,12 @@ export function createChessComClient(options: ChessComClientOptions) {
 
 export type ChessComClient = ReturnType<typeof createChessComClient>;
 
+let defaultClient: ChessComClient | null = null;
+
 export function getChessComClient(): ChessComClient {
-  return createChessComClient({
+  return (defaultClient ??= createChessComClient({
     userAgent: requiredEnv("CHESS_COM_USER_AGENT")
-  });
+  }));
 }
 
 function requiredEnv(name: string): string {

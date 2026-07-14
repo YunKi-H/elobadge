@@ -155,6 +155,13 @@ verification, pending challenge, selected speed, and denormalized Chzzk badge
 in one transaction. Rating snapshots remain detached for later refresh, but no
 verification state is inherited by a future link.
 
+Verified Chess.com ratings refresh automatically every 12 hours with up to 30
+minutes of jitter. A background scan runs every 15 minutes, processes PubAPI
+requests serially, and retries failures with capped exponential backoff without
+removing the last valid badge. Firestore leases prevent duplicate refreshes.
+Viewers can also request a refresh from the account page once every five minutes;
+the cooldown is persisted in Firestore.
+
 ## First Milestone
 
 The first product risk to remove is Chzzk chat ingestion:

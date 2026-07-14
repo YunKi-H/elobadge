@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import { createFirebaseAuthPreHandler, registerFirebaseAuthentication } from "../../auth/firebase.js";
 import { ChessComClientError, type ChessComPlayer } from "./client.js";
 import { registerChessComRoutes, type ChessComRouteDependencies } from "./routes.js";
+import { ChessRatingRefreshError } from "../../firebase/chess-rating-refresh.js";
 
 const player: ChessComPlayer = {
   username: "TestUser",
@@ -175,6 +176,51 @@ test("disconnects the viewer's Chess.com account and invalidates its badge", asy
   await app.close();
 });
 
+test("manually refreshes a verified Chess.com account", async () => {
+  let refreshedUid: string | null = null;
+  const app = await createApp({
+    refreshAccount: async (uid) => {
+      refreshedUid = uid;
+    },
+    getAccount: async () => ({
+      ...player,
+      verified: true,
+      selectedSpeed: "rapid",
+      ratingsFetchedAt: new Date("2026-07-15T00:05:00.000Z"),
+      manualRefreshAvailableAt: new Date("2026-07-15T00:10:00.000Z")
+    })
+  });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/chess/chesscom/account/refresh",
+    headers: { authorization: "Bearer valid-token" }
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(refreshedUid, "chzzk:viewer");
+  assert.equal(response.json().account.ratingsFetchedAt, "2026-07-15T00:05:00.000Z");
+  await app.close();
+});
+
+test("returns the manual refresh cooldown as retry metadata", async () => {
+  const retryAt = new Date(Date.now() + 5 * 60 * 1_000);
+  const app = await createApp({
+    refreshAccount: async () => {
+      throw new ChessRatingRefreshError("cooldown", retryAt);
+    }
+  });
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/chess/chesscom/account/refresh",
+    headers: { authorization: "Bearer valid-token" }
+  });
+
+  assert.equal(response.statusCode, 429);
+  assert.equal(Number(response.headers["retry-after"]) >= 299, true);
+  assert.equal(response.json().retryAt, retryAt.toISOString());
+  await app.close();
+});
+
 async function createApp(overrides: Partial<ChessComRouteDependencies> = {}) {
   const app = Fastify();
   await registerFirebaseAuthentication(app);
@@ -205,6 +251,7 @@ async function createApp(overrides: Partial<ChessComRouteDependencies> = {}) {
     }),
     completeVerification: async () => undefined,
     ensureHighestBadge: async () => false,
+    refreshAccount: async () => undefined,
     invalidateBadge: () => undefined,
     ...overrides
   });

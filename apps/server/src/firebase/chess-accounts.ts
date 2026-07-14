@@ -2,6 +2,10 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { ChessComPlayer, ChessComRating } from "../chess/chesscom/client.js";
 import { getFirestoreDb } from "./admin.js";
 import { getHighestChessComRating } from "../chess/rating-selection.js";
+import {
+  CHESS_COM_MANUAL_REFRESH_COOLDOWN_MS,
+  getNextChessComRefreshAt
+} from "../chess/chesscom/rating-refresh-policy.js";
 
 export interface StoredChessComAccount {
   username: string;
@@ -12,6 +16,8 @@ export interface StoredChessComAccount {
   status: string;
   verified: boolean;
   selectedSpeed: ChessComRating["speed"] | null;
+  ratingsFetchedAt: Date | null;
+  manualRefreshAvailableAt: Date | null;
   ratings: ChessComRating[];
 }
 
@@ -64,6 +70,10 @@ export async function disconnectChessComAccount(
       verifiedAt: null,
       verificationMethod: null,
       selectedSpeed: null,
+      nextRatingRefreshAt: FieldValue.delete(),
+      ratingRefreshStatus: FieldValue.delete(),
+      ratingRefreshLeaseId: FieldValue.delete(),
+      ratingRefreshLeaseUntil: FieldValue.delete(),
       disconnectedAt: now,
       updatedAt: now
     });
@@ -90,6 +100,10 @@ export async function saveUnverifiedChessComAccount(
   const accountRef = db.collection("chessAccounts").doc(accountId);
   const userRef = db.collection("users").doc(uid);
   const chzzkChannelId = uid.startsWith("chzzk:") ? uid.slice(6) : null;
+  const fetchedAt = new Date();
+  const manualRefreshAvailableAt = new Date(
+    fetchedAt.getTime() + CHESS_COM_MANUAL_REFRESH_COOLDOWN_MS
+  );
 
   const savedState = await db.runTransaction(async (transaction) => {
     const [accountSnapshot, userSnapshot] = await Promise.all([
@@ -147,7 +161,16 @@ export async function saveUnverifiedChessComAccount(
         disconnectedAt: null,
         ...(accountSnapshot.exists ? {} : { createdAt: now }),
         updatedAt: now,
-        ratingsFetchedAt: now
+        ratingsFetchedAt: Timestamp.fromDate(fetchedAt),
+        manualRefreshAvailableAt: Timestamp.fromDate(manualRefreshAvailableAt),
+        nextRatingRefreshAt: verified
+          ? Timestamp.fromDate(getNextChessComRefreshAt(fetchedAt))
+          : FieldValue.delete(),
+        ratingRefreshStatus: "idle",
+        ratingRefreshFailureCount: 0,
+        lastRatingRefreshError: FieldValue.delete(),
+        ratingRefreshLeaseId: FieldValue.delete(),
+        ratingRefreshLeaseUntil: FieldValue.delete()
       },
       { merge: true }
     );
@@ -202,7 +225,9 @@ export async function saveUnverifiedChessComAccount(
   return {
     ...player,
     verified: savedState.verified,
-    selectedSpeed: savedState.selectedSpeed
+    selectedSpeed: savedState.selectedSpeed,
+    ratingsFetchedAt: fetchedAt,
+    manualRefreshAvailableAt
   };
 }
 
@@ -258,6 +283,14 @@ export async function getUserChessComAccount(
     status: String(data.accountStatus),
     verified: data.verifiedAt instanceof Timestamp,
     selectedSpeed: isChessComSpeed(data.selectedSpeed) ? data.selectedSpeed : null,
+    ratingsFetchedAt:
+      data.ratingsFetchedAt instanceof Timestamp
+        ? data.ratingsFetchedAt.toDate()
+        : null,
+    manualRefreshAvailableAt:
+      data.manualRefreshAvailableAt instanceof Timestamp
+        ? data.manualRefreshAvailableAt.toDate()
+        : null,
     ratings
   };
 }

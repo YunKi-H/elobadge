@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getFirestoreDb } from "./admin.js";
 import { getHighestChessComRating } from "../chess/rating-selection.js";
+import { getNextChessComRefreshAt } from "../chess/chesscom/rating-refresh-policy.js";
 
 const CHALLENGE_LIFETIME_MS = 48 * 60 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 10;
@@ -185,10 +186,16 @@ export async function completeChessComLocationVerification(
     );
 
     const now = FieldValue.serverTimestamp();
+    const verifiedAt = new Date();
     transaction.update(accountRef, {
       verifiedAt: now,
       verificationMethod: "profile_location",
       selectedSpeed: highestRating?.speed ?? null,
+      nextRatingRefreshAt: Timestamp.fromDate(
+        getNextChessComRefreshAt(verifiedAt)
+      ),
+      ratingRefreshStatus: "idle",
+      ratingRefreshFailureCount: 0,
       updatedAt: now
     });
     const chzzkChannelId = uid.startsWith("chzzk:") ? uid.slice(6) : null;

@@ -40,6 +40,8 @@ export interface ChessComAccount {
   avatarUrl: string | null;
   verified: boolean;
   selectedSpeed: "bullet" | "blitz" | "rapid" | null;
+  ratingsFetchedAt: string | null;
+  manualRefreshAvailableAt: string | null;
   ratings: Array<{
     speed: "bullet" | "blitz" | "rapid";
     value: number;
@@ -88,6 +90,20 @@ export async function disconnectChessComAccount(): Promise<void> {
   if (!response.ok || !isChessComAccountResponse(body) || body.account !== null) {
     throw new Error(apiError(body, "Chess.com 계정 연동을 해제하지 못했습니다."));
   }
+}
+
+export async function refreshChessComAccount(): Promise<ChessComAccount> {
+  const response = await authenticatedFetch(
+    "/api/chess/chesscom/account/refresh",
+    { method: "POST" }
+  );
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok || !isChessComAccountResponse(body) || !body.account) {
+    throw new Error(apiError(body, "Chess.com 레이팅을 갱신하지 못했습니다."));
+  }
+
+  return body.account;
 }
 
 export async function createChessComVerification(): Promise<ChessComVerificationChallenge> {
@@ -242,6 +258,10 @@ function isChessComAccountResponse(
     typeof response.account.username === "string" &&
     typeof response.account.profileUrl === "string" &&
     typeof response.account.verified === "boolean" &&
+    (response.account.ratingsFetchedAt === null ||
+      typeof response.account.ratingsFetchedAt === "string") &&
+    (response.account.manualRefreshAvailableAt === null ||
+      typeof response.account.manualRefreshAvailableAt === "string") &&
     (response.account.selectedSpeed === null ||
       response.account.selectedSpeed === "bullet" ||
       response.account.selectedSpeed === "blitz" ||
