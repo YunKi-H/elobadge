@@ -1,0 +1,149 @@
+# Lightsail Deployment
+
+This deployment runs one ChessBadge application container behind Caddy on a
+Lightsail Linux instance. Keep exactly one application container until the
+in-memory OAuth exchange and realtime event state move to shared infrastructure.
+
+## 1. Prepare the Domain and GitHub Repository
+
+Choose the production hostname, for example `badge.example.com`.
+
+In the GitHub repository, add these Actions secrets under **Settings > Secrets
+and variables > Actions**:
+
+```text
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_APP_ID
+```
+
+These values become part of the public browser bundle; the `secret` setting only
+prevents accidental exposure in build logs. Never add Firebase Admin credentials
+or Chzzk secrets as Docker build arguments.
+
+Push to `main` or manually run the **Build container** workflow. It publishes:
+
+```text
+ghcr.io/yunki-h/chessbadge:latest
+ghcr.io/yunki-h/chessbadge:sha-<commit>
+```
+
+Make the GHCR package public. If it must remain private, authenticate Docker on
+the server with a GitHub token that has only `read:packages` permission.
+
+## 2. Create the Lightsail Instance
+
+1. Create an Ubuntu 24.04 LTS Linux instance with at least 1 GB memory.
+2. Attach a Lightsail static IPv4 address.
+3. Allow TCP ports 80 and 443 and UDP port 443 in the Lightsail firewall.
+4. Restrict TCP port 22 to the administrator's IP where practical.
+5. Point the hostname's DNS `A` record to the static IPv4 address.
+
+Do not expose Fastify port 3000 in the Lightsail firewall. It is reachable only
+from Caddy inside the Compose network.
+
+## 3. Install Docker
+
+Connect over SSH and install Docker from Ubuntu packages:
+
+```sh
+sudo apt update
+sudo apt install -y docker.io docker-compose-v2 git
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"
+```
+
+Log out and reconnect once so the Docker group membership takes effect.
+
+## 4. Configure the Service
+
+Clone the repository and create the runtime environment file:
+
+```sh
+sudo mkdir -p /opt/chessbadge
+sudo chown "$USER":"$USER" /opt/chessbadge
+git clone https://github.com/YunKi-H/chessbadge.git /opt/chessbadge/repository
+cd /opt/chessbadge/repository/deploy
+cp .env.example .env
+chmod 600 .env
+```
+
+Edit `deploy/.env`. At minimum, replace every empty value and example domain.
+Keep `FIREBASE_PRIVATE_KEY` on one line with literal `\n` sequences. Generate the
+token encryption key with:
+
+```sh
+openssl rand -base64 32
+```
+
+Use the generated value for `CHZZK_TOKEN_ENCRYPTION_KEY`. Do not rotate this key
+after streamer tokens have been stored unless every streamer will log in again.
+
+Start the containers:
+
+```sh
+docker compose pull
+docker compose up -d
+docker compose ps
+docker compose logs --tail=100 app caddy
+```
+
+Caddy requests and renews the TLS certificate automatically after DNS resolves
+to the instance and ports 80 and 443 are reachable.
+
+## 5. Update OAuth and Firebase
+
+Set the Chzzk developer console callback URL to:
+
+```text
+https://badge.example.com/api/auth/chzzk/callback
+```
+
+The same value must be stored in `CHZZK_REDIRECT_URI`. Add the production
+hostname to **Firebase Authentication > Settings > Authorized domains**.
+
+Verify these flows after deployment:
+
+1. Open `/health` and confirm an HTTP 200 response.
+2. Complete viewer login and Chess.com account loading.
+3. Complete streamer login and confirm the chat session is subscribed.
+4. Add the permanent overlay URL to OBS and send a real Chzzk chat message.
+5. Restart with `docker compose restart app` and confirm enabled chat sessions
+   recover automatically.
+
+## 6. Deploy an Update
+
+After the GitHub workflow succeeds:
+
+```sh
+cd /opt/chessbadge/repository
+git pull --ff-only
+cd deploy
+docker compose pull
+docker compose up -d
+docker image prune -f
+```
+
+Check `docker compose ps` and application logs after every update.
+
+## 7. Roll Back
+
+Every build also has an immutable `sha-<commit>` tag. Change
+`CHESSBADGE_IMAGE` in `deploy/.env` to the previous tag and run:
+
+```sh
+docker compose pull app
+docker compose up -d app
+```
+
+Change the value back to `latest` only after the failing release is fixed.
+
+## 8. Minimum Operations Checklist
+
+- Enable Lightsail instance metric alarms and an external `/health` monitor.
+- Configure AWS and Firebase budget alerts; alerts do not automatically cap cost.
+- Keep Ubuntu security updates current and reboot during a planned window.
+- Never commit `deploy/.env`, service-account JSON, or private keys.
+- Retain at most the required Docker images and inspect disk usage periodically.
+- Test a full instance reboot before inviting external beta users.

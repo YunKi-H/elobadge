@@ -90,7 +90,10 @@ export async function registerChessComRoutes(
 
   app.post(
     "/api/chess/chesscom/account",
-    { preHandler: dependencies.authenticate },
+    {
+      preHandler: dependencies.authenticate,
+      config: { rateLimit: { max: 10, timeWindow: "10 minutes" } }
+    },
     async (request, reply) => {
       const body = linkBodySchema.safeParse(request.body);
 
@@ -175,7 +178,10 @@ export async function registerChessComRoutes(
 
   app.post(
     "/api/chess/chesscom/verification",
-    { preHandler: dependencies.authenticate },
+    {
+      preHandler: dependencies.authenticate,
+      config: { rateLimit: { max: 5, timeWindow: "10 minutes" } }
+    },
     async (request, reply) => {
       try {
         const challenge = await dependencies.createVerification(
@@ -197,7 +203,10 @@ export async function registerChessComRoutes(
 
   app.post(
     "/api/chess/chesscom/verification/confirm",
-    { preHandler: dependencies.authenticate },
+    {
+      preHandler: dependencies.authenticate,
+      config: { rateLimit: { max: 10, timeWindow: "10 minutes" } }
+    },
     async (request, reply) => {
       const uid = getRequiredFirebaseUser(request).uid;
       const channelId = getRequiredFirebaseUser(request).chzzkChannelId;

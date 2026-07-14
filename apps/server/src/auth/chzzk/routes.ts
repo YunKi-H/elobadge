@@ -31,7 +31,11 @@ const startQuerySchema = z.object({
 const pendingStates = new OneTimeStore<{ mode: ChzzkLoginMode }>(10 * 60 * 1_000);
 
 export async function registerChzzkAuthRoutes(app: FastifyInstance) {
-  app.get("/api/auth/chzzk/start", async (request, reply) => {
+  app.get("/api/auth/chzzk/start", {
+    config: {
+      rateLimit: { max: 10, timeWindow: "1 minute" }
+    }
+  }, async (request, reply) => {
     const result = startQuerySchema.safeParse(request.query);
 
     if (!result.success) {
@@ -47,7 +51,11 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
     return reply.redirect(createChzzkAuthorizationUrl(config, state).toString());
   });
 
-  app.get("/api/auth/chzzk/callback", async (request, reply) => {
+  app.get("/api/auth/chzzk/callback", {
+    config: {
+      rateLimit: { max: 20, timeWindow: "1 minute" }
+    }
+  }, async (request, reply) => {
     const result = callbackQuerySchema.safeParse(request.query);
 
     if (!result.success) {

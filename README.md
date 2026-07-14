@@ -9,7 +9,7 @@ ChessBadge is a Chzzk-first chess rating chat overlay for streamers.
 - Database/Auth: Cloud Firestore, Firebase Authentication
 - Firebase access: Firebase Admin SDK on the server, Firebase Web SDK for auth
 - Realtime: SSE first, WebSocket later if needed
-- Deploy target: ECS Fargate
+- Deploy target: Amazon Lightsail Linux instance with Docker Compose and Caddy
 
 Local development uses Node.js 24 LTS, pnpm 11, and Java 21 or newer for the
 Firestore Emulator. Production containers pin Node.js 24.18.0.
@@ -109,7 +109,11 @@ for the single-task MVP. Move the exchange store to Redis before running multipl
 ECS tasks.
 
 Use `GET /api/firebase/status` to verify both Firebase Authentication and Firestore
-server connectivity.
+server connectivity. This diagnostic endpoint requires Firebase authentication.
+
+Production HTTP requests receive standard security headers and are rate-limited
+per client IP. `WEB_APP_URL` is the default allowed browser origin; add any
+additional origins through the comma-separated `CORS_ALLOWED_ORIGINS` variable.
 
 ## Authenticated API
 
@@ -204,6 +208,16 @@ The first product risk to remove is Chzzk chat ingestion:
 
 The existing Chzzk chat proof of concept still runs without Firebase credentials.
 Firebase is initialized lazily when an auth or database feature first uses it.
+
+## Production Deployment
+
+The production image is built by GitHub Actions and published to GHCR. A
+Lightsail instance only pulls and runs the image; it does not compile the
+TypeScript workspace. Caddy terminates HTTPS and proxies both normal HTTP and
+long-lived SSE requests to Fastify.
+
+See [docs/lightsail-deployment.md](docs/lightsail-deployment.md) for the complete
+first deployment, update, rollback, and OAuth configuration procedure.
 
 ## Firestore Emulator Tests
 

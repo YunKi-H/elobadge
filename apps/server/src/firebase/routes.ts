@@ -9,7 +9,11 @@ const loginExchangeBodySchema = z.object({
 });
 
 export async function registerFirebaseRoutes(app: FastifyInstance) {
-  app.post("/api/auth/firebase/exchange", async (request, reply) => {
+  app.post("/api/auth/firebase/exchange", {
+    config: {
+      rateLimit: { max: 10, timeWindow: "1 minute" }
+    }
+  }, async (request, reply) => {
     const result = loginExchangeBodySchema.safeParse(request.body);
 
     if (!result.success) {
@@ -49,7 +53,10 @@ export async function registerFirebaseRoutes(app: FastifyInstance) {
     }
   );
 
-  app.get("/api/firebase/status", async (request, reply) => {
+  app.get(
+    "/api/firebase/status",
+    { preHandler: requireFirebaseUser },
+    async (request, reply) => {
     try {
       const auth = getFirebaseAuth();
       const db = getFirestoreDb();
@@ -75,7 +82,8 @@ export async function registerFirebaseRoutes(app: FastifyInstance) {
         error: "Firebase connection failed"
       });
     }
-  });
+    }
+  );
 }
 
 function getFirebaseAdminProjectId() {

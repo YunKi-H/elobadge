@@ -13,10 +13,12 @@ import { registerFirebaseRoutes } from "./firebase/routes.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerOverlayRoutes } from "./routes/overlay.js";
 import { chessComRatingRefreshService } from "./chess/chesscom/rating-refresh-service.js";
+import { registerHttpSecurity } from "./security/http-security.js";
 
 const port = Number(process.env.PORT ?? 3000);
 
 const app = Fastify({
+  trustProxy: process.env.NODE_ENV === "production",
   logger: {
     level: process.env.NODE_ENV === "production" ? "info" : "debug",
     serializers: {
@@ -25,10 +27,7 @@ const app = Fastify({
   }
 });
 
-await app.register(cors, {
-  origin: true,
-  credentials: true
-});
+await registerHttpSecurity(app, cors);
 
 await registerFirebaseAuthentication(app);
 
