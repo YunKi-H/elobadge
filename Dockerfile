@@ -9,7 +9,10 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/core/package.json packages/core/package.json
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts \
+  --filter @chessbadge/core... \
+  --filter @chessbadge/server... \
+  --filter @chessbadge/web...
 
 FROM deps AS build
 ARG VITE_FIREBASE_API_KEY
@@ -31,6 +34,7 @@ COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
 COPY --from=deps /app/packages/core/node_modules ./packages/core/node_modules
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/apps/server/package.json ./apps/server/package.json
+COPY --from=build /app/packages/core/package.json ./packages/core/package.json
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/packages/core/dist ./packages/core/dist
 COPY --from=build /app/apps/web/dist ./apps/web/dist
