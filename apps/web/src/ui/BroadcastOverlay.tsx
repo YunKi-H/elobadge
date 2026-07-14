@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ChatOverlayEvent } from "@chessbadge/core";
 import { parseChatOverlayEvent } from "../realtime/chat-event";
+import { RatingBadge } from "./RatingBadge";
 
 const MESSAGE_LIFETIME_MS = 20_000;
 
@@ -51,9 +52,7 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
             className="overlay-message flex w-fit max-w-full items-center gap-2 rounded-md bg-slate-950/90 px-3 py-2 text-lg shadow-lg ring-1 ring-white/15"
           >
             {message.rating ? (
-              <span className="shrink-0 rounded bg-emerald-400 px-2 py-1 text-sm font-bold text-slate-950">
-                ♟ {message.rating.value}
-              </span>
+              <RatingBadge rating={message.rating} />
             ) : null}
             <span className="shrink-0 font-semibold text-sky-300">
               {message.nickname}:

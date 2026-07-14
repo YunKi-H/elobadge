@@ -3,6 +3,7 @@ import type { ChatOverlayEvent } from "@chessbadge/core";
 import { onAuthStateChanged } from "firebase/auth";
 import { getFirebaseClientAuth } from "../firebase/client";
 import { parseChatOverlayEvent } from "../realtime/chat-event";
+import { RatingBadge } from "./RatingBadge";
 
 export function OverlayPreview() {
   const [messages, setMessages] = useState<ChatOverlayEvent[]>([]);
@@ -40,9 +41,7 @@ export function OverlayPreview() {
             className="flex items-center gap-2 rounded-md bg-slate-900/80 px-3 py-2 shadow-lg ring-1 ring-white/10"
           >
             {message.rating ? (
-              <span className="rounded bg-emerald-500 px-2 py-1 text-sm font-semibold text-slate-950">
-                ♟ {message.rating.value}
-              </span>
+              <RatingBadge rating={message.rating} />
             ) : null}
             <span className="font-semibold text-sky-200">{message.nickname}:</span>
             <span className="text-slate-100">{message.content}</span>
