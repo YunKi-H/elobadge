@@ -1,7 +1,7 @@
 import type { RatingBadge } from "@chessbadge/core";
 import { getChzzkRatingBadge } from "../firebase/chess-badges.js";
 
-const DEFAULT_TTL_MS = 60_000;
+const DEFAULT_TTL_MS = 10 * 60_000;
 const DEFAULT_MAX_ENTRIES = 10_000;
 
 interface CacheEntry {
