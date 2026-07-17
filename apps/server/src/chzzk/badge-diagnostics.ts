@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import type { FastifyBaseLogger } from "fastify";
 
 const MAX_DIAGNOSTIC_SIGNATURES = 100;
 const MAX_BADGES_PER_DIAGNOSTIC = 10;
 const MAX_FIELDS_PER_BADGE = 20;
 const MAX_TEXT_LENGTH = 80;
+const MAX_IMAGE_PATH_LENGTH = 300;
 const SAFE_METADATA_FIELD_PATTERN = /(type|name|id|tier|level|rank)/i;
 
 interface ChzzkBadgeDiagnosticProfile {
@@ -73,8 +75,38 @@ function sanitizeBadge(badge: unknown) {
       return value === null ? [] : [[field.slice(0, MAX_TEXT_LENGTH), value]];
     })
   );
+  const image = sanitizeImageUrl(record.imageUrl);
 
-  return { fields, metadata };
+  return { fields, metadata, ...(image ? { image } : {}) };
+}
+
+function sanitizeImageUrl(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  try {
+    const url = new URL(value);
+
+    if (url.protocol !== "https:") {
+      return null;
+    }
+
+    const host = url.hostname.toLowerCase();
+    const path = url.pathname;
+    const fingerprint = createHash("sha256")
+      .update(`${host}${path}`)
+      .digest("hex")
+      .slice(0, 16);
+
+    return {
+      host,
+      path: path.slice(0, MAX_IMAGE_PATH_LENGTH),
+      fingerprint
+    };
+  } catch {
+    return null;
+  }
 }
 
 function sanitizeMetadataValue(

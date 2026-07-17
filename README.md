@@ -99,9 +99,10 @@ do not force reconnection. Chat inactivity is never treated as a failure.
 
 To inspect undocumented Chzzk badge shapes temporarily, set
 `CHZZK_BADGE_DIAGNOSTICS=true` and restart the server. The diagnostic logs only
-role, verification state, badge field names, and short type-like metadata. It
-omits chat content, nicknames, channel IDs, and image URLs, and logs each unique
-shape once per process. Disable the flag and restart after collecting samples.
+role, verification state, badge field names, short type-like metadata, and a
+sanitized image host/path/fingerprint. It omits chat content, nicknames, channel
+IDs, full image URLs, query strings, and fragments, and logs each unique shape
+once per process. Disable the flag and restart after collecting samples.
 
 Authenticated streamers can create, rotate, enable, and disable a 256-bit public
 overlay token. `/overlay/{token}` is the OBS browser-source page and
