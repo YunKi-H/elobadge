@@ -129,6 +129,22 @@ export function parseOverlayAppearanceEvent(
     typeof appearance.messageColor !== "string" ||
     !/^#[0-9A-Fa-f]{6}$/.test(appearance.messageColor) ||
     !isChatAuthorColors(appearance.messageRoleColors) ||
+    (appearance.fontFamily !== "system" &&
+      appearance.fontFamily !== "pretendard" &&
+      appearance.fontFamily !== "freesentation" &&
+      appearance.fontFamily !== "paperlogy") ||
+    typeof appearance.fontSizePx !== "number" ||
+    !Number.isInteger(appearance.fontSizePx) ||
+    appearance.fontSizePx < 12 ||
+    appearance.fontSizePx > 36 ||
+    (appearance.fontWeight !== 400 &&
+      appearance.fontWeight !== 500 &&
+      appearance.fontWeight !== 600 &&
+      appearance.fontWeight !== 700 &&
+      appearance.fontWeight !== 900) ||
+    (appearance.fontLineHeight !== 1.2 &&
+      appearance.fontLineHeight !== 1.4 &&
+      appearance.fontLineHeight !== 1.6) ||
     (appearance.messageDurationSeconds !== 0 &&
       appearance.messageDurationSeconds !== 10 &&
       appearance.messageDurationSeconds !== 20 &&
@@ -163,6 +179,10 @@ export function parseOverlayAppearanceEvent(
       subscriber: appearance.messageRoleColors.subscriber.toUpperCase(),
       viewer: appearance.messageRoleColors.viewer.toUpperCase()
     },
+    fontFamily: appearance.fontFamily,
+    fontSizePx: appearance.fontSizePx,
+    fontWeight: appearance.fontWeight,
+    fontLineHeight: appearance.fontLineHeight,
     messageDurationSeconds: appearance.messageDurationSeconds
   };
 }

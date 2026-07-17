@@ -1,4 +1,18 @@
-import type { ChatOverlayEvent, OverlayAppearance } from "@elobadge/core";
+import type {
+  ChatOverlayEvent,
+  OverlayAppearance,
+  OverlayFontFamily
+} from "@elobadge/core";
+
+const SYSTEM_FONT_FAMILY =
+  'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+const OVERLAY_FONT_FAMILIES: Record<OverlayFontFamily, string> = {
+  system: SYSTEM_FONT_FAMILY,
+  pretendard: `"Pretendard", ${SYSTEM_FONT_FAMILY}`,
+  "freesentation": `"Freesentation", ${SYSTEM_FONT_FAMILY}`,
+  paperlogy: `"Paperlogy", ${SYSTEM_FONT_FAMILY}`
+};
 
 const USER_NICKNAME_COLORS = [
   "#7DD3FC",
@@ -56,4 +70,8 @@ export function overlayMessageColor(
   return appearance.messageColorMode === "by_role"
     ? appearance.messageRoleColors[message.authorKind]
     : appearance.messageColor;
+}
+
+export function overlayFontFamily(appearance: OverlayAppearance): string {
+  return OVERLAY_FONT_FAMILIES[appearance.fontFamily];
 }

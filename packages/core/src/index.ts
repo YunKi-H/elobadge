@@ -6,6 +6,16 @@ export type NicknameColorMode = "fixed" | "by_user" | "by_role";
 
 export type MessageColorMode = "fixed" | "by_role";
 
+export type OverlayFontFamily =
+  | "system"
+  | "pretendard"
+  | "freesentation"
+  | "paperlogy";
+
+export type OverlayFontWeight = 400 | 500 | 600 | 700 | 900;
+
+export type OverlayFontLineHeight = 1.2 | 1.4 | 1.6;
+
 export type ChatAuthorKind =
   | "streamer"
   | "manager"
@@ -77,6 +87,10 @@ export interface OverlayAppearance {
   messageColorMode: MessageColorMode;
   messageColor: string;
   messageRoleColors: ChatAuthorColors;
+  fontFamily: OverlayFontFamily;
+  fontSizePx: number;
+  fontWeight: OverlayFontWeight;
+  fontLineHeight: OverlayFontLineHeight;
   messageDurationSeconds: OverlayMessageDurationSeconds;
 }
 
@@ -111,5 +125,9 @@ export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
     subscriber: "#D8B4FE",
     viewer: "#FFFFFF"
   },
+  fontFamily: "system",
+  fontSizePx: 18,
+  fontWeight: 400,
+  fontLineHeight: 1.4,
   messageDurationSeconds: 20
 };

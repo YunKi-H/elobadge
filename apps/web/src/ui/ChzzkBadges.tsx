@@ -23,7 +23,7 @@ export function ChzzkBadges({
           key={badge.imageUrl}
           src={badge.imageUrl}
           alt=""
-          className="h-5 max-w-[3.75rem] shrink-0 object-contain"
+          className="h-[1em] max-w-[3em] shrink-0 object-contain"
           referrerPolicy="no-referrer"
         />
       ))}

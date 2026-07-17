@@ -206,6 +206,10 @@ test("overlay appearance persists and survives public token rotation", async () 
       subscriber: "#D8B4FE",
       viewer: "#FFFFFF"
     },
+    fontFamily: "system",
+    fontSizePx: 18,
+    fontWeight: 400,
+    fontLineHeight: 1.4,
     messageDurationSeconds: 20
   });
 
@@ -240,6 +244,10 @@ test("overlay appearance persists and survives public token rotation", async () 
       subscriber: "#D8B4FE",
       viewer: "#FFFFFF"
     },
+    fontFamily: "freesentation" as const,
+    fontSizePx: 22,
+    fontWeight: 600 as const,
+    fontLineHeight: 1.6 as const,
     messageDurationSeconds: 60 as const
   };
   await updateStreamerOverlayAppearance(uid, appearance);

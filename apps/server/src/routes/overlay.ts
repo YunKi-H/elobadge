@@ -70,6 +70,25 @@ const overlayAppearanceSchema = z.object({
     subscriber: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
     viewer: z.string().regex(/^#[0-9A-Fa-f]{6}$/)
   }).default(DEFAULT_OVERLAY_APPEARANCE.messageRoleColors),
+  fontFamily: z.enum([
+    "system",
+    "pretendard",
+    "freesentation",
+    "paperlogy"
+  ]).default("system"),
+  fontSizePx: z.number().int().min(12).max(36).default(18),
+  fontWeight: z.union([
+    z.literal(400),
+    z.literal(500),
+    z.literal(600),
+    z.literal(700),
+    z.literal(900)
+  ]).default(400),
+  fontLineHeight: z.union([
+    z.literal(1.2),
+    z.literal(1.4),
+    z.literal(1.6)
+  ]).default(1.4),
   messageDurationSeconds: z.union([
     z.literal(0),
     z.literal(10),

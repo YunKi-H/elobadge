@@ -5,7 +5,7 @@ export function RatingBadge({ rating }: { rating: RatingBadgeData }) {
 
   return (
     <span
-      className="mt-0.5 flex shrink-0 items-center gap-1 rounded bg-white px-1.5 py-0.5 text-xs font-bold leading-none text-slate-950 shadow-sm ring-1 ring-black/10"
+      className="mt-[0.15em] flex shrink-0 items-center gap-[0.25em] rounded bg-white px-[0.45em] py-[0.2em] text-[0.72em] font-bold leading-none text-slate-950 shadow-sm ring-1 ring-black/10"
       aria-label={`${providerName} rating ${rating.value}`}
       title={`${providerName} ${rating.speed} rating`}
     >
@@ -13,9 +13,7 @@ export function RatingBadge({ rating }: { rating: RatingBadgeData }) {
         <img
           src="/chess-com-logo.svg"
           alt=""
-          className="size-4 shrink-0"
-          width="16"
-          height="16"
+          className="size-[1.15em] shrink-0"
         />
       ) : (
         <span aria-hidden="true">♟</span>

@@ -49,6 +49,10 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
       subscriber: "#D8B4FE",
       viewer: "#FFFFFF"
     },
+    fontFamily: "system",
+    fontSizePx: 18,
+    fontWeight: 400,
+    fontLineHeight: 1.4,
     messageDurationSeconds: 20
   });
 
@@ -84,6 +88,10 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
         subscriber: "#444444",
         viewer: "#555555"
       },
+      fontFamily: "paperlogy",
+      fontSizePx: 24,
+      fontWeight: 700,
+      fontLineHeight: 1.6,
       messageDurationSeconds: 60
     }),
     {
@@ -117,9 +125,27 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
         subscriber: "#444444",
         viewer: "#555555"
       },
+      fontFamily: "paperlogy",
+      fontSizePx: 24,
+      fontWeight: 700,
+      fontLineHeight: 1.6,
       messageDurationSeconds: 60
     }
   );
+});
+
+test("overlay appearance rejects unsupported font settings", () => {
+  const appearance = normalizeOverlayAppearance({
+    fontFamily: "remote-font",
+    fontSizePx: 72,
+    fontWeight: 800,
+    fontLineHeight: 2
+  });
+
+  assert.equal(appearance.fontFamily, "system");
+  assert.equal(appearance.fontSizePx, 18);
+  assert.equal(appearance.fontWeight, 400);
+  assert.equal(appearance.fontLineHeight, 1.4);
 });
 
 test("overlay appearance fills missing badge visibility for legacy themes", () => {

@@ -65,6 +65,10 @@ test("overlay appearance updates are scoped to one public token", () => {
       subscriber: "#D8B4FE",
       viewer: "#FFFFFF"
     },
+    fontFamily: "system",
+    fontSizePx: 18,
+    fontWeight: 400,
+    fontLineHeight: 1.4,
     messageDurationSeconds: 20
   });
   unsubscribeFirst();

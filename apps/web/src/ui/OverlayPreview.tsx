@@ -11,6 +11,7 @@ import { parseChatOverlayEvent } from "../realtime/chat-event";
 import { RatingBadge } from "./RatingBadge";
 import {
   overlayBackgroundColor,
+  overlayFontFamily,
   overlayMessageColor,
   overlayNicknameColor
 } from "./overlay-appearance";
@@ -105,7 +106,11 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
               key={message.id}
               className={`flex w-fit max-w-full min-w-0 shrink-0 items-start gap-2 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/10" : "p-0"}`}
               style={{
-                backgroundColor: overlayBackgroundColor(appearance)
+                backgroundColor: overlayBackgroundColor(appearance),
+                fontFamily: overlayFontFamily(appearance),
+                fontSize: `${appearance.fontSizePx}px`,
+                fontWeight: appearance.fontWeight,
+                lineHeight: appearance.fontLineHeight
               }}
             >
               {appearance.chzzkBadgesVisible ? (
@@ -119,7 +124,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
               ) : null}
               {appearance.nicknameVisible ? (
                 <span
-                  className="max-w-40 shrink-0 truncate font-semibold"
+                  className="max-w-40 shrink-0 truncate"
                   style={{ color: overlayNicknameColor(appearance, message) }}
                 >
                   {message.nickname}:

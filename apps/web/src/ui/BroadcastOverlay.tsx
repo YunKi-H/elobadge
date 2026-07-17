@@ -10,6 +10,7 @@ import {
 import { RatingBadge } from "./RatingBadge";
 import {
   overlayBackgroundColor,
+  overlayFontFamily,
   overlayMessageColor,
   overlayNicknameColor
 } from "./overlay-appearance";
@@ -68,9 +69,13 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`overlay-message flex w-fit max-w-full shrink-0 items-start gap-2 rounded-md text-lg ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/15" : "p-0"}`}
+            className={`overlay-message flex w-fit max-w-full shrink-0 items-start gap-2 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/15" : "p-0"}`}
             style={{
-              backgroundColor: overlayBackgroundColor(appearance)
+              backgroundColor: overlayBackgroundColor(appearance),
+              fontFamily: overlayFontFamily(appearance),
+              fontSize: `${appearance.fontSizePx}px`,
+              fontWeight: appearance.fontWeight,
+              lineHeight: appearance.fontLineHeight
             }}
           >
             {appearance.chzzkBadgesVisible ? (
@@ -84,7 +89,7 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
             ) : null}
             {appearance.nicknameVisible ? (
               <span
-                className="shrink-0 font-semibold"
+                className="shrink-0"
                 style={{ color: overlayNicknameColor(appearance, message) }}
               >
                 {message.nickname}:

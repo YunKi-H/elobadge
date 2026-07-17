@@ -4,6 +4,9 @@ import {
   type ChzzkBadgeKind,
   DEFAULT_OVERLAY_APPEARANCE,
   type OverlayAppearance,
+  type OverlayFontFamily,
+  type OverlayFontLineHeight,
+  type OverlayFontWeight,
   type OverlayMessageDurationSeconds
 } from "@elobadge/core";
 import {
@@ -19,7 +22,8 @@ import {
   Power,
   RefreshCw,
   RotateCcw,
-  Save
+  Save,
+  Type
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -38,7 +42,12 @@ type SettingsState =
   | { status: "ready"; overlay: OverlayAccess | null }
   | { status: "error"; message: string };
 
-type AppearanceSection = "general" | "badges" | "background" | "colors";
+type AppearanceSection =
+  | "general"
+  | "badges"
+  | "background"
+  | "colors"
+  | "fonts";
 
 type ExpandedAppearanceSections = Record<AppearanceSection, boolean>;
 
@@ -74,10 +83,35 @@ const DEFAULT_EXPANDED_APPEARANCE_SECTIONS: ExpandedAppearanceSections = {
   general: true,
   badges: true,
   background: true,
-  colors: true
+  colors: true,
+  fonts: true
 };
 
 const MESSAGE_DURATION_OPTIONS = [10, 20, 30, 60, 0] as const;
+
+const FONT_FAMILY_OPTIONS: ReadonlyArray<{
+  value: OverlayFontFamily;
+  label: string;
+}> = [
+  { value: "system", label: "시스템 기본" },
+  { value: "pretendard", label: "프리텐다드" },
+  { value: "freesentation", label: "프리젠테이션" },
+  { value: "paperlogy", label: "페이퍼로지" }
+];
+
+const FONT_WEIGHT_OPTIONS: ReadonlyArray<OverlayFontWeight> = [
+  400,
+  500,
+  600,
+  700,
+  900
+];
+
+const FONT_LINE_HEIGHT_OPTIONS: ReadonlyArray<OverlayFontLineHeight> = [
+  1.2,
+  1.4,
+  1.6
+];
 
 const CHAT_AUTHOR_KIND_OPTIONS: ReadonlyArray<{
   kind: ChatAuthorKind;
@@ -705,6 +739,97 @@ export function OverlaySettings({
               </div>
             </SettingsDisclosure>
 
+            <SettingsDisclosure
+              id="overlay-font-settings"
+              title="채팅 폰트"
+              icon={<Type aria-hidden="true" size={18} />}
+              expanded={expandedSections.fonts}
+              onToggle={() => toggleAppearanceSection("fonts")}
+            >
+              <label className="grid gap-2 text-sm font-medium text-slate-200">
+                폰트
+                <select
+                  value={overlay.appearance.fontFamily}
+                  onChange={(event) =>
+                    updateAppearanceDraft({
+                      fontFamily: event.target.value as OverlayFontFamily
+                    })
+                  }
+                  className="h-10 rounded-md border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-emerald-400"
+                >
+                  {FONT_FAMILY_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm font-medium text-slate-200">
+                <span className="flex items-center justify-between gap-4">
+                  글자 크기
+                  <output className="tabular-nums text-slate-400">
+                    {overlay.appearance.fontSizePx}px
+                  </output>
+                </span>
+                <input
+                  type="range"
+                  min={12}
+                  max={36}
+                  step={1}
+                  value={overlay.appearance.fontSizePx}
+                  onChange={(event) =>
+                    updateAppearanceDraft({
+                      fontSizePx: Number(event.target.value)
+                    })
+                  }
+                  className="w-full accent-emerald-500"
+                />
+              </label>
+
+              <fieldset>
+                <legend className="mb-3 text-sm font-medium text-slate-200">
+                  글자 굵기
+                </legend>
+                <div className="inline-flex flex-wrap rounded-md bg-slate-950 p-1 ring-1 ring-white/10">
+                  {FONT_WEIGHT_OPTIONS.map((weight) => (
+                    <button
+                      key={weight}
+                      type="button"
+                      aria-pressed={overlay.appearance.fontWeight === weight}
+                      onClick={() =>
+                        updateAppearanceDraft({ fontWeight: weight })
+                      }
+                      className={`h-8 rounded px-3 text-sm transition ${overlay.appearance.fontWeight === weight ? "bg-emerald-500 text-slate-950" : "text-slate-300 hover:text-white"}`}
+                    >
+                      {weight}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
+                줄 간격
+                <select
+                  value={overlay.appearance.fontLineHeight}
+                  onChange={(event) =>
+                    updateAppearanceDraft({
+                      fontLineHeight: Number(
+                        event.target.value
+                      ) as OverlayFontLineHeight
+                    })
+                  }
+                  className="h-9 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-white outline-none focus:border-emerald-400"
+                >
+                  {FONT_LINE_HEIGHT_OPTIONS.map((lineHeight) => (
+                    <option key={lineHeight} value={lineHeight}>
+                      {lineHeight}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </SettingsDisclosure>
+
             <div className="flex flex-wrap gap-2 pt-5">
                 <button
                   type="button"
@@ -813,7 +938,8 @@ function readExpandedAppearanceSections(): ExpandedAppearanceSections {
       badges: typeof sections.badges === "boolean" ? sections.badges : true,
       background:
         typeof sections.background === "boolean" ? sections.background : true,
-      colors: typeof sections.colors === "boolean" ? sections.colors : true
+      colors: typeof sections.colors === "boolean" ? sections.colors : true,
+      fonts: typeof sections.fonts === "boolean" ? sections.fonts : true
     };
   } catch {
     return { ...DEFAULT_EXPANDED_APPEARANCE_SECTIONS };

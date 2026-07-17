@@ -210,6 +210,34 @@ export function normalizeOverlayAppearance(value: unknown): OverlayAppearance {
     messageRoleColors: normalizeMessageRoleColors(
       appearance.messageRoleColors
     ),
+    fontFamily:
+      appearance.fontFamily === "system" ||
+      appearance.fontFamily === "pretendard" ||
+      appearance.fontFamily === "freesentation" ||
+      appearance.fontFamily === "paperlogy"
+        ? appearance.fontFamily
+        : DEFAULT_OVERLAY_APPEARANCE.fontFamily,
+    fontSizePx:
+      typeof appearance.fontSizePx === "number" &&
+      Number.isInteger(appearance.fontSizePx) &&
+      appearance.fontSizePx >= 12 &&
+      appearance.fontSizePx <= 36
+        ? appearance.fontSizePx
+        : DEFAULT_OVERLAY_APPEARANCE.fontSizePx,
+    fontWeight:
+      appearance.fontWeight === 400 ||
+      appearance.fontWeight === 500 ||
+      appearance.fontWeight === 600 ||
+      appearance.fontWeight === 700 ||
+      appearance.fontWeight === 900
+        ? appearance.fontWeight
+        : DEFAULT_OVERLAY_APPEARANCE.fontWeight,
+    fontLineHeight:
+      appearance.fontLineHeight === 1.2 ||
+      appearance.fontLineHeight === 1.4 ||
+      appearance.fontLineHeight === 1.6
+        ? appearance.fontLineHeight
+        : DEFAULT_OVERLAY_APPEARANCE.fontLineHeight,
     messageDurationSeconds:
       appearance.messageDurationSeconds === 0 ||
       appearance.messageDurationSeconds === 10 ||
