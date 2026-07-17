@@ -119,11 +119,15 @@ token fields. The current in-process refresh lock assumes one ECS server task.
     nicknameColorMode: "fixed" | "by_user";
     nicknameColor: string; // #RRGGBB, used by fixed mode
     messageColor: string; // #RRGGBB
+    messageDurationSeconds: 0 | 10 | 20 | 30 | 60; // 0 keeps messages visible
   };
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 ```
+
+Legacy theme documents without `messageDurationSeconds` use 20 seconds. The
+browser keeps at most the latest 30 messages regardless of the duration.
 
 The random document ID is the OBS browser-source token. It must be long enough
 to resist guessing and must be replaceable from the streamer dashboard. Rotated

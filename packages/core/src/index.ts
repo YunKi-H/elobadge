@@ -4,6 +4,10 @@ export type ChzzkLoginMode = "streamer" | "viewer";
 
 export type NicknameColorMode = "fixed" | "by_user";
 
+export type OverlayMessageDurationSeconds = 0 | 10 | 20 | 30 | 60;
+
+export const MAX_OVERLAY_MESSAGES = 30;
+
 export type ChessSpeed = "bullet" | "blitz" | "rapid" | "classical";
 
 export interface RatingBadge {
@@ -35,6 +39,7 @@ export interface OverlayAppearance {
   nicknameColorMode: NicknameColorMode;
   nicknameColor: string;
   messageColor: string;
+  messageDurationSeconds: OverlayMessageDurationSeconds;
 }
 
 export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
@@ -44,5 +49,6 @@ export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
   nicknameVisible: true,
   nicknameColorMode: "fixed",
   nicknameColor: "#7DD3FC",
-  messageColor: "#FFFFFF"
+  messageColor: "#FFFFFF",
+  messageDurationSeconds: 20
 };

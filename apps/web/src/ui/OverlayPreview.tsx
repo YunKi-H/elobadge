@@ -9,9 +9,12 @@ import {
   overlayBackgroundColor,
   overlayNicknameColor
 } from "./overlay-appearance";
+import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
 export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }) {
-  const [messages, setMessages] = useState<ChatOverlayEvent[]>([]);
+  const { messages, addMessage } = useOverlayMessageQueue(
+    appearance.messageDurationSeconds
+  );
   const [nickname, setNickname] = useState("");
   const [rating, setRating] = useState("");
   const [content, setContent] = useState("");
@@ -30,7 +33,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
         if (!message) {
           return;
         }
-        setMessages((current) => [...current, message].slice(-8));
+        addMessage(message);
       });
     });
 
@@ -38,7 +41,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
       unsubscribeAuth();
       events?.close();
     };
-  }, []);
+  }, [addMessage]);
 
   const addPreviewMessage = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -72,7 +75,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
       sentAt: new Date().toISOString()
     };
 
-    setMessages((current) => [...current, message].slice(-8));
+    addMessage(message);
     setContent("");
   };
 

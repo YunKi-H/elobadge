@@ -36,7 +36,14 @@ const overlayAppearanceSchema = z.object({
   nicknameVisible: z.boolean(),
   nicknameColorMode: z.enum(["fixed", "by_user"]),
   nicknameColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
-  messageColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/)
+  messageColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  messageDurationSeconds: z.union([
+    z.literal(0),
+    z.literal(10),
+    z.literal(20),
+    z.literal(30),
+    z.literal(60)
+  ]).default(20)
 });
 
 export async function registerOverlayRoutes(app: FastifyInstance) {

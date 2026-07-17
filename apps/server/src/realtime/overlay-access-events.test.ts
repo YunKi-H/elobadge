@@ -41,7 +41,8 @@ test("overlay appearance updates are scoped to one public token", () => {
     nicknameVisible: false,
     nicknameColorMode: "by_user",
     nicknameColor: "#7DD3FC",
-    messageColor: "#00FF00"
+    messageColor: "#00FF00",
+    messageDurationSeconds: 20
   });
   unsubscribeFirst();
   unsubscribeSecond();

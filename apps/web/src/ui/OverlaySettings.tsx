@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   DEFAULT_OVERLAY_APPEARANCE,
-  type OverlayAppearance
+  type OverlayAppearance,
+  type OverlayMessageDurationSeconds
 } from "@elobadge/core";
 import {
   ChevronDown,
@@ -59,6 +60,8 @@ const NICKNAME_COLOR_SWATCHES = [
 
 const APPEARANCE_EXPANDED_STORAGE_KEY =
   "elobadge.streamer.appearance-expanded";
+
+const MESSAGE_DURATION_OPTIONS = [10, 20, 30, 60, 0] as const;
 
 export function OverlaySettings({
   onAppearanceChange
@@ -292,6 +295,29 @@ export function OverlaySettings({
                 id="overlay-appearance-settings"
                 className="mt-5 space-y-5"
               >
+                <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
+                  채팅 표시 시간
+                  <select
+                    value={overlay.appearance.messageDurationSeconds}
+                    onChange={(event) =>
+                      updateAppearanceDraft({
+                        messageDurationSeconds: Number(
+                          event.target.value
+                        ) as OverlayMessageDurationSeconds
+                      })
+                    }
+                    className="h-9 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-white outline-none focus:border-emerald-400"
+                  >
+                    {MESSAGE_DURATION_OPTIONS.map((seconds) => (
+                      <option key={seconds} value={seconds}>
+                        {seconds === 0
+                          ? "계속 유지"
+                          : `${seconds}초${seconds === 20 ? " (기본)" : ""}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
               <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
                 채팅 배경
                 <input

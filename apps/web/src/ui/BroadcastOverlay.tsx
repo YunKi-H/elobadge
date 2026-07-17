@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   DEFAULT_OVERLAY_APPEARANCE,
-  type ChatOverlayEvent,
   type OverlayAppearance
 } from "@elobadge/core";
 import {
@@ -13,19 +12,19 @@ import {
   overlayBackgroundColor,
   overlayNicknameColor
 } from "./overlay-appearance";
-
-const MESSAGE_LIFETIME_MS = 20_000;
+import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
 export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
-  const [messages, setMessages] = useState<ChatOverlayEvent[]>([]);
   const [appearance, setAppearance] = useState<OverlayAppearance>({
     ...DEFAULT_OVERLAY_APPEARANCE
   });
+  const { messages, addMessage, clearMessages } = useOverlayMessageQueue(
+    appearance.messageDurationSeconds
+  );
 
   useEffect(() => {
     document.body.classList.add("broadcast-overlay-page");
     const events = new EventSource(`/events/overlay/${publicToken}`);
-    const removalTimers = new Set<number>();
 
     events.addEventListener("chat", (event) => {
       const message = parseChatOverlayEvent(event.data);
@@ -33,16 +32,7 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
       if (!message) {
         return;
       }
-      setMessages((current) => [
-        ...current.filter((item) => item.id !== message.id),
-        message
-      ].slice(-8));
-
-      const timer = window.setTimeout(() => {
-        setMessages((current) => current.filter((item) => item.id !== message.id));
-        removalTimers.delete(timer);
-      }, MESSAGE_LIFETIME_MS);
-      removalTimers.add(timer);
+      addMessage(message);
     });
 
     events.addEventListener("appearance", (event) => {
@@ -55,15 +45,14 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
 
     events.addEventListener("revoked", () => {
       events.close();
-      setMessages([]);
+      clearMessages();
     });
 
     return () => {
       document.body.classList.remove("broadcast-overlay-page");
       events.close();
-      removalTimers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [publicToken]);
+  }, [addMessage, clearMessages, publicToken]);
 
   return (
     <main className="flex min-h-screen items-end bg-transparent p-6" aria-live="polite">

@@ -25,7 +25,8 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
     nicknameVisible: true,
     nicknameColorMode: "fixed",
     nicknameColor: "#7DD3FC",
-    messageColor: "#FFFFFF"
+    messageColor: "#FFFFFF",
+    messageDurationSeconds: 20
   });
 
   assert.deepEqual(
@@ -36,7 +37,8 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
       nicknameVisible: false,
       nicknameColorMode: "by_user",
       nicknameColor: "#fedcba",
-      messageColor: "#aabbcc"
+      messageColor: "#aabbcc",
+      messageDurationSeconds: 60
     }),
     {
       backgroundVisible: false,
@@ -45,7 +47,8 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
       nicknameVisible: false,
       nicknameColorMode: "by_user",
       nicknameColor: "#FEDCBA",
-      messageColor: "#AABBCC"
+      messageColor: "#AABBCC",
+      messageDurationSeconds: 60
     }
   );
 });

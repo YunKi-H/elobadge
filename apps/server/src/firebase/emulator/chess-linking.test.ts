@@ -182,7 +182,8 @@ test("overlay appearance persists and survives public token rotation", async () 
     nicknameVisible: true,
     nicknameColorMode: "fixed",
     nicknameColor: "#7DD3FC",
-    messageColor: "#FFFFFF"
+    messageColor: "#FFFFFF",
+    messageDurationSeconds: 20
   });
 
   const appearance = {
@@ -192,7 +193,8 @@ test("overlay appearance persists and survives public token rotation", async () 
     nicknameVisible: false,
     nicknameColorMode: "by_user" as const,
     nicknameColor: "#FDE047",
-    messageColor: "#7DD3FC"
+    messageColor: "#7DD3FC",
+    messageDurationSeconds: 60 as const
   };
   await updateStreamerOverlayAppearance(uid, appearance);
   assert.deepEqual((await getStreamerOverlayAccess(uid))?.appearance, appearance);

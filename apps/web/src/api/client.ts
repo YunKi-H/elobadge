@@ -274,7 +274,12 @@ function isOverlayAppearance(value: unknown): value is OverlayAppearance {
     typeof appearance.nicknameColor === "string" &&
     /^#[0-9A-Fa-f]{6}$/.test(appearance.nicknameColor) &&
     typeof appearance.messageColor === "string" &&
-    /^#[0-9A-Fa-f]{6}$/.test(appearance.messageColor)
+    /^#[0-9A-Fa-f]{6}$/.test(appearance.messageColor) &&
+    (appearance.messageDurationSeconds === 0 ||
+      appearance.messageDurationSeconds === 10 ||
+      appearance.messageDurationSeconds === 20 ||
+      appearance.messageDurationSeconds === 30 ||
+      appearance.messageDurationSeconds === 60)
   );
 }
 

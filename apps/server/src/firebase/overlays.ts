@@ -190,7 +190,15 @@ export function normalizeOverlayAppearance(value: unknown): OverlayAppearance {
       typeof appearance.messageColor === "string" &&
       /^#[0-9A-Fa-f]{6}$/.test(appearance.messageColor)
         ? appearance.messageColor.toUpperCase()
-        : DEFAULT_OVERLAY_APPEARANCE.messageColor
+        : DEFAULT_OVERLAY_APPEARANCE.messageColor,
+    messageDurationSeconds:
+      appearance.messageDurationSeconds === 0 ||
+      appearance.messageDurationSeconds === 10 ||
+      appearance.messageDurationSeconds === 20 ||
+      appearance.messageDurationSeconds === 30 ||
+      appearance.messageDurationSeconds === 60
+        ? appearance.messageDurationSeconds
+        : DEFAULT_OVERLAY_APPEARANCE.messageDurationSeconds
   };
 }
 
