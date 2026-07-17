@@ -1,5 +1,9 @@
 import { type FormEvent, useEffect, useState } from "react";
-import type { ChatOverlayEvent, OverlayAppearance } from "@elobadge/core";
+import type {
+  ChatAuthorKind,
+  ChatOverlayEvent,
+  OverlayAppearance
+} from "@elobadge/core";
 import { onAuthStateChanged } from "firebase/auth";
 import { Send } from "lucide-react";
 import { getFirebaseClientAuth } from "../firebase/client";
@@ -18,6 +22,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
   );
   const [nickname, setNickname] = useState("");
   const [rating, setRating] = useState("");
+  const [authorKind, setAuthorKind] = useState<ChatAuthorKind>("viewer");
   const [content, setContent] = useState("");
 
   useEffect(() => {
@@ -73,6 +78,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
               value: ratingValue,
               provisional: false
             },
+      authorKind,
       sentAt: new Date().toISOString()
     };
 
@@ -129,7 +135,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
 
       <form
         onSubmit={addPreviewMessage}
-        className="mt-6 grid gap-3 border-t border-white/10 pt-6 sm:grid-cols-[minmax(0,1fr)_8rem]"
+        className="mt-6 grid gap-3 border-t border-white/10 pt-6 sm:grid-cols-[minmax(0,1fr)_8rem_9rem]"
       >
         <label className="grid gap-1.5 text-sm font-medium text-slate-300">
           닉네임
@@ -155,7 +161,23 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
             className="h-10 min-w-0 rounded-md border border-white/10 bg-slate-950 px-3 text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400"
           />
         </label>
-        <label className="grid min-w-0 gap-1.5 text-sm font-medium text-slate-300 sm:col-span-2">
+        <label className="grid gap-1.5 text-sm font-medium text-slate-300">
+          역할
+          <select
+            value={authorKind}
+            onChange={(event) =>
+              setAuthorKind(event.target.value as ChatAuthorKind)
+            }
+            className="h-10 min-w-0 rounded-md border border-white/10 bg-slate-950 px-3 text-white outline-none focus:border-emerald-400"
+          >
+            <option value="streamer">스트리머</option>
+            <option value="manager">매니저</option>
+            <option value="donator">후원자</option>
+            <option value="subscriber">구독자</option>
+            <option value="viewer">일반 시청자</option>
+          </select>
+        </label>
+        <label className="grid min-w-0 gap-1.5 text-sm font-medium text-slate-300 sm:col-span-3">
           메시지
           <span className="flex min-w-0 gap-2">
             <input

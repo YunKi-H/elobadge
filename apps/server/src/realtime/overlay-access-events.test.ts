@@ -42,6 +42,13 @@ test("overlay appearance updates are scoped to one public token", () => {
     nicknameVisible: false,
     nicknameColorMode: "by_user",
     nicknameColor: "#7DD3FC",
+    nicknameRoleColors: {
+      streamer: "#34D399",
+      manager: "#60A5FA",
+      donator: "#FBBF24",
+      subscriber: "#C084FC",
+      viewer: "#E2E8F0"
+    },
     messageColor: "#00FF00",
     messageDurationSeconds: 20
   });

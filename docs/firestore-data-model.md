@@ -125,8 +125,15 @@ token fields. The current in-process refresh lock assumes one ECS server task.
     backgroundOpacity: number; // integer from 0 through 100
     chzzkBadgesVisible: boolean;
     nicknameVisible: boolean;
-    nicknameColorMode: "fixed" | "by_user";
+    nicknameColorMode: "fixed" | "by_user" | "by_role";
     nicknameColor: string; // #RRGGBB, used by fixed mode
+    nicknameRoleColors: {
+      streamer: string;
+      manager: string;
+      donator: string;
+      subscriber: string;
+      viewer: string;
+    }; // #RRGGBB values used by role mode
     messageColor: string; // #RRGGBB
     messageDurationSeconds: 0 | 10 | 20 | 30 | 60; // 0 keeps messages visible
   };
@@ -135,9 +142,10 @@ token fields. The current in-process refresh lock assumes one ECS server task.
 }
 ```
 
-Legacy theme documents without `messageDurationSeconds` use 20 seconds, and
-documents without `chzzkBadgesVisible` show Chzzk badges. The browser keeps at
-most the latest 30 messages regardless of the duration.
+Legacy theme documents without `messageDurationSeconds` use 20 seconds,
+documents without `chzzkBadgesVisible` show Chzzk badges, and documents without
+`nicknameRoleColors` use the default role palette. The browser keeps at most the
+latest 30 messages regardless of the duration.
 
 The random document ID is the OBS browser-source token. It must be long enough
 to resist guessing and must be replaceable from the streamer dashboard. Rotated

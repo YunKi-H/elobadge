@@ -2,7 +2,16 @@ export type ChessProvider = "lichess" | "chesscom";
 
 export type ChzzkLoginMode = "streamer" | "viewer";
 
-export type NicknameColorMode = "fixed" | "by_user";
+export type NicknameColorMode = "fixed" | "by_user" | "by_role";
+
+export type ChatAuthorKind =
+  | "streamer"
+  | "manager"
+  | "donator"
+  | "subscriber"
+  | "viewer";
+
+export type ChatAuthorColors = Record<ChatAuthorKind, string>;
 
 export type OverlayMessageDurationSeconds = 0 | 10 | 20 | 30 | 60;
 
@@ -27,6 +36,7 @@ export interface ChatOverlayEvent {
   content: string;
   rating: RatingBadge | null;
   chzzkBadges?: ChzzkBadge[];
+  authorKind: ChatAuthorKind;
   sentAt: string;
   source?: {
     provider: "chzzk";
@@ -44,6 +54,7 @@ export interface OverlayAppearance {
   nicknameVisible: boolean;
   nicknameColorMode: NicknameColorMode;
   nicknameColor: string;
+  nicknameRoleColors: ChatAuthorColors;
   messageColor: string;
   messageDurationSeconds: OverlayMessageDurationSeconds;
 }
@@ -56,6 +67,13 @@ export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
   nicknameVisible: true,
   nicknameColorMode: "fixed",
   nicknameColor: "#7DD3FC",
+  nicknameRoleColors: {
+    streamer: "#34D399",
+    manager: "#60A5FA",
+    donator: "#FBBF24",
+    subscriber: "#C084FC",
+    viewer: "#E2E8F0"
+  },
   messageColor: "#FFFFFF",
   messageDurationSeconds: 20
 };

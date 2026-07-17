@@ -1,4 +1,5 @@
 import type {
+  ChatAuthorKind,
   ChatOverlayEvent,
   ChzzkBadge,
   OverlayAppearance,
@@ -35,14 +36,16 @@ export function parseChatOverlayEvent(data: unknown): ChatOverlayEvent | null {
   }
 
   const chzzkBadges = parseChzzkBadges(event.chzzkBadges);
+  const authorKind = parseChatAuthorKind(event.authorKind);
 
-  if (!chzzkBadges) {
+  if (!chzzkBadges || !authorKind) {
     return null;
   }
 
   return {
     ...(event as ChatOverlayEvent),
-    chzzkBadges
+    chzzkBadges,
+    authorKind
   };
 }
 
@@ -78,9 +81,11 @@ export function parseOverlayAppearanceEvent(
     typeof appearance.chzzkBadgesVisible !== "boolean" ||
     typeof appearance.nicknameVisible !== "boolean" ||
     (appearance.nicknameColorMode !== "fixed" &&
-      appearance.nicknameColorMode !== "by_user") ||
+      appearance.nicknameColorMode !== "by_user" &&
+      appearance.nicknameColorMode !== "by_role") ||
     typeof appearance.nicknameColor !== "string" ||
     !/^#[0-9A-Fa-f]{6}$/.test(appearance.nicknameColor) ||
+    !isNicknameRoleColors(appearance.nicknameRoleColors) ||
     typeof appearance.messageColor !== "string" ||
     !/^#[0-9A-Fa-f]{6}$/.test(appearance.messageColor) ||
     (appearance.messageDurationSeconds !== 0 &&
@@ -100,9 +105,45 @@ export function parseOverlayAppearanceEvent(
     nicknameVisible: appearance.nicknameVisible,
     nicknameColorMode: appearance.nicknameColorMode,
     nicknameColor: appearance.nicknameColor.toUpperCase(),
+    nicknameRoleColors: {
+      streamer: appearance.nicknameRoleColors.streamer.toUpperCase(),
+      manager: appearance.nicknameRoleColors.manager.toUpperCase(),
+      donator: appearance.nicknameRoleColors.donator.toUpperCase(),
+      subscriber: appearance.nicknameRoleColors.subscriber.toUpperCase(),
+      viewer: appearance.nicknameRoleColors.viewer.toUpperCase()
+    },
     messageColor: appearance.messageColor.toUpperCase(),
     messageDurationSeconds: appearance.messageDurationSeconds
   };
+}
+
+function parseChatAuthorKind(value: unknown): ChatAuthorKind | null {
+  return value === "streamer" ||
+    value === "manager" ||
+    value === "donator" ||
+    value === "subscriber" ||
+    value === "viewer"
+    ? value
+    : null;
+}
+
+function isNicknameRoleColors(
+  value: unknown
+): value is OverlayAppearance["nicknameRoleColors"] {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const colors = value as Partial<OverlayAppearance["nicknameRoleColors"]>;
+  return [
+    colors.streamer,
+    colors.manager,
+    colors.donator,
+    colors.subscriber,
+    colors.viewer
+  ].every(
+    (color) => typeof color === "string" && /^#[0-9A-Fa-f]{6}$/.test(color)
+  );
 }
 
 function isRatingBadge(value: unknown): value is RatingBadge | null {

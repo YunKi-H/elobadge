@@ -15,6 +15,7 @@ import {
 import { markChzzkStreamerReauthenticationRequired } from "../firebase/chzzk-tokens.js";
 import { publishChatOverlayEvent } from "../realtime/overlay-events.js";
 import { ratingBadgeCache } from "../chess/badge-cache.js";
+import { classifyChzzkChatAuthor } from "./chat-author.js";
 import {
   defaultChzzkSessionPolicy,
   getChzzkReconnectDelay,
@@ -733,6 +734,7 @@ function toChatOverlayEvent(
     content: message.content,
     rating,
     chzzkBadges: normalizeChzzkBadges(message.profile.badges),
+    authorKind: classifyChzzkChatAuthor(message.profile),
     sentAt: new Date(message.messageTime).toISOString(),
     source: {
       provider: "chzzk",

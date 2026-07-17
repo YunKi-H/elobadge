@@ -182,7 +182,8 @@ export function normalizeOverlayAppearance(value: unknown): OverlayAppearance {
         : DEFAULT_OVERLAY_APPEARANCE.nicknameVisible,
     nicknameColorMode:
       appearance.nicknameColorMode === "fixed" ||
-      appearance.nicknameColorMode === "by_user"
+      appearance.nicknameColorMode === "by_user" ||
+      appearance.nicknameColorMode === "by_role"
         ? appearance.nicknameColorMode
         : DEFAULT_OVERLAY_APPEARANCE.nicknameColorMode,
     nicknameColor:
@@ -190,6 +191,9 @@ export function normalizeOverlayAppearance(value: unknown): OverlayAppearance {
       /^#[0-9A-Fa-f]{6}$/.test(appearance.nicknameColor)
         ? appearance.nicknameColor.toUpperCase()
         : DEFAULT_OVERLAY_APPEARANCE.nicknameColor,
+    nicknameRoleColors: normalizeNicknameRoleColors(
+      appearance.nicknameRoleColors
+    ),
     messageColor:
       typeof appearance.messageColor === "string" &&
       /^#[0-9A-Fa-f]{6}$/.test(appearance.messageColor)
@@ -204,6 +208,29 @@ export function normalizeOverlayAppearance(value: unknown): OverlayAppearance {
         ? appearance.messageDurationSeconds
         : DEFAULT_OVERLAY_APPEARANCE.messageDurationSeconds
   };
+}
+
+function normalizeNicknameRoleColors(
+  value: unknown
+): OverlayAppearance["nicknameRoleColors"] {
+  const colors: Record<string, unknown> =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+
+  return Object.fromEntries(
+    Object.entries(DEFAULT_OVERLAY_APPEARANCE.nicknameRoleColors).map(
+      ([kind, defaultColor]) => {
+        const color = colors[kind];
+        return [
+          kind,
+          typeof color === "string" && /^#[0-9A-Fa-f]{6}$/.test(color)
+            ? color.toUpperCase()
+            : defaultColor
+        ];
+      }
+    )
+  ) as OverlayAppearance["nicknameRoleColors"];
 }
 
 async function createOrRotateOverlayAccess(

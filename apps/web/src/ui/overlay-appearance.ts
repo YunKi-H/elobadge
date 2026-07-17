@@ -33,6 +33,10 @@ export function overlayNicknameColor(
     return appearance.nicknameColor;
   }
 
+  if (appearance.nicknameColorMode === "by_role") {
+    return appearance.nicknameRoleColors[message.authorKind];
+  }
+
   const identity = (
     message.source?.senderChannelId ?? message.nickname
   ).normalize("NFKC");

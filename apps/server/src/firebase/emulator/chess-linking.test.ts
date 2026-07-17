@@ -183,6 +183,13 @@ test("overlay appearance persists and survives public token rotation", async () 
     nicknameVisible: true,
     nicknameColorMode: "fixed",
     nicknameColor: "#7DD3FC",
+    nicknameRoleColors: {
+      streamer: "#34D399",
+      manager: "#60A5FA",
+      donator: "#FBBF24",
+      subscriber: "#C084FC",
+      viewer: "#E2E8F0"
+    },
     messageColor: "#FFFFFF",
     messageDurationSeconds: 20
   });
@@ -195,6 +202,13 @@ test("overlay appearance persists and survives public token rotation", async () 
     nicknameVisible: false,
     nicknameColorMode: "by_user" as const,
     nicknameColor: "#FDE047",
+    nicknameRoleColors: {
+      streamer: "#34D399",
+      manager: "#60A5FA",
+      donator: "#FBBF24",
+      subscriber: "#C084FC",
+      viewer: "#E2E8F0"
+    },
     messageColor: "#7DD3FC",
     messageDurationSeconds: 60 as const
   };

@@ -124,6 +124,7 @@ test("published chat includes the sender's cached rating badge", async () => {
   const events: Array<{
     rating: { value: number } | null;
     chzzkBadges?: Array<{ imageUrl: string }>;
+    authorKind: string;
   }> = [];
   const unsubscribe = subscribeStreamerChatOverlayEvents("streamer-a", (event) => {
     events.push(event);
@@ -148,6 +149,7 @@ test("published chat includes the sender's cached rating badge", async () => {
   assert.deepEqual(events[0]?.chzzkBadges, [
     { imageUrl: "https://example.com/badge.png" }
   ]);
+  assert.equal(events[0]?.authorKind, "subscriber");
   assert.deepEqual(badgeDiagnostics, [
     {
       context: {

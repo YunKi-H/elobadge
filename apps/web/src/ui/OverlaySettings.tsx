@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  type ChatAuthorKind,
   DEFAULT_OVERLAY_APPEARANCE,
   type OverlayAppearance,
   type OverlayMessageDurationSeconds
@@ -62,6 +63,17 @@ const APPEARANCE_EXPANDED_STORAGE_KEY =
   "elobadge.streamer.appearance-expanded";
 
 const MESSAGE_DURATION_OPTIONS = [10, 20, 30, 60, 0] as const;
+
+const CHAT_AUTHOR_KIND_OPTIONS: ReadonlyArray<{
+  kind: ChatAuthorKind;
+  label: string;
+}> = [
+  { kind: "streamer", label: "스트리머" },
+  { kind: "manager", label: "매니저" },
+  { kind: "donator", label: "후원자" },
+  { kind: "subscriber", label: "구독자" },
+  { kind: "viewer", label: "일반 시청자" }
+];
 
 export function OverlaySettings({
   onAppearanceChange
@@ -150,6 +162,19 @@ export function OverlaySettings({
       }
 
       return next;
+    });
+  };
+
+  const updateRoleColor = (kind: ChatAuthorKind, color: string) => {
+    if (!overlay) {
+      return;
+    }
+
+    updateAppearanceDraft({
+      nicknameRoleColors: {
+        ...overlay.appearance.nicknameRoleColors,
+        [kind]: color.toUpperCase()
+      }
     });
   };
 
@@ -430,7 +455,8 @@ export function OverlaySettings({
                 <div className="inline-flex rounded-md bg-slate-950 p-1 ring-1 ring-white/10">
                   {([
                     ["fixed", "단일 색상"],
-                    ["by_user", "사용자별"]
+                    ["by_user", "사용자별"],
+                    ["by_role", "역할별"]
                   ] as const).map(([mode, label]) => (
                     <button
                       key={mode}
@@ -474,6 +500,33 @@ export function OverlaySettings({
                       }
                       className="size-8 cursor-pointer rounded-md border border-white/20 bg-transparent p-0.5"
                     />
+                  </div>
+                ) : null}
+
+                {overlay.appearance.nicknameColorMode === "by_role" ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {CHAT_AUTHOR_KIND_OPTIONS.map(({ kind, label }) => (
+                      <label
+                        key={kind}
+                        className="flex h-10 items-center justify-between gap-3 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-slate-300"
+                      >
+                        {label}
+                        <span className="flex items-center gap-2">
+                          <span className="font-mono text-xs text-slate-500">
+                            {overlay.appearance.nicknameRoleColors[kind]}
+                          </span>
+                          <input
+                            type="color"
+                            aria-label={`${label} 닉네임 색상`}
+                            value={overlay.appearance.nicknameRoleColors[kind]}
+                            onChange={(event) =>
+                              updateRoleColor(kind, event.target.value)
+                            }
+                            className="size-7 cursor-pointer rounded border border-white/20 bg-transparent p-0.5"
+                          />
+                        </span>
+                      </label>
+                    ))}
                   </div>
                 ) : null}
               </fieldset>

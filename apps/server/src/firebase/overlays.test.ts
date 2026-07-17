@@ -26,6 +26,13 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
     nicknameVisible: true,
     nicknameColorMode: "fixed",
     nicknameColor: "#7DD3FC",
+    nicknameRoleColors: {
+      streamer: "#34D399",
+      manager: "#60A5FA",
+      donator: "#FBBF24",
+      subscriber: "#C084FC",
+      viewer: "#E2E8F0"
+    },
     messageColor: "#FFFFFF",
     messageDurationSeconds: 20
   });
@@ -39,6 +46,13 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
       nicknameVisible: false,
       nicknameColorMode: "by_user",
       nicknameColor: "#fedcba",
+      nicknameRoleColors: {
+        streamer: "#111111",
+        manager: "#222222",
+        donator: "#333333",
+        subscriber: "#444444",
+        viewer: "#555555"
+      },
       messageColor: "#aabbcc",
       messageDurationSeconds: 60
     }),
@@ -50,6 +64,13 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
       nicknameVisible: false,
       nicknameColorMode: "by_user",
       nicknameColor: "#FEDCBA",
+      nicknameRoleColors: {
+        streamer: "#111111",
+        manager: "#222222",
+        donator: "#333333",
+        subscriber: "#444444",
+        viewer: "#555555"
+      },
       messageColor: "#AABBCC",
       messageDurationSeconds: 60
     }

@@ -35,8 +35,15 @@ const overlayAppearanceSchema = z.object({
   backgroundOpacity: z.number().int().min(0).max(100),
   chzzkBadgesVisible: z.boolean().default(true),
   nicknameVisible: z.boolean(),
-  nicknameColorMode: z.enum(["fixed", "by_user"]),
+  nicknameColorMode: z.enum(["fixed", "by_user", "by_role"]),
   nicknameColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  nicknameRoleColors: z.object({
+    streamer: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+    manager: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+    donator: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+    subscriber: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+    viewer: z.string().regex(/^#[0-9A-Fa-f]{6}$/)
+  }),
   messageColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
   messageDurationSeconds: z.union([
     z.literal(0),
@@ -131,6 +138,11 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
         ...parsedAppearance.data,
         backgroundColor: parsedAppearance.data.backgroundColor.toUpperCase(),
         nicknameColor: parsedAppearance.data.nicknameColor.toUpperCase(),
+        nicknameRoleColors: Object.fromEntries(
+          Object.entries(parsedAppearance.data.nicknameRoleColors).map(
+            ([kind, color]) => [kind, color.toUpperCase()]
+          )
+        ) as OverlayAppearance["nicknameRoleColors"],
         messageColor: parsedAppearance.data.messageColor.toUpperCase()
       };
 
