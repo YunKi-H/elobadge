@@ -105,6 +105,15 @@ test("missing sessionKey before the deadline creates a fresh session", async () 
 test("published chat includes the sender's cached rating badge", async () => {
   const sockets: FakeSocket[] = [];
   const deps = dependencies(sockets, () => {});
+  const badgeDiagnostics: Array<{ context: unknown; message?: string }> = [];
+  const diagnosticLogger = {
+    info() {},
+    warn() {},
+    error() {},
+    debug(context: unknown, message?: string) {
+      badgeDiagnostics.push({ context, message });
+    }
+  } as unknown as FastifyBaseLogger;
   deps.getRatingBadge = async (channelId) => ({
     provider: "chesscom",
     speed: "rapid",
@@ -112,22 +121,49 @@ test("published chat includes the sender's cached rating badge", async () => {
     provisional: false
   });
   const session = new ChzzkSession("streamer-a", policy, deps);
-  const events: Array<{ rating: { value: number } | null }> = [];
+  const events: Array<{
+    rating: { value: number } | null;
+    chzzkBadges?: Array<{ imageUrl: string }>;
+  }> = [];
   const unsubscribe = subscribeStreamerChatOverlayEvents("streamer-a", (event) => {
     events.push(event);
   });
 
-  await session.start(config, "access-token", logger);
+  await session.start(config, "access-token", diagnosticLogger);
   sockets[0]?.emit("CHAT", {
     channelId: "streamer-channel",
     senderChannelId: "viewer-channel",
-    profile: { nickname: "viewer" },
+    profile: {
+      nickname: "viewer",
+      badges: [{ badgeType: "subscription", imageUrl: "https://example.com/badge.png" }],
+      verifiedMark: true,
+      userRoleCode: "common_user"
+    },
     content: "good move",
     messageTime: 1_783_000_000_000
   });
   await waitFor(() => events.length === 1);
 
   assert.equal(events[0]?.rating?.value, 1520);
+  assert.deepEqual(events[0]?.chzzkBadges, [
+    { imageUrl: "https://example.com/badge.png" }
+  ]);
+  assert.deepEqual(badgeDiagnostics, [
+    {
+      context: {
+        badgeCount: 1,
+        badges: [
+          {
+            badgeType: "subscription",
+            imageUrl: "https://example.com/badge.png"
+          }
+        ],
+        verifiedMark: true,
+        userRoleCode: "common_user"
+      },
+      message: "Chzzk chat profile badge diagnostic"
+    }
+  ]);
   unsubscribe();
   session.stop();
 });

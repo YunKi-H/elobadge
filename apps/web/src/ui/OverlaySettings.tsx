@@ -318,6 +318,20 @@ export function OverlaySettings({
                   </select>
                 </label>
 
+                <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
+                  치지직 배지 표시
+                  <input
+                    type="checkbox"
+                    checked={overlay.appearance.chzzkBadgesVisible}
+                    onChange={(event) =>
+                      updateAppearanceDraft({
+                        chzzkBadgesVisible: event.target.checked
+                      })
+                    }
+                    className="size-4 accent-emerald-500"
+                  />
+                </label>
+
               <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
                 채팅 배경
                 <input

@@ -1,7 +1,11 @@
 import socketIoClient from "socket.io-client";
 import { z } from "zod";
 import type { FastifyBaseLogger } from "fastify";
-import type { ChatOverlayEvent, RatingBadge } from "@elobadge/core";
+import type {
+  ChatOverlayEvent,
+  ChzzkBadge,
+  RatingBadge
+} from "@elobadge/core";
 import type { ChzzkAuthConfig } from "../auth/chzzk/client.js";
 import {
   createChzzkUserSession,
@@ -53,6 +57,8 @@ const defaultSessionDependencies: ChzzkSessionDependencies = {
 interface SocketIoPacket {
   data?: unknown[];
 }
+
+const MAX_CHZZK_BADGES_PER_MESSAGE = 10;
 
 const systemMessageSchema = z.object({
   type: z.string(),
@@ -379,6 +385,16 @@ export class ChzzkSession implements ManagedChzzkSession {
 
     this.status.lastChatAt = new Date().toISOString();
     this.status.health = "healthy_active";
+
+    this.logger?.debug(
+      {
+        badgeCount: parsed.data.profile.badges?.length ?? 0,
+        badges: parsed.data.profile.badges ?? [],
+        verifiedMark: parsed.data.profile.verifiedMark ?? false,
+        userRoleCode: parsed.data.profile.userRoleCode ?? null
+      },
+      "Chzzk chat profile badge diagnostic"
+    );
 
     this.logger?.info(
       {
@@ -716,6 +732,7 @@ function toChatOverlayEvent(
     nickname: message.profile.nickname,
     content: message.content,
     rating,
+    chzzkBadges: normalizeChzzkBadges(message.profile.badges),
     sentAt: new Date(message.messageTime).toISOString(),
     source: {
       provider: "chzzk",
@@ -724,6 +741,44 @@ function toChatOverlayEvent(
       messageTime: message.messageTime
     }
   };
+}
+
+function normalizeChzzkBadges(badges: unknown[] | undefined): ChzzkBadge[] {
+  const normalized: ChzzkBadge[] = [];
+  const seenUrls = new Set<string>();
+
+  for (const badge of badges ?? []) {
+    if (!badge || typeof badge !== "object") {
+      continue;
+    }
+
+    const imageUrl = (badge as { imageUrl?: unknown }).imageUrl;
+
+    if (
+      typeof imageUrl !== "string" ||
+      !isHttpsUrl(imageUrl) ||
+      seenUrls.has(imageUrl)
+    ) {
+      continue;
+    }
+
+    seenUrls.add(imageUrl);
+    normalized.push({ imageUrl });
+
+    if (normalized.length === MAX_CHZZK_BADGES_PER_MESSAGE) {
+      break;
+    }
+  }
+
+  return normalized;
+}
+
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function redactSessionUrl(url: string) {

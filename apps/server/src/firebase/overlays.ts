@@ -172,6 +172,10 @@ export function normalizeOverlayAppearance(value: unknown): OverlayAppearance {
       appearance.backgroundOpacity <= 100
         ? appearance.backgroundOpacity
         : DEFAULT_OVERLAY_APPEARANCE.backgroundOpacity,
+    chzzkBadgesVisible:
+      typeof appearance.chzzkBadgesVisible === "boolean"
+        ? appearance.chzzkBadgesVisible
+        : DEFAULT_OVERLAY_APPEARANCE.chzzkBadgesVisible,
     nicknameVisible:
       typeof appearance.nicknameVisible === "boolean"
         ? appearance.nicknameVisible

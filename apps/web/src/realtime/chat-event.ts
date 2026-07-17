@@ -1,5 +1,6 @@
 import type {
   ChatOverlayEvent,
+  ChzzkBadge,
   OverlayAppearance,
   RatingBadge
 } from "@elobadge/core";
@@ -33,7 +34,16 @@ export function parseChatOverlayEvent(data: unknown): ChatOverlayEvent | null {
     return null;
   }
 
-  return event as ChatOverlayEvent;
+  const chzzkBadges = parseChzzkBadges(event.chzzkBadges);
+
+  if (!chzzkBadges) {
+    return null;
+  }
+
+  return {
+    ...(event as ChatOverlayEvent),
+    chzzkBadges
+  };
 }
 
 export function parseOverlayAppearanceEvent(
@@ -65,6 +75,7 @@ export function parseOverlayAppearanceEvent(
     !Number.isInteger(appearance.backgroundOpacity) ||
     appearance.backgroundOpacity < 0 ||
     appearance.backgroundOpacity > 100 ||
+    typeof appearance.chzzkBadgesVisible !== "boolean" ||
     typeof appearance.nicknameVisible !== "boolean" ||
     (appearance.nicknameColorMode !== "fixed" &&
       appearance.nicknameColorMode !== "by_user") ||
@@ -85,6 +96,7 @@ export function parseOverlayAppearanceEvent(
     backgroundVisible: appearance.backgroundVisible,
     backgroundColor: appearance.backgroundColor.toUpperCase(),
     backgroundOpacity: appearance.backgroundOpacity,
+    chzzkBadgesVisible: appearance.chzzkBadgesVisible,
     nicknameVisible: appearance.nicknameVisible,
     nicknameColorMode: appearance.nicknameColorMode,
     nicknameColor: appearance.nicknameColor.toUpperCase(),
@@ -112,4 +124,40 @@ function isRatingBadge(value: unknown): value is RatingBadge | null {
     typeof badge.value === "number" &&
     typeof badge.provisional === "boolean"
   );
+}
+
+function parseChzzkBadges(value: unknown): ChzzkBadge[] | null {
+  if (value === undefined) {
+    return [];
+  }
+
+  if (!Array.isArray(value) || value.length > 10) {
+    return null;
+  }
+
+  const badges: ChzzkBadge[] = [];
+
+  for (const badge of value) {
+    if (!badge || typeof badge !== "object") {
+      return null;
+    }
+
+    const imageUrl = (badge as Partial<ChzzkBadge>).imageUrl;
+
+    if (typeof imageUrl !== "string" || !isHttpsUrl(imageUrl)) {
+      return null;
+    }
+
+    badges.push({ imageUrl });
+  }
+
+  return badges;
+}
+
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
 }

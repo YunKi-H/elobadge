@@ -12,6 +12,7 @@ import {
   overlayBackgroundColor,
   overlayNicknameColor
 } from "./overlay-appearance";
+import { ChzzkBadges } from "./ChzzkBadges";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
 export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
@@ -70,6 +71,9 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
               backgroundColor: overlayBackgroundColor(appearance)
             }}
           >
+            {appearance.chzzkBadgesVisible ? (
+              <ChzzkBadges badges={message.chzzkBadges} />
+            ) : null}
             {message.rating ? (
               <RatingBadge rating={message.rating} />
             ) : null}

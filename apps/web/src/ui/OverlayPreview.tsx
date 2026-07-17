@@ -9,6 +9,7 @@ import {
   overlayBackgroundColor,
   overlayNicknameColor
 } from "./overlay-appearance";
+import { ChzzkBadges } from "./ChzzkBadges";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
 export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }) {
@@ -98,6 +99,9 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
                 backgroundColor: overlayBackgroundColor(appearance)
               }}
             >
+              {appearance.chzzkBadgesVisible ? (
+                <ChzzkBadges badges={message.chzzkBadges} />
+              ) : null}
               {message.rating ? (
                 <RatingBadge rating={message.rating} />
               ) : null}

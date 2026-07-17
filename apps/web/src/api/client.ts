@@ -268,6 +268,7 @@ function isOverlayAppearance(value: unknown): value is OverlayAppearance {
     Number.isInteger(appearance.backgroundOpacity) &&
     appearance.backgroundOpacity >= 0 &&
     appearance.backgroundOpacity <= 100 &&
+    typeof appearance.chzzkBadgesVisible === "boolean" &&
     typeof appearance.nicknameVisible === "boolean" &&
     (appearance.nicknameColorMode === "fixed" ||
       appearance.nicknameColorMode === "by_user") &&

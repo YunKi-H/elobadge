@@ -17,11 +17,16 @@ export interface RatingBadge {
   provisional: boolean;
 }
 
+export interface ChzzkBadge {
+  imageUrl: string;
+}
+
 export interface ChatOverlayEvent {
   id: string;
   nickname: string;
   content: string;
   rating: RatingBadge | null;
+  chzzkBadges?: ChzzkBadge[];
   sentAt: string;
   source?: {
     provider: "chzzk";
@@ -35,6 +40,7 @@ export interface OverlayAppearance {
   backgroundVisible: boolean;
   backgroundColor: string;
   backgroundOpacity: number;
+  chzzkBadgesVisible: boolean;
   nicknameVisible: boolean;
   nicknameColorMode: NicknameColorMode;
   nicknameColor: string;
@@ -46,6 +52,7 @@ export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
   backgroundVisible: true,
   backgroundColor: "#020617",
   backgroundOpacity: 90,
+  chzzkBadgesVisible: true,
   nicknameVisible: true,
   nicknameColorMode: "fixed",
   nicknameColor: "#7DD3FC",
