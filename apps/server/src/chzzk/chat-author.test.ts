@@ -20,7 +20,7 @@ test("classifies official Chzzk channel roles", () => {
   );
 });
 
-test("prefers a donation badge over a subscription badge", () => {
+test("prefers a subscription badge over a donation badge", () => {
   assert.equal(
     classifyChzzkChatAuthor({
       userRoleCode: "common_user",
@@ -29,7 +29,23 @@ test("prefers a donation badge over a subscription badge", () => {
         { badgeType: "donation_rank" }
       ]
     }),
-    "donator"
+    "subscriber"
+  );
+
+  assert.equal(
+    classifyChzzkChatAuthor({
+      userRoleCode: "common_user",
+      badges: [
+        {
+          imageUrl:
+            "https://nng-phinf.pstatic.net/glive/subscription/badge/channel/1/custom.png"
+        },
+        {
+          imageUrl: "https://ssl.pstatic.net/static/nng/glive/badge/fan_03.png"
+        }
+      ]
+    }),
+    "subscriber"
   );
 });
 
@@ -44,7 +60,53 @@ test("classifies subscription badges and falls back to viewer", () => {
   assert.equal(
     classifyChzzkChatAuthor({
       userRoleCode: "common_user",
+      badges: [
+        {
+          imageUrl:
+            "https://nng-phinf.pstatic.net/glive/subscription/badge/channel/1/custom.png"
+        }
+      ]
+    }),
+    "subscriber"
+  );
+  assert.equal(
+    classifyChzzkChatAuthor({
+      userRoleCode: "common_user",
       badges: [{ imageUrl: "https://example.com/badge.png" }]
+    }),
+    "viewer"
+  );
+});
+
+test("classifies observed Chzzk fan badges as donation badges", () => {
+  for (const badgeName of ["fan_01.png", "fan_03.png"]) {
+    assert.equal(
+      classifyChzzkChatAuthor({
+        userRoleCode: "common_user",
+        badges: [
+          {
+            imageUrl: `https://ssl.pstatic.net/static/nng/glive/badge/${badgeName}`
+          }
+        ]
+      }),
+      "donator"
+    );
+  }
+});
+
+test("does not treat subscription gift and event badges as a subscription", () => {
+  assert.equal(
+    classifyChzzkChatAuthor({
+      userRoleCode: "common_user",
+      badges: [
+        {
+          imageUrl:
+            "https://ssl.pstatic.net/static/nng/glive/badge/gift_sub_1.png"
+        },
+        {
+          imageUrl: "https://ssl.pstatic.net/static/nng/glive/badge/recap_25.png"
+        }
+      ]
     }),
     "viewer"
   );
