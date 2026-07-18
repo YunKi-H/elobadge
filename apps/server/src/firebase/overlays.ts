@@ -20,7 +20,7 @@ export interface ActiveOverlayAccess {
 
 export class StreamerOverlayAccessError extends Error {
   constructor() {
-    super("Only a registered streamer can manage an overlay");
+    super("스트리머 인증이 필요합니다. 치지직 스트리머로 다시 연결해 주세요.");
     this.name = "StreamerOverlayAccessError";
   }
 }

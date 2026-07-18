@@ -194,7 +194,7 @@ export async function disableOverlayAccess(): Promise<OverlayAccess | null> {
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok || !isOverlayResponse(body)) {
-    throw new Error("오버레이를 비활성화하지 못했습니다.");
+    throw new Error(apiError(body, "오버레이를 비활성화하지 못했습니다."));
   }
 
   return body.overlay;
@@ -222,7 +222,7 @@ async function updateOverlayAccess(path: string): Promise<OverlayAccess> {
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok || !isOverlayResponse(body) || !body.overlay) {
-    throw new Error("오버레이 설정을 변경하지 못했습니다.");
+    throw new Error(apiError(body, "오버레이 설정을 변경하지 못했습니다."));
   }
 
   return body.overlay;
