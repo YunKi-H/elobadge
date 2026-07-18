@@ -345,7 +345,7 @@ export function ChessComAccountSettings() {
               ) : (
                 <div className="mt-4 max-w-xl">
                   <p className="text-sm text-slate-300">
-                    Chess.com 프로필 설정의 Location에 아래 코드를 정확히 입력하고 저장하세요.
+                    Chess.com 프로필 설정의 위치(Location)에 아래 코드를 정확히 입력하고 저장하세요.
                   </p>
                   <div className="mt-3 flex items-center gap-2">
                     <code className="min-w-0 flex-1 overflow-x-auto rounded-md bg-slate-950 px-3 py-2 text-sm text-white ring-1 ring-white/15">
