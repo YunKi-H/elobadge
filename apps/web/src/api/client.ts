@@ -79,6 +79,22 @@ export async function disconnectChzzkConnection(): Promise<boolean> {
   return (body as { revoked: boolean }).revoked;
 }
 
+export async function deleteEloBadgeAccount(): Promise<void> {
+  const response = await authenticatedFetch("/api/account", {
+    method: "DELETE"
+  });
+  const body: unknown = await response.json().catch(() => null);
+
+  if (
+    !response.ok ||
+    !body ||
+    typeof body !== "object" ||
+    (body as { ok?: unknown }).ok !== true
+  ) {
+    throw new Error(apiError(body, "EloBadge 계정을 삭제하지 못했습니다."));
+  }
+}
+
 export async function getChessComAccount(): Promise<ChessComAccount | null> {
   const response = await authenticatedFetch("/api/chess/chesscom/account");
   const body: unknown = await response.json().catch(() => null);

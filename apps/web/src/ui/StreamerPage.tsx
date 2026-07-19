@@ -10,6 +10,7 @@ import { disconnectChzzkConnection } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
 import { OverlayPreview } from "./OverlayPreview";
 import { OverlaySettings } from "./OverlaySettings";
+import { AccountDeletion } from "./AccountDeletion";
 
 export function StreamerPage() {
   const navigate = useNavigate();
@@ -72,6 +73,8 @@ export function StreamerPage() {
           {disconnecting ? "연결 해제 중" : "치지직 연결 해제"}
         </button>
       </div>
+
+      <AccountDeletion />
     </div>
   );
 }

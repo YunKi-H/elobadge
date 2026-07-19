@@ -137,6 +137,7 @@ endpoints are:
 
 ```text
 GET  /api/me
+DELETE /api/account
 GET  /api/chzzk/session/status
 POST /api/chzzk/session/stop
 GET  /api/overlay
@@ -198,9 +199,9 @@ the existing SSE overlay event. A badge lookup failure degrades to a normal chat
 message without dropping chat delivery.
 
 Disconnecting a Chess.com account clears the user pointer, ownership
-verification, pending challenge, selected speed, and denormalized Chzzk badge
-in one transaction. Rating snapshots remain detached for later refresh, but no
-verification state is inherited by a future link.
+verification, pending challenge, selected speed, rating snapshots, account
+document, and denormalized Chzzk badge. Reconnecting requires a fresh ownership
+verification.
 
 Verified Chess.com ratings refresh automatically every 12 hours with up to 30
 minutes of jitter. A background scan runs every 15 minutes, processes PubAPI

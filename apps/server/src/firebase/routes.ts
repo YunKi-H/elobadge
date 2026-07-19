@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getFirebaseAuth, getFirestoreDb } from "./admin.js";
 import { consumeFirebaseLoginCode } from "./login-exchange.js";
 import { getRequiredFirebaseUser, requireFirebaseUser } from "../auth/firebase.js";
+import { getChzzkAuthConfig } from "../auth/chzzk/client.js";
+import { accountDeletionService } from "./account-deletion-service.js";
 
 const loginExchangeBodySchema = z.object({
   code: z.string().min(1)
@@ -50,6 +52,36 @@ export async function registerFirebaseRoutes(app: FastifyInstance) {
           ok: true,
           user: getRequiredFirebaseUser(request)
         });
+    }
+  );
+
+  app.delete(
+    "/api/account",
+    {
+      preHandler: requireFirebaseUser,
+      config: {
+        rateLimit: { max: 3, timeWindow: "1 minute" }
+      }
+    },
+    async (request, reply) => {
+      const user = getRequiredFirebaseUser(request);
+
+      if (
+        !user.chzzkChannelId ||
+        user.uid !== `chzzk:${user.chzzkChannelId}`
+      ) {
+        return reply.code(403).send({ error: "Chzzk identity required" });
+      }
+
+      await accountDeletionService.deleteAccount(
+        user.uid,
+        user.chzzkChannelId,
+        getChzzkAuthConfig(),
+        request.log
+      );
+      request.log.info("EloBadge account deleted");
+
+      return reply.header("Cache-Control", "no-store").send({ ok: true });
     }
   );
 

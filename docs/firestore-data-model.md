@@ -309,6 +309,22 @@ hours. A single-process lock prevents overlapping cleanup scans. This avoids
 the billing requirement of Firestore's managed TTL feature while keeping
 abandoned challenges bounded.
 
+## Account Deletion
+
+`DELETE /api/account` requires a Firebase ID token whose UID exactly matches
+`chzzk:{chzzkChannelId}`. The server stops any active chat session, attempts to
+revoke stored Chzzk credentials, and then deletes every overlay document owned
+by the user, the linked Chess.com account and ratings, a pending verification
+challenge, `chzzkTokens`, `streamers`, `chzzkAccounts`, and `users`. It closes
+open SSE overlay connections and removes the Firebase Authentication user last.
+
+Dependent documents are deleted before the identity documents so a failed
+request can be retried without losing the pointers needed for cleanup. Remote
+Chzzk revocation is best effort: a provider outage is logged but does not block
+deletion of locally stored credentials and personal data. Firestore batches are
+limited below the 500-operation maximum, making retries idempotent after a
+partial multi-batch cleanup.
+
 ## Chat Lookup
 
 ```text

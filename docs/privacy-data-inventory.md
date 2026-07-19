@@ -14,9 +14,9 @@ Status labels:
 
 | Data | Purpose | Location | Status | Current deletion behavior |
 | --- | --- | --- | --- | --- |
-| Firebase UID (`chzzk:{channelId}`) | Authenticate and join service records | Firebase Authentication, Firestore document IDs | Stored, derived | No complete account-deletion flow |
-| Chzzk channel ID | Identify viewers and streamers; match chat senders | `users`, `chzzkAccounts`, `streamers`, Firebase custom claims | Stored | Remains after Chzzk connection is disconnected |
-| Chzzk channel name/display name | Display account identity | Firebase Authentication, `users`, `chzzkAccounts`, `streamers` | Stored | Remains after Chzzk connection is disconnected |
+| Firebase UID (`chzzk:{channelId}`) | Authenticate and join service records | Firebase Authentication, Firestore document IDs | Stored, derived | Deleted by the authenticated EloBadge account-deletion flow |
+| Chzzk channel ID | Identify viewers and streamers; match chat senders | `users`, `chzzkAccounts`, `streamers`, Firebase custom claims | Stored | Deleted from Firebase Auth and Firestore on account deletion |
+| Chzzk channel name/display name | Display account identity | Firebase Authentication, `users`, `chzzkAccounts`, `streamers` | Stored | Deleted from Firebase Auth and Firestore on account deletion |
 | Login mode (`viewer` or `streamer`) | Route the OAuth login flow | In-memory OAuth/login exchange | Transient | OAuth state expires after 10 minutes; Firebase login exchange expires after 2 minutes |
 
 Viewer Chzzk access and refresh tokens are used for identity lookup and are not
@@ -27,11 +27,11 @@ browser storage entries are managed by Firebase rather than EloBadge code.
 
 | Data | Purpose | Location | Status | Current deletion behavior |
 | --- | --- | --- | --- | --- |
-| Chzzk access token | Create chat sessions and call Chzzk APIs | `chzzkTokens/{firebaseUid}` | Stored, AES-256-GCM encrypted | Deleted after successful remote token revocation |
-| Chzzk refresh token | Refresh and revoke access | `chzzkTokens/{firebaseUid}` | Stored, AES-256-GCM encrypted | Deleted after successful remote token revocation |
+| Chzzk access token | Create chat sessions and call Chzzk APIs | `chzzkTokens/{firebaseUid}` | Stored, AES-256-GCM encrypted | Deleted after successful connection revocation or unconditionally from local storage on account deletion |
+| Chzzk refresh token | Refresh and revoke access | `chzzkTokens/{firebaseUid}` | Stored, AES-256-GCM encrypted | Deleted after successful connection revocation or unconditionally from local storage on account deletion |
 | Token type, scope and expiry | Token lifecycle management | `chzzkTokens/{firebaseUid}` | Stored | Deleted with token document |
-| Chat-session intent and token status | Restore streamer sessions after restart | `streamers/{firebaseUid}` | Stored | Session is disabled on disconnect; streamer document remains |
-| Token/session error timestamps | Diagnose reauthentication state | `streamers/{firebaseUid}` | Stored | No automatic deletion |
+| Chat-session intent and token status | Restore streamer sessions after restart | `streamers/{firebaseUid}` | Stored | Session is disabled on disconnect; streamer document is deleted on account deletion |
+| Token/session error timestamps | Diagnose reauthentication state | `streamers/{firebaseUid}` | Stored | Deleted on account deletion |
 
 The token encryption key is held in the server environment and is not stored in
 Firestore. Application credentials and Firebase Admin credentials are also
@@ -48,7 +48,7 @@ server secrets, not user data returned to browsers.
 | Verification status, method and timestamps | Prove account ownership | `chessAccounts/{accountId}` | Stored | Deleted immediately on disconnect |
 | Chess.com Location value | Compare the public profile against a challenge | Server memory during verification request | Transient | Not written to Firestore by EloBadge |
 | Hashed verification code, failed attempts and expiry | Verify profile ownership | `chessVerificationChallenges/{accountId}` | Stored | Deleted after success or disconnect; expired challenges are deleted by a startup and six-hour server cleanup job |
-| Rating refresh status, failures, lease IDs and timestamps | Schedule and coordinate refreshes | `chessAccounts/{accountId}` | Stored | No automatic deletion |
+| Rating refresh status, failures, lease IDs and timestamps | Schedule and coordinate refreshes | `chessAccounts/{accountId}` | Stored | Deleted on Chess.com disconnect or EloBadge account deletion |
 
 Chess.com profile and rating data is publicly available at the source, but it
 remains personal data when EloBadge associates it with a Chzzk identity.
@@ -62,13 +62,17 @@ remains personal data when EloBadge associates it with a Chzzk identity.
 | Nickname and message content | Render the overlay | Process memory and SSE event | Transient | Not written to Firestore or application logs |
 | Chzzk role, badge image URLs and emoji image URLs | Render and classify chat | Process memory and SSE event | Transient | Not stored per message in Firestore |
 | Selected chess badge | Avoid a Firestore lookup for each message | `chzzkAccounts/{channelId}.badge`, in-memory cache | Stored plus transient cache | Cleared on chess account disconnect |
-| Overlay public token | Authorize an OBS browser source | `streamers`, `overlays`, browser-source URL | Stored secret-like identifier | Rotated tokens remain as inactive documents |
-| Overlay appearance settings | Render streamer-selected UI | `overlays/{publicToken}.theme` | Stored | Remain with active and inactive overlay documents |
+| Overlay public token | Authorize an OBS browser source | `streamers`, `overlays`, browser-source URL | Stored secret-like identifier | Rotated tokens remain inactive while the account exists; all are deleted on account deletion |
+| Overlay appearance settings | Render streamer-selected UI | `overlays/{publicToken}.theme` | Stored | Deleted with every active and inactive overlay on account deletion |
 | Disclosure-section UI state | Remember expanded settings sections | Browser `localStorage` | Stored on user device | User clears browser storage |
 
 The application keeps at most 30 chat messages in each open browser overlay.
 Messages expire according to the streamer's display-duration setting, but this
 does not control application-log retention.
+
+Account deletion does not selectively rewrite rotated operational logs. Any UID
+or streamer channel ID already present in those logs remains until the bounded
+Docker log files rotate out under the configured size policy.
 
 ## 5. Operational and access logs
 
@@ -116,17 +120,16 @@ user database or runtime logs are intentionally sent there by the application.
 The following decisions and implementation work are required before the public
 privacy policy can state accurate retention periods:
 
-1. Define a full EloBadge account-deletion flow covering Firebase Auth and all
-   user-owned Firestore records.
-2. Define and enforce a time-based retention period for operational logs.
-3. Decide when inactive overlay documents are permanently deleted.
-4. Confirm Firebase, AWS and Cloudflare regions and whether Cloudflare proxying
+1. Define and enforce a time-based retention period for operational logs.
+2. Decide when inactive overlay documents are permanently deleted while an
+   account remains active.
+3. Confirm Firebase, AWS and Cloudflare regions and whether Cloudflare proxying
    is enabled.
-5. Decide whether to self-host web fonts to avoid browser requests to multiple
+4. Decide whether to self-host web fonts to avoid browser requests to multiple
    third-party font CDNs.
-6. Define how requests for access, correction, deletion and processing
+5. Define how requests for access, correction, deletion and processing
    suspension are received and verified.
-7. Define the service's policy for users under 14 years old.
+6. Define the service's policy for users under 14 years old.
 
 ## 8. Facts needed from the operator
 

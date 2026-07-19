@@ -39,3 +39,17 @@ test("Firebase login exchange returns the Chzzk login mode", async () => {
   });
   await app.close();
 });
+
+test("account deletion requires Firebase authentication", async () => {
+  const app = Fastify();
+  await registerFirebaseAuthentication(app);
+  await registerFirebaseRoutes(app);
+
+  const response = await app.inject({
+    method: "DELETE",
+    url: "/api/account"
+  });
+
+  assert.equal(response.statusCode, 401);
+  await app.close();
+});

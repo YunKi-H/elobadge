@@ -10,6 +10,7 @@ import {
   saveUnverifiedChessComAccount
 } from "../chess-accounts.js";
 import { getFirebaseAdminApp, getFirestoreDb } from "../admin.js";
+import { deleteUserFirestoreData } from "../account-deletion.js";
 import { getChzzkRatingBadge } from "../chess-badges.js";
 import {
   ChessVerificationError,
@@ -190,6 +191,59 @@ test("verification cleanup deletes only expired challenges", async () => {
   assert.equal((await challenges.doc("expired").get()).exists, false);
   assert.equal((await challenges.doc("active").get()).exists, true);
   assert.equal((await challenges.doc("legacy-without-expiry").get()).exists, true);
+});
+
+test("account deletion removes user-owned Firestore data", async () => {
+  const db = getFirestoreDb();
+  const uid = "chzzk:delete-channel";
+  const channelId = "delete-channel";
+  const accountId = "chesscom:delete-player";
+  const accountRef = db.collection("chessAccounts").doc(accountId);
+  const ownedDocuments = [
+    db.collection("users").doc(uid),
+    db.collection("chzzkAccounts").doc(channelId),
+    db.collection("streamers").doc(uid),
+    db.collection("chzzkTokens").doc(uid),
+    db.collection("overlays").doc("active-overlay"),
+    db.collection("overlays").doc("rotated-overlay"),
+    accountRef,
+    accountRef.collection("ratings").doc("bullet"),
+    accountRef.collection("ratings").doc("blitz"),
+    accountRef.collection("ratings").doc("rapid"),
+    db.collection("chessVerificationChallenges").doc(accountId)
+  ];
+
+  await Promise.all([
+    ownedDocuments[0]!.set({ chessAccountIds: { chesscom: accountId } }),
+    ownedDocuments[1]!.set({ uid }),
+    ownedDocuments[2]!.set({ overlayToken: "active-overlay" }),
+    ownedDocuments[3]!.set({ encryptedAccessToken: "secret" }),
+    ownedDocuments[4]!.set({ streamerUid: uid, active: true }),
+    ownedDocuments[5]!.set({ streamerUid: uid, active: false }),
+    ownedDocuments[6]!.set({ uid, provider: "chesscom" }),
+    ownedDocuments[7]!.set({ value: 1000 }),
+    ownedDocuments[8]!.set({ value: 1100 }),
+    ownedDocuments[9]!.set({ value: 1200 }),
+    ownedDocuments[10]!.set({ uid }),
+    db.collection("overlays").doc("another-overlay").set({
+      streamerUid: "chzzk:another-channel",
+      active: true
+    })
+  ]);
+
+  const deleted = await deleteUserFirestoreData(uid, channelId);
+
+  assert.deepEqual(deleted.overlayTokens.sort(), [
+    "active-overlay",
+    "rotated-overlay"
+  ]);
+  for (const document of ownedDocuments) {
+    assert.equal((await document.get()).exists, false);
+  }
+  assert.equal(
+    (await db.collection("overlays").doc("another-overlay").get()).exists,
+    true
+  );
 });
 
 test("deployed Firestore rules deny direct unauthenticated client access", async () => {
