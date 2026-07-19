@@ -178,6 +178,7 @@ test("overlay appearance persists and survives public token rotation", async () 
 
   const initial = await enableStreamerOverlayAccess(uid);
   assert.deepEqual(initial.appearance, {
+    messageMaxWidthPx: 600,
     backgroundVisible: true,
     backgroundColor: "#020617",
     backgroundOpacity: 90,
@@ -216,6 +217,7 @@ test("overlay appearance persists and survives public token rotation", async () 
   });
 
   const appearance = {
+    messageMaxWidthPx: 480,
     backgroundVisible: false,
     backgroundColor: "#172554",
     backgroundOpacity: 45,

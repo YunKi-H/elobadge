@@ -157,6 +157,13 @@ export function normalizeOverlayAppearance(value: unknown): OverlayAppearance {
   const appearance = value as Partial<OverlayAppearance>;
 
   return {
+    messageMaxWidthPx:
+      typeof appearance.messageMaxWidthPx === "number" &&
+      Number.isInteger(appearance.messageMaxWidthPx) &&
+      appearance.messageMaxWidthPx >= 300 &&
+      appearance.messageMaxWidthPx <= 600
+        ? appearance.messageMaxWidthPx
+        : DEFAULT_OVERLAY_APPEARANCE.messageMaxWidthPx,
     backgroundVisible:
       typeof appearance.backgroundVisible === "boolean"
         ? appearance.backgroundVisible

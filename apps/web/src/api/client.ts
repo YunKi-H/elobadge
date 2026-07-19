@@ -283,6 +283,10 @@ function isOverlayAppearance(value: unknown): value is OverlayAppearance {
   const appearance = value as Partial<OverlayAppearance>;
 
   return (
+    typeof appearance.messageMaxWidthPx === "number" &&
+    Number.isInteger(appearance.messageMaxWidthPx) &&
+    appearance.messageMaxWidthPx >= 300 &&
+    appearance.messageMaxWidthPx <= 600 &&
     typeof appearance.backgroundVisible === "boolean" &&
     typeof appearance.backgroundColor === "string" &&
     /^#[0-9A-Fa-f]{6}$/.test(appearance.backgroundColor) &&

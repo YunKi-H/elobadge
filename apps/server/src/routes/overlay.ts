@@ -35,6 +35,7 @@ const overlayParamsSchema = z.object({
 });
 
 const overlayAppearanceSchema = z.object({
+  messageMaxWidthPx: z.number().int().min(300).max(600).default(600),
   backgroundVisible: z.boolean(),
   backgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
   backgroundOpacity: z.number().int().min(0).max(100),

@@ -406,6 +406,28 @@ export function OverlaySettings({
               expanded={expandedSections.general}
               onToggle={() => toggleAppearanceSection("general")}
             >
+                <label className="grid gap-2 text-sm font-medium text-slate-200">
+                  <span className="flex items-center justify-between gap-4">
+                    채팅 최대 너비
+                    <output className="tabular-nums text-slate-400">
+                      {overlay.appearance.messageMaxWidthPx}px
+                    </output>
+                  </span>
+                  <input
+                    type="range"
+                    min={300}
+                    max={600}
+                    step={10}
+                    value={overlay.appearance.messageMaxWidthPx}
+                    onChange={(event) =>
+                      updateAppearanceDraft({
+                        messageMaxWidthPx: Number(event.target.value)
+                      })
+                    }
+                    className="w-full accent-emerald-500"
+                  />
+                </label>
+
                 <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
                   채팅 표시 시간
                   <select

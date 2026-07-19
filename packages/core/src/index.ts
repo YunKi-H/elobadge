@@ -100,6 +100,7 @@ export interface ChatOverlayEvent {
 }
 
 export interface OverlayAppearance {
+  messageMaxWidthPx: number;
   backgroundVisible: boolean;
   backgroundColor: string;
   backgroundOpacity: number;
@@ -120,6 +121,7 @@ export interface OverlayAppearance {
 }
 
 export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
+  messageMaxWidthPx: 600,
   backgroundVisible: true,
   backgroundColor: "#020617",
   backgroundOpacity: 90,

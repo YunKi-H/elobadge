@@ -20,6 +20,7 @@ test("overlay public tokens are URL-safe, random 256-bit values", () => {
 
 test("overlay appearance falls back safely for legacy theme documents", () => {
   assert.deepEqual(normalizeOverlayAppearance({}), {
+    messageMaxWidthPx: 600,
     backgroundVisible: true,
     backgroundColor: "#020617",
     backgroundOpacity: 90,
@@ -59,6 +60,7 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
 
   assert.deepEqual(
     normalizeOverlayAppearance({
+      messageMaxWidthPx: 480,
       backgroundVisible: false,
       backgroundColor: "#abcdef",
       backgroundOpacity: 35,
@@ -96,6 +98,7 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
       messageDurationSeconds: 60
     }),
     {
+      messageMaxWidthPx: 480,
       backgroundVisible: false,
       backgroundColor: "#ABCDEF",
       backgroundOpacity: 35,
@@ -137,12 +140,14 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
 
 test("overlay appearance rejects unsupported font settings", () => {
   const appearance = normalizeOverlayAppearance({
+    messageMaxWidthPx: 250,
     fontFamily: "remote-font",
     fontSizePx: 72,
     fontWeight: 800,
     fontLineHeight: 2
   });
 
+  assert.equal(appearance.messageMaxWidthPx, 600);
   assert.equal(appearance.fontFamily, "system");
   assert.equal(appearance.fontSizePx, 18);
   assert.equal(appearance.fontWeight, 400);
