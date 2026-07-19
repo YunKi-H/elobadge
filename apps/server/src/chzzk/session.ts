@@ -384,7 +384,10 @@ export class ChzzkSession implements ManagedChzzkSession {
     const parsed = chatMessageSchema.safeParse(normalizedMessage);
 
     if (!parsed.success) {
-      this.logger?.warn({ message: normalizedMessage }, "Unknown Chzzk CHAT message");
+      this.logger?.warn(
+        { payload: summarizeSocketPayload(normalizedMessage) },
+        "Unknown Chzzk CHAT message"
+      );
       return;
     }
 
@@ -398,9 +401,10 @@ export class ChzzkSession implements ManagedChzzkSession {
     this.logger?.info(
       {
         channelId: parsed.data.channelId,
-        senderChannelId: parsed.data.senderChannelId,
-        nickname: parsed.data.profile.nickname,
-        content: parsed.data.content,
+        authorKind: classifyChzzkChatAuthor(parsed.data.profile),
+        contentLength: parsed.data.content.length,
+        badgeCount: parsed.data.profile.badges?.length ?? 0,
+        emojiCount: Object.keys(parsed.data.emojis ?? {}).length,
         messageTime: parsed.data.messageTime
       },
       "Chzzk chat message received"
@@ -419,7 +423,7 @@ export class ChzzkSession implements ManagedChzzkSession {
       rating = await this.dependencies.getRatingBadge(message.senderChannelId);
     } catch (error) {
       this.logger?.warn(
-        { err: error, senderChannelId: message.senderChannelId },
+        { err: error, channelId: message.channelId },
         "Chess rating badge lookup failed"
       );
     }
@@ -701,12 +705,28 @@ function attachRawEventLogger(socket: ChzzkSocket, logger: FastifyBaseLogger) {
     logger.debug(
       {
         eventName,
-        payload: normalizeSocketPayload(payload)
+        payload: summarizeSocketPayload(payload)
       },
       "Chzzk raw socket event received"
     );
 
     originalOnevent.call(this, packet);
+  };
+}
+
+function summarizeSocketPayload(payload: unknown): {
+  type: string;
+  fields?: string[];
+} {
+  const normalized = normalizeSocketPayload(payload);
+
+  if (!normalized || typeof normalized !== "object" || Array.isArray(normalized)) {
+    return { type: normalized === null ? "null" : typeof normalized };
+  }
+
+  return {
+    type: "object",
+    fields: Object.keys(normalized).sort()
   };
 }
 

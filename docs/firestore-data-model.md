@@ -249,10 +249,10 @@ from 5 minutes to 6 hours while preserving the last valid rating and badge. A
 and expires automatically after an interrupted refresh. Manual refreshes use a
 persisted 5-minute cooldown shared across browsers and server restarts.
 
-Disconnecting clears the user pointer, verification fields, selected speed,
-pending challenge, and Chzzk badge in one transaction. The detached account and
-rating documents may remain for future refreshes, but `uid` and `verifiedAt`
-must both be null so ownership cannot transfer implicitly.
+Disconnecting clears the user pointer and Chzzk badge, then deletes the pending
+challenge, Chess.com account, and all supported rating documents in one
+transaction. Reconnecting fetches the public profile again and requires a new
+ownership verification.
 
 For Chess.com, the first registration uses the read-only PubAPI and therefore
 always writes `verifiedAt: null`. A public username and public rating are not

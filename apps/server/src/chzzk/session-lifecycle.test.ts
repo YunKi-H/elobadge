@@ -105,9 +105,15 @@ test("missing sessionKey before the deadline creates a fresh session", async () 
 test("published chat includes the sender's cached rating badge", async () => {
   const sockets: FakeSocket[] = [];
   const deps = dependencies(sockets, () => {});
+  const infoLogs: Array<{ context: unknown; message?: string }> = [];
+  const warnLogs: Array<{ context: unknown; message?: string }> = [];
   const diagnosticLogger = {
-    info() {},
-    warn() {},
+    info(context: unknown, message?: string) {
+      infoLogs.push({ context, message });
+    },
+    warn(context: unknown, message?: string) {
+      warnLogs.push({ context, message });
+    },
     error() {},
     debug() {}
   } as unknown as FastifyBaseLogger;
@@ -162,6 +168,31 @@ test("published chat includes the sender's cached rating badge", async () => {
       imageUrl: "https://example.com/checkmate.png"
     }
   ]);
+
+  const chatLog = infoLogs.find(
+    ({ message }) => message === "Chzzk chat message received"
+  );
+  assert.deepEqual(chatLog?.context, {
+    channelId: "streamer-channel",
+    authorKind: "subscriber",
+    contentLength: 9,
+    badgeCount: 1,
+    emojiCount: 2,
+    messageTime: 1_783_000_000_000
+  });
+  assert.equal(JSON.stringify(chatLog).includes("viewer-channel"), false);
+  assert.equal(JSON.stringify(chatLog).includes("viewer"), false);
+  assert.equal(JSON.stringify(chatLog).includes("good move"), false);
+
+  sockets[0]?.emit("CHAT", {
+    nickname: "private-nickname",
+    content: "private-message"
+  });
+  const invalidChatLog = warnLogs.find(
+    ({ message }) => message === "Unknown Chzzk CHAT message"
+  );
+  assert.equal(JSON.stringify(invalidChatLog).includes("private-nickname"), false);
+  assert.equal(JSON.stringify(invalidChatLog).includes("private-message"), false);
   unsubscribe();
   session.stop();
 });

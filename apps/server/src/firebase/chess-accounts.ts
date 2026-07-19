@@ -49,6 +49,9 @@ export async function disconnectChessComAccount(
 
     const accountRef = db.collection("chessAccounts").doc(accountId);
     const challengeRef = db.collection("chessVerificationChallenges").doc(accountId);
+    const ratingRefs = (["bullet", "blitz", "rapid"] as const).map((speed) =>
+      accountRef.collection("ratings").doc(speed)
+    );
     const [accountSnapshot, challengeSnapshot] = await Promise.all([
       transaction.get(accountRef),
       transaction.get(challengeRef)
@@ -65,18 +68,10 @@ export async function disconnectChessComAccount(
     }
 
     const now = FieldValue.serverTimestamp();
-    transaction.update(accountRef, {
-      uid: null,
-      verifiedAt: null,
-      verificationMethod: null,
-      selectedSpeed: null,
-      nextRatingRefreshAt: FieldValue.delete(),
-      ratingRefreshStatus: FieldValue.delete(),
-      ratingRefreshLeaseId: FieldValue.delete(),
-      ratingRefreshLeaseUntil: FieldValue.delete(),
-      disconnectedAt: now,
-      updatedAt: now
-    });
+    transaction.delete(accountRef);
+    for (const ratingRef of ratingRefs) {
+      transaction.delete(ratingRef);
+    }
     transaction.update(userRef, {
       "chessAccountIds.chesscom": FieldValue.delete(),
       updatedAt: now

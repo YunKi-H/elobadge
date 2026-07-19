@@ -144,10 +144,17 @@ test("Chess.com verification selects the highest badge and disconnect clears it"
   assert.equal(await getUserChessComAccount(uid), null);
   assert.equal(await getChzzkRatingBadge(channelId), null);
 
-  const detachedAccount = await db.collection("chessAccounts").doc(accountId).get();
-  assert.equal(detachedAccount.data()?.uid, null);
-  assert.equal(detachedAccount.data()?.selectedSpeed, null);
-  assert.equal(detachedAccount.data()?.verifiedAt, null);
+  const deletedAccount = await db.collection("chessAccounts").doc(accountId).get();
+  assert.equal(deletedAccount.exists, false);
+  for (const speed of ["bullet", "blitz", "rapid"]) {
+    const deletedRating = await db
+      .collection("chessAccounts")
+      .doc(accountId)
+      .collection("ratings")
+      .doc(speed)
+      .get();
+    assert.equal(deletedRating.exists, false);
+  }
 
   assert.equal(await disconnectChessComAccount(uid, channelId), true);
 });
