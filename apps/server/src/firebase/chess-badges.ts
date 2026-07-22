@@ -1,4 +1,9 @@
-import type { ChessSpeed, RatingBadge } from "@elobadge/core";
+import type {
+  ChessBadges,
+  ChessProvider,
+  ChessSpeed,
+  RatingBadge
+} from "@elobadge/core";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getFirestoreDb } from "./admin.js";
 import { getHighestChessComRating } from "../chess/rating-selection.js";
@@ -77,6 +82,14 @@ export async function ensureHighestChessComBadge(
     transaction.set(
       chzzkAccountRef,
       {
+        badges: {
+          chesscom: {
+            provider: "chesscom",
+            speed: highestRating.speed,
+            value: highestRating.value,
+            provisional: false
+          }
+        },
         badge: {
           provider: "chesscom",
           speed: highestRating.speed,
@@ -94,11 +107,56 @@ export async function ensureHighestChessComBadge(
 export async function getChzzkRatingBadge(
   chzzkChannelId: string
 ): Promise<RatingBadge | null> {
+  const state = await getChzzkChessBadgeState(chzzkChannelId);
+  if (state.preferredProvider) {
+    return state.badges[state.preferredProvider] ?? null;
+  }
+  return state.badges.chesscom ?? state.badges.lichess ?? null;
+}
+
+export interface ChzzkChessBadgeState {
+  badges: ChessBadges;
+  preferredProvider: ChessProvider | null;
+}
+
+export async function getChzzkChessBadgeState(
+  chzzkChannelId: string
+): Promise<ChzzkChessBadgeState> {
   const snapshot = await getFirestoreDb()
     .collection("chzzkAccounts")
     .doc(chzzkChannelId)
     .get();
-  const badge = snapshot.data()?.badge;
+  const data = snapshot.data();
+  const badges: ChessBadges = {};
+  const storedBadges = data?.badges;
+
+  if (storedBadges && typeof storedBadges === "object") {
+    for (const provider of ["chesscom", "lichess"] as const) {
+      const badge = parseRatingBadge(
+        (storedBadges as Record<string, unknown>)[provider]
+      );
+      if (badge?.provider === provider) {
+        badges[provider] = badge;
+      }
+    }
+  }
+
+  const legacyBadge = parseRatingBadge(data?.badge);
+  if (legacyBadge && !badges[legacyBadge.provider]) {
+    badges[legacyBadge.provider] = legacyBadge;
+  }
+
+  const preferredProvider =
+    data?.preferredChessProvider === "chesscom" ||
+    data?.preferredChessProvider === "lichess"
+      ? data.preferredChessProvider
+      : legacyBadge?.provider ?? null;
+
+  return { badges, preferredProvider };
+}
+
+function parseRatingBadge(value: unknown): RatingBadge | null {
+  const badge = value as Partial<RatingBadge> | null | undefined;
 
   if (
     !badge ||

@@ -83,6 +83,7 @@ export function ChessComAccountSettings() {
       setState({ status: "ready", account });
       setVerification(null);
       setUsername(account.username);
+      notifyChessBadgesChanged();
     } catch (error) {
       setState({
         status: "error",
@@ -122,6 +123,7 @@ export function ChessComAccountSettings() {
       const verifiedAccount = await confirmChessComVerification();
       setState({ status: "ready", account: verifiedAccount });
       setVerification(null);
+      notifyChessBadgesChanged();
     } catch (error) {
       setVerificationError(error);
     } finally {
@@ -151,6 +153,7 @@ export function ChessComAccountSettings() {
       setUsername("");
       setVerification(null);
       setCopied(false);
+      notifyChessBadgesChanged();
     } catch (error) {
       setVerificationError(error);
     } finally {
@@ -169,6 +172,7 @@ export function ChessComAccountSettings() {
           ? Date.parse(refreshedAccount.ratingsFetchedAt)
           : clock
       );
+      notifyChessBadgesChanged();
     } catch (error) {
       setVerificationError(error);
     } finally {
@@ -414,6 +418,10 @@ export function ChessComAccountSettings() {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "요청을 처리하지 못했습니다.";
+}
+
+function notifyChessBadgesChanged() {
+  window.dispatchEvent(new Event("elobadge:chess-badges-changed"));
 }
 
 function formatDateTime(value: string): string {

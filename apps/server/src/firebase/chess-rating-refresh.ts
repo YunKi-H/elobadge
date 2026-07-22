@@ -202,6 +202,24 @@ export async function completeChessComRatingRefresh(
       updatedAt: Timestamp.fromDate(now)
     });
 
+    transaction.set(
+      chzzkAccountRef,
+      {
+        badges: {
+          chesscom: highestRating
+            ? {
+                provider: "chesscom",
+                speed: highestRating.speed,
+                value: highestRating.value,
+                provisional: false
+              }
+            : null
+        },
+        updatedAt: Timestamp.fromDate(now)
+      },
+      { merge: true }
+    );
+
     if (
       chzzkAccountSnapshot.data()?.uid === claim.uid &&
       userSnapshot.data()?.activeChessProvider !== "lichess"

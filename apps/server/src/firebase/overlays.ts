@@ -187,6 +187,13 @@ export function normalizeOverlayAppearance(value: unknown): OverlayAppearance {
     chzzkBadgeVisibility: normalizeChzzkBadgeVisibility(
       appearance.chzzkBadgeVisibility
     ),
+    ratingProviderPolicy:
+      appearance.ratingProviderPolicy === "viewer_choice" ||
+      appearance.ratingProviderPolicy === "chesscom_only" ||
+      appearance.ratingProviderPolicy === "lichess_only" ||
+      appearance.ratingProviderPolicy === "hidden"
+        ? appearance.ratingProviderPolicy
+        : DEFAULT_OVERLAY_APPEARANCE.ratingProviderPolicy,
     nicknameVisible:
       typeof appearance.nicknameVisible === "boolean"
         ? appearance.nicknameVisible

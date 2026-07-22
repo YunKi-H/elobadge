@@ -13,7 +13,8 @@ import {
   overlayBackgroundColor,
   overlayFontFamily,
   overlayMessageColor,
-  overlayNicknameColor
+  overlayNicknameColor,
+  overlayRating
 } from "./overlay-appearance";
 import { ChzzkBadges } from "./ChzzkBadges";
 import { ChatMessageContent } from "./ChatMessageContent";
@@ -81,6 +82,18 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
               value: ratingValue,
               provisional: false
             },
+      ratings:
+        ratingValue === null
+          ? {}
+          : {
+              chesscom: {
+                provider: "chesscom",
+                speed: "rapid",
+                value: ratingValue,
+                provisional: false
+              }
+            },
+      preferredChessProvider: ratingValue === null ? null : "chesscom",
       authorKind,
       emojis: [],
       sentAt: new Date().toISOString()
@@ -102,7 +115,9 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
           className={`flex min-h-0 w-full flex-col justify-end overflow-hidden ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
           style={{ maxWidth: `${appearance.messageMaxWidthPx}px` }}
         >
-          {messages.map((message) => (
+          {messages.map((message) => {
+            const resolvedRating = overlayRating(appearance, message);
+            return (
             <div
               key={message.id}
               className={`w-fit max-w-full min-w-0 shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/10" : "p-0"}`}
@@ -122,9 +137,9 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
                   lineHeight={appearance.fontLineHeight}
                 />
               ) : null}
-              {message.rating ? (
+              {resolvedRating ? (
                 <RatingBadge
-                  rating={message.rating}
+                  rating={resolvedRating}
                   lineHeight={appearance.fontLineHeight}
                 />
               ) : null}
@@ -141,7 +156,8 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
                 color={overlayMessageColor(appearance, message)}
               />
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

@@ -118,14 +118,21 @@ test("published chat includes the sender's cached rating badge", async () => {
     debug() {}
   } as unknown as FastifyBaseLogger;
   deps.getRatingBadge = async (channelId) => ({
-    provider: "chesscom",
-    speed: "rapid",
-    value: channelId === "viewer-channel" ? 1520 : 0,
-    provisional: false
+    badges: {
+      chesscom: {
+        provider: "chesscom",
+        speed: "rapid",
+        value: channelId === "viewer-channel" ? 1520 : 0,
+        provisional: false
+      }
+    },
+    preferredProvider: "chesscom"
   });
   const session = new ChzzkSession("streamer-a", policy, deps);
   const events: Array<{
     rating: { value: number } | null;
+    ratings?: { chesscom?: { value: number } };
+    preferredChessProvider?: string | null;
     chzzkBadges?: Array<{ kind: string; imageUrl: string }>;
     emojis: Array<{ token: string; imageUrl: string }>;
     authorKind: string;
@@ -154,6 +161,8 @@ test("published chat includes the sender's cached rating badge", async () => {
   await waitFor(() => events.length === 1);
 
   assert.equal(events[0]?.rating?.value, 1520);
+  assert.equal(events[0]?.ratings?.chesscom?.value, 1520);
+  assert.equal(events[0]?.preferredChessProvider, "chesscom");
   assert.deepEqual(events[0]?.chzzkBadges, [
     { kind: "subscription", imageUrl: "https://example.com/badge.png" }
   ]);
@@ -213,7 +222,7 @@ function dependencies(
       sockets.push(socket);
       return socket;
     },
-    getRatingBadge: async () => null,
+    getRatingBadge: async () => ({ badges: {}, preferredProvider: null }),
     random: () => 0.5
   };
 }

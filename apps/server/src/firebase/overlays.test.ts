@@ -32,6 +32,7 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
       subscription_gift: true,
       unknown: true
     },
+    ratingProviderPolicy: "viewer_choice",
     nicknameVisible: true,
     nicknameColorMode: "fixed",
     nicknameColor: "#7DD3FC",
@@ -72,6 +73,7 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
         subscription_gift: true,
         unknown: false
       },
+      ratingProviderPolicy: "viewer_choice",
       nicknameVisible: false,
       nicknameColorMode: "by_user",
       nicknameColor: "#fedcba",
@@ -110,6 +112,7 @@ test("overlay appearance falls back safely for legacy theme documents", () => {
         subscription_gift: true,
         unknown: false
       },
+      ratingProviderPolicy: "viewer_choice",
       nicknameVisible: false,
       nicknameColorMode: "by_user",
       nicknameColor: "#FEDCBA",

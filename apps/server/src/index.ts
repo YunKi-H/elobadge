@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 import { registerChzzkAuthRoutes } from "./auth/chzzk/routes.js";
 import { registerChessComRoutes } from "./chess/chesscom/routes.js";
 import { registerLichessRoutes } from "./chess/lichess/routes.js";
+import { registerChessPreferenceRoutes } from "./chess/preferences/routes.js";
+import { lichessRatingRefreshService } from "./chess/lichess/rating-refresh-service.js";
 import { getChzzkAuthConfig } from "./auth/chzzk/client.js";
 import { registerFirebaseAuthentication } from "./auth/firebase.js";
 import { chzzkSessionService } from "./chzzk/session-service.js";
@@ -57,11 +59,13 @@ await registerHealthRoutes(app);
 await registerFirebaseRoutes(app);
 await registerChessComRoutes(app);
 await registerLichessRoutes(app);
+await registerChessPreferenceRoutes(app);
 await registerOverlayRoutes(app);
 await registerChzzkAuthRoutes(app);
 
 app.addHook("onClose", async () => {
   chessComRatingRefreshService.stop();
+  lichessRatingRefreshService.stop();
   chessComVerificationCleanupService.stop();
   overlayCleanupService.stop();
 });
@@ -70,6 +74,7 @@ await app.listen({ port, host: "0.0.0.0" });
 
 void restoreChzzkSessions();
 chessComRatingRefreshService.start(app.log);
+lichessRatingRefreshService.start(app.log);
 chessComVerificationCleanupService.start(app.log);
 overlayCleanupService.start(app.log);
 

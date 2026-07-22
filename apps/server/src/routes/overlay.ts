@@ -53,6 +53,12 @@ const overlayAppearanceSchema = z.object({
     subscription_gift: true,
     unknown: true
   }),
+  ratingProviderPolicy: z.enum([
+    "viewer_choice",
+    "chesscom_only",
+    "lichess_only",
+    "hidden"
+  ]).default("viewer_choice"),
   nicknameVisible: z.boolean(),
   nicknameColorMode: z.enum(["fixed", "by_user", "by_role"]),
   nicknameColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),

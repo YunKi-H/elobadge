@@ -12,7 +12,10 @@ import {
 import { getFirebaseAdminApp, getFirestoreDb } from "../admin.js";
 import { deleteUserFirestoreData } from "../account-deletion.js";
 import { deleteOrphanedInactiveOverlays } from "../overlay-cleanup.js";
-import { getChzzkRatingBadge } from "../chess-badges.js";
+import {
+  getChzzkChessBadgeState,
+  getChzzkRatingBadge
+} from "../chess-badges.js";
 import {
   disconnectLichessAccount,
   getUserLichessAccount,
@@ -212,6 +215,70 @@ test("Lichess OAuth linking stores ratings, selects a badge, and disconnects", a
   assert.equal(await disconnectLichessAccount(uid, channelId), true);
   assert.equal(await getUserLichessAccount(uid), null);
   assert.equal(await getChzzkRatingBadge(channelId), null);
+});
+
+test("disconnect switches the badge preference to the remaining linked provider", async () => {
+  const uid = "chzzk:dual-provider-viewer";
+  const channelId = "dual-provider-viewer";
+  const chessComAccountId = "chesscom:dual-player";
+  const lichessAccountId = "lichess:dual-player";
+  const chessComBadge = {
+    provider: "chesscom",
+    speed: "rapid",
+    value: 1800,
+    provisional: false
+  } as const;
+  const lichessBadge = {
+    provider: "lichess",
+    speed: "blitz",
+    value: 1900,
+    provisional: false
+  } as const;
+  const db = getFirestoreDb();
+
+  await Promise.all([
+    db.collection("users").doc(uid).set({
+      chessAccountIds: {
+        chesscom: chessComAccountId,
+        lichess: lichessAccountId
+      },
+      activeChessProvider: "lichess"
+    }),
+    db.collection("chzzkAccounts").doc(channelId).set({
+      uid,
+      badges: { chesscom: chessComBadge, lichess: lichessBadge },
+      preferredChessProvider: "lichess",
+      badge: lichessBadge
+    }),
+    db.collection("chessAccounts").doc(chessComAccountId).set({
+      uid,
+      provider: "chesscom"
+    }),
+    db.collection("chessAccounts").doc(lichessAccountId).set({
+      uid,
+      provider: "lichess"
+    })
+  ]);
+
+  assert.equal(await disconnectLichessAccount(uid, channelId), true);
+  assert.deepEqual(await getChzzkChessBadgeState(channelId), {
+    badges: { chesscom: chessComBadge },
+    preferredProvider: "chesscom"
+  });
+  assert.deepEqual(
+    (await db.collection("chzzkAccounts").doc(channelId).get()).data()?.badge,
+    chessComBadge
+  );
+
+  assert.equal(await disconnectChessComAccount(uid, channelId), true);
+  assert.deepEqual(await getChzzkChessBadgeState(channelId), {
+    badges: {},
+    preferredProvider: null
+  });
+  assert.equal(
+    (await db.collection("chzzkAccounts").doc(channelId).get()).data()?.badge,
+    null
+  );
 });
 
 test("verification cleanup deletes only expired challenges", async () => {

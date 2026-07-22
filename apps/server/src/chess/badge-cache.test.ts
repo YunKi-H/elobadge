@@ -7,15 +7,20 @@ test("rating badge cache reuses a loaded badge until invalidated", async () => {
   const cache = new RatingBadgeCache(async () => {
     loads += 1;
     return {
-      provider: "chesscom",
-      speed: "rapid",
-      value: 1520,
-      provisional: false
+      badges: {
+        chesscom: {
+          provider: "chesscom",
+          speed: "rapid",
+          value: 1520,
+          provisional: false
+        }
+      },
+      preferredProvider: "chesscom"
     };
   });
 
-  assert.equal((await cache.get("viewer"))?.value, 1520);
-  assert.equal((await cache.get("viewer"))?.value, 1520);
+  assert.equal((await cache.get("viewer")).badges.chesscom?.value, 1520);
+  assert.equal((await cache.get("viewer")).badges.chesscom?.value, 1520);
   assert.equal(loads, 1);
 
   cache.invalidate("viewer");
@@ -28,7 +33,7 @@ test("rating badge cache coalesces concurrent Firestore lookups", async () => {
   const cache = new RatingBadgeCache(async () => {
     loads += 1;
     await new Promise((resolve) => setTimeout(resolve, 5));
-    return null;
+    return { badges: {}, preferredProvider: null };
   });
 
   await Promise.all([cache.get("viewer"), cache.get("viewer")]);
@@ -51,10 +56,15 @@ test("an invalidated in-flight lookup cannot overwrite a newer badge", async () 
     }
 
     return {
-      provider: "chesscom",
-      speed: "rapid",
-      value: loadedValue,
-      provisional: false
+      badges: {
+        chesscom: {
+          provider: "chesscom",
+          speed: "rapid",
+          value: loadedValue,
+          provisional: false
+        }
+      },
+      preferredProvider: "chesscom"
     };
   });
 
@@ -62,11 +72,11 @@ test("an invalidated in-flight lookup cannot overwrite a newer badge", async () 
   await waitFor(() => loads === 1);
   value = 1600;
   cache.invalidate("viewer");
-  assert.equal((await cache.get("viewer"))?.value, 1600);
+  assert.equal((await cache.get("viewer")).badges.chesscom?.value, 1600);
   releaseFirst?.();
   await oldLookup;
 
-  assert.equal((await cache.get("viewer"))?.value, 1600);
+  assert.equal((await cache.get("viewer")).badges.chesscom?.value, 1600);
 });
 
 async function waitFor(predicate: () => boolean) {

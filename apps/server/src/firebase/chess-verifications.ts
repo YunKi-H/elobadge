@@ -122,6 +122,10 @@ export async function completeChessComLocationVerification(
   const userRef = db.collection("users").doc(uid);
   const accountRef = db.collection("chessAccounts").doc(accountId);
   const challengeRef = db.collection("chessVerificationChallenges").doc(accountId);
+  const chzzkChannelId = uid.startsWith("chzzk:") ? uid.slice(6) : null;
+  const chzzkAccountRef = chzzkChannelId
+    ? db.collection("chzzkAccounts").doc(chzzkChannelId)
+    : null;
 
   const result = await db.runTransaction(async (transaction) => {
     const [userSnapshot, accountSnapshot, challengeSnapshot] = await Promise.all([
@@ -171,6 +175,9 @@ export async function completeChessComLocationVerification(
     const ratingSnapshots = await Promise.all(
       ratingRefs.map((ratingRef) => transaction.get(ratingRef))
     );
+    const chzzkAccountSnapshot = chzzkAccountRef
+      ? await transaction.get(chzzkAccountRef)
+      : null;
     const highestRating = getHighestChessComRating(
       ratingSnapshots.flatMap((snapshot) => {
         const rating = snapshot.data();
@@ -202,12 +209,24 @@ export async function completeChessComLocationVerification(
       activeChessProvider: "chesscom",
       updatedAt: now
     });
-    const chzzkChannelId = uid.startsWith("chzzk:") ? uid.slice(6) : null;
-
-    if (chzzkChannelId) {
+    if (chzzkAccountRef) {
       transaction.set(
-        db.collection("chzzkAccounts").doc(chzzkChannelId),
+        chzzkAccountRef,
         {
+          badges: {
+            chesscom: highestRating
+              ? {
+                  provider: "chesscom",
+                  speed: highestRating.speed,
+                  value: highestRating.value,
+                  provisional: false
+                }
+              : null
+          },
+          preferredChessProvider:
+            chzzkAccountSnapshot?.data()?.preferredChessProvider === "lichess"
+              ? "lichess"
+              : "chesscom",
           badge: highestRating
             ? {
                 provider: "chesscom",

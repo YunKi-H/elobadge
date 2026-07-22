@@ -12,7 +12,8 @@ import {
   overlayBackgroundColor,
   overlayFontFamily,
   overlayMessageColor,
-  overlayNicknameColor
+  overlayNicknameColor,
+  overlayRating
 } from "./overlay-appearance";
 import { ChzzkBadges } from "./ChzzkBadges";
 import { ChatMessageContent } from "./ChatMessageContent";
@@ -67,7 +68,9 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
         className={`flex max-h-full w-full max-w-[600px] flex-col justify-end overflow-hidden ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
         style={{ maxWidth: `${appearance.messageMaxWidthPx}px` }}
       >
-        {messages.map((message) => (
+        {messages.map((message) => {
+          const rating = overlayRating(appearance, message);
+          return (
           <div
             key={message.id}
             className={`overlay-message w-fit max-w-full shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/15" : "p-0"}`}
@@ -87,9 +90,9 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
                 lineHeight={appearance.fontLineHeight}
               />
             ) : null}
-            {message.rating ? (
+            {rating ? (
               <RatingBadge
-                rating={message.rating}
+                rating={rating}
                 lineHeight={appearance.fontLineHeight}
               />
             ) : null}
@@ -106,7 +109,8 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
               color={overlayMessageColor(appearance, message)}
             />
           </div>
-        ))}
+          );
+        })}
       </div>
     </main>
   );

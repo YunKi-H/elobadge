@@ -63,6 +63,34 @@ export interface RatingBadge {
   provisional: boolean;
 }
 
+export type ChessBadges = Partial<Record<ChessProvider, RatingBadge>>;
+
+export type RatingProviderPolicy =
+  | "viewer_choice"
+  | "chesscom_only"
+  | "lichess_only"
+  | "hidden";
+
+export function resolveRatingBadge(
+  policy: RatingProviderPolicy,
+  badges: ChessBadges,
+  preferredProvider: ChessProvider | null
+): RatingBadge | null {
+  if (policy === "hidden") {
+    return null;
+  }
+  if (policy === "chesscom_only") {
+    return badges.chesscom ?? null;
+  }
+  if (policy === "lichess_only") {
+    return badges.lichess ?? null;
+  }
+  if (preferredProvider) {
+    return badges[preferredProvider] ?? null;
+  }
+  return badges.chesscom ?? badges.lichess ?? null;
+}
+
 export type ChzzkBadgeKind =
   | "role"
   | "subscription"
@@ -87,6 +115,8 @@ export interface ChatOverlayEvent {
   nickname: string;
   content: string;
   rating: RatingBadge | null;
+  ratings?: ChessBadges;
+  preferredChessProvider?: ChessProvider | null;
   chzzkBadges?: ChzzkBadge[];
   emojis: ChzzkEmoji[];
   authorKind: ChatAuthorKind;
@@ -106,6 +136,7 @@ export interface OverlayAppearance {
   backgroundOpacity: number;
   chzzkBadgesVisible: boolean;
   chzzkBadgeVisibility: ChzzkBadgeVisibility;
+  ratingProviderPolicy: RatingProviderPolicy;
   nicknameVisible: boolean;
   nicknameColorMode: NicknameColorMode;
   nicknameColor: string;
@@ -133,6 +164,7 @@ export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
     subscription_gift: true,
     unknown: true
   },
+  ratingProviderPolicy: "viewer_choice",
   nicknameVisible: true,
   nicknameColorMode: "fixed",
   nicknameColor: "#7DD3FC",

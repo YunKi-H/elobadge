@@ -3,6 +3,20 @@ import type {
   OverlayAppearance,
   OverlayFontFamily
 } from "@elobadge/core";
+import { resolveRatingBadge, type RatingBadge } from "@elobadge/core";
+
+export function overlayRating(
+  appearance: OverlayAppearance,
+  message: ChatOverlayEvent
+): RatingBadge | null {
+  const ratings = message.ratings ??
+    (message.rating ? { [message.rating.provider]: message.rating } : {});
+  return resolveRatingBadge(
+    appearance.ratingProviderPolicy,
+    ratings,
+    message.preferredChessProvider ?? null
+  );
+}
 
 const SYSTEM_FONT_FAMILY =
   'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';

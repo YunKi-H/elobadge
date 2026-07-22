@@ -1,5 +1,7 @@
 import {
   isOverlayFontFamily,
+  type ChessBadges,
+  type ChessProvider,
   type OverlayAppearance
 } from "@elobadge/core";
 import { getFirebaseClientAuth } from "../firebase/client";
@@ -75,6 +77,35 @@ export interface LichessAccount {
     provisional: boolean;
     games: number;
   }>;
+}
+
+export interface ChessBadgePreference {
+  badges: ChessBadges;
+  preferredProvider: ChessProvider | null;
+}
+
+export async function getChessBadgePreference(): Promise<ChessBadgePreference> {
+  const response = await authenticatedFetch("/api/chess/badge-preference");
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !isChessBadgePreferenceResponse(body)) {
+    throw new Error(apiError(body, "배지 선택 정보를 불러오지 못했습니다."));
+  }
+  return { badges: body.badges, preferredProvider: body.preferredProvider };
+}
+
+export async function updateChessBadgePreference(
+  provider: ChessProvider
+): Promise<ChessBadgePreference> {
+  const response = await authenticatedFetch("/api/chess/badge-preference", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider })
+  });
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !isChessBadgePreferenceResponse(body)) {
+    throw new Error(apiError(body, "표시할 배지를 변경하지 못했습니다."));
+  }
+  return { badges: body.badges, preferredProvider: body.preferredProvider };
 }
 
 export async function getLichessAccount(): Promise<LichessAccount | null> {
@@ -376,6 +407,10 @@ function isOverlayAppearance(value: unknown): value is OverlayAppearance {
     appearance.backgroundOpacity <= 100 &&
     typeof appearance.chzzkBadgesVisible === "boolean" &&
     isChzzkBadgeVisibility(appearance.chzzkBadgeVisibility) &&
+    (appearance.ratingProviderPolicy === "viewer_choice" ||
+      appearance.ratingProviderPolicy === "chesscom_only" ||
+      appearance.ratingProviderPolicy === "lichess_only" ||
+      appearance.ratingProviderPolicy === "hidden") &&
     typeof appearance.nicknameVisible === "boolean" &&
     (appearance.nicknameColorMode === "fixed" ||
       appearance.nicknameColorMode === "by_user" ||
@@ -535,6 +570,29 @@ function isLichessAccountResponse(
       response.account.selectedSpeed === "rapid" ||
       response.account.selectedSpeed === "classical") &&
     Array.isArray(response.account.ratings)
+  );
+}
+
+function isChessBadgePreferenceResponse(value: unknown): value is {
+  ok: true;
+  badges: ChessBadges;
+  preferredProvider: ChessProvider | null;
+} {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const response = value as {
+    ok?: unknown;
+    badges?: unknown;
+    preferredProvider?: unknown;
+  };
+  return (
+    response.ok === true &&
+    Boolean(response.badges) &&
+    typeof response.badges === "object" &&
+    (response.preferredProvider === null ||
+      response.preferredProvider === "chesscom" ||
+      response.preferredProvider === "lichess")
   );
 }
 

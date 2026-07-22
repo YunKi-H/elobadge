@@ -80,6 +80,7 @@ export function LichessAccountSettings() {
     try {
       const refreshed = await refreshLichessAccount();
       setState({ status: "ready", account: refreshed });
+      notifyChessBadgesChanged();
       if (refreshed.ratingsFetchedAt) {
         setClock(Date.parse(refreshed.ratingsFetchedAt));
       }
@@ -98,6 +99,7 @@ export function LichessAccountSettings() {
     try {
       await disconnectLichessAccount();
       setState({ status: "ready", account: null });
+      notifyChessBadgesChanged();
     } catch (error) {
       setError(error);
     } finally {
@@ -173,4 +175,8 @@ export function LichessAccountSettings() {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "요청을 처리하지 못했습니다.";
+}
+
+function notifyChessBadgesChanged() {
+  window.dispatchEvent(new Event("elobadge:chess-badges-changed"));
 }

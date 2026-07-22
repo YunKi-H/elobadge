@@ -5,6 +5,8 @@ import {
   type ChzzkBadge,
   type ChzzkBadgeKind,
   type ChzzkEmoji,
+  type ChessBadges,
+  type ChessProvider,
   type OverlayAppearance,
   type RatingBadge
 } from "@elobadge/core";
@@ -39,16 +41,22 @@ export function parseChatOverlayEvent(data: unknown): ChatOverlayEvent | null {
   }
 
   const chzzkBadges = parseChzzkBadges(event.chzzkBadges);
+  const ratings = parseChessBadges(event.ratings, event.rating);
+  const preferredChessProvider = parseChessProvider(
+    event.preferredChessProvider
+  );
   const emojis = parseChzzkEmojis(event.emojis);
   const authorKind = parseChatAuthorKind(event.authorKind);
 
-  if (!chzzkBadges || !emojis || !authorKind) {
+  if (!chzzkBadges || !ratings || !emojis || !authorKind) {
     return null;
   }
 
   return {
     ...(event as ChatOverlayEvent),
     chzzkBadges,
+    ratings,
+    preferredChessProvider,
     emojis,
     authorKind
   };
@@ -122,6 +130,10 @@ export function parseOverlayAppearanceEvent(
     appearance.backgroundOpacity > 100 ||
     typeof appearance.chzzkBadgesVisible !== "boolean" ||
     !isChzzkBadgeVisibility(appearance.chzzkBadgeVisibility) ||
+    (appearance.ratingProviderPolicy !== "viewer_choice" &&
+      appearance.ratingProviderPolicy !== "chesscom_only" &&
+      appearance.ratingProviderPolicy !== "lichess_only" &&
+      appearance.ratingProviderPolicy !== "hidden") ||
     typeof appearance.nicknameVisible !== "boolean" ||
     (appearance.nicknameColorMode !== "fixed" &&
       appearance.nicknameColorMode !== "by_user" &&
@@ -163,6 +175,7 @@ export function parseOverlayAppearanceEvent(
     backgroundOpacity: appearance.backgroundOpacity,
     chzzkBadgesVisible: appearance.chzzkBadgesVisible,
     chzzkBadgeVisibility: { ...appearance.chzzkBadgeVisibility },
+    ratingProviderPolicy: appearance.ratingProviderPolicy,
     nicknameVisible: appearance.nicknameVisible,
     nicknameColorMode: appearance.nicknameColorMode,
     nicknameColor: appearance.nicknameColor.toUpperCase(),
@@ -258,6 +271,34 @@ function isRatingBadge(value: unknown): value is RatingBadge | null {
     typeof badge.value === "number" &&
     typeof badge.provisional === "boolean"
   );
+}
+
+function parseChessBadges(
+  value: unknown,
+  legacyRating: RatingBadge | null | undefined
+): ChessBadges | null {
+  if (value === undefined) {
+    return legacyRating ? { [legacyRating.provider]: legacyRating } : {};
+  }
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const badges = value as Partial<Record<ChessProvider, unknown>>;
+  const parsed: ChessBadges = {};
+  for (const provider of ["chesscom", "lichess"] as const) {
+    const badge = badges[provider];
+    if (badge !== undefined) {
+      if (!isRatingBadge(badge) || badge === null || badge.provider !== provider) {
+        return null;
+      }
+      parsed[provider] = badge;
+    }
+  }
+  return parsed;
+}
+
+function parseChessProvider(value: unknown): ChessProvider | null {
+  return value === "chesscom" || value === "lichess" ? value : null;
 }
 
 function parseChzzkBadges(value: unknown): ChzzkBadge[] | null {

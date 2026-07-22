@@ -8,11 +8,12 @@ import {
   getUserLichessAccount,
   LichessAccountConflictError,
   LichessRefreshError,
-  refreshLichessAccount,
   saveVerifiedLichessAccount,
   type StoredLichessAccount
 } from "../../firebase/lichess-accounts.js";
 import { ratingBadgeCache } from "../badge-cache.js";
+import { lichessRatingRefreshService } from "./rating-refresh-service.js";
+import { LichessRatingRefreshError } from "../../firebase/lichess-rating-refresh.js";
 import {
   createLichessAuthorizationUrl,
   createLichessClient,
@@ -198,8 +199,14 @@ function defaultDependencies(): LichessRouteDependencies {
     revokeToken: (token) => getClient().revokeToken(token),
     getAccount: getUserLichessAccount,
     saveAccount: saveVerifiedLichessAccount,
-    refreshAccount: (uid, channelId) =>
-      refreshLichessAccount(uid, channelId, (username) => getClient().getPlayer(username)),
+    refreshAccount: async (uid) => {
+      await lichessRatingRefreshService.refreshManual(uid);
+      const account = await getUserLichessAccount(uid);
+      if (!account) {
+        throw new LichessRatingRefreshError("account_missing");
+      }
+      return account;
+    },
     disconnectAccount: disconnectLichessAccount,
     invalidateBadge: (channelId) => ratingBadgeCache.invalidate(channelId),
     webAppUrl: getWebAppUrl
@@ -246,6 +253,24 @@ function sendLichessError(error: unknown, reply: FastifyReply) {
     }
     if (error.code === "identity_changed") {
       return reply.code(409).send({ error: "Lichess 계정 식별자가 변경되었습니다. 다시 연결해 주세요." });
+    }
+    const retryAfter = error.retryAt
+      ? Math.max(1, Math.ceil((error.retryAt.getTime() - Date.now()) / 1_000))
+      : 300;
+    return reply.header("Retry-After", String(retryAfter)).code(429).send({
+      error: "레이팅은 5분에 한 번만 직접 갱신할 수 있습니다.",
+      retryAt: error.retryAt?.toISOString() ?? null
+    });
+  }
+  if (error instanceof LichessRatingRefreshError) {
+    if (error.code === "account_missing") {
+      return reply.code(404).send({ error: "연결된 Lichess 계정이 없습니다." });
+    }
+    if (error.code === "identity_changed") {
+      return reply.code(409).send({ error: "Lichess 계정 식별자가 변경되었습니다. 다시 연결해 주세요." });
+    }
+    if (error.code === "in_progress") {
+      return reply.code(409).send({ error: "레이팅을 이미 갱신하고 있습니다." });
     }
     const retryAfter = error.retryAt
       ? Math.max(1, Math.ceil((error.retryAt.getTime() - Date.now()) / 1_000))

@@ -454,11 +454,33 @@ export function OverlaySettings({
 
             <SettingsDisclosure
               id="overlay-badge-settings"
-              title="치지직 배지"
+              title="배지 설정"
               icon={<BadgeCheck aria-hidden="true" size={18} />}
               expanded={expandedSections.badges}
               onToggle={() => toggleAppearanceSection("badges")}
             >
+                <label className="grid gap-2 text-sm font-medium text-slate-200">
+                  체스 레이팅 배지
+                  <select
+                    value={overlay.appearance.ratingProviderPolicy}
+                    onChange={(event) =>
+                      updateAppearanceDraft({
+                        ratingProviderPolicy: event.target.value as OverlayAppearance["ratingProviderPolicy"]
+                      })
+                    }
+                    className="h-10 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-white outline-none focus:border-emerald-400"
+                  >
+                    <option value="viewer_choice">시청자 선택 따르기</option>
+                    <option value="chesscom_only">Chess.com만 표시</option>
+                    <option value="lichess_only">Lichess만 표시</option>
+                    <option value="hidden">표시하지 않음</option>
+                  </select>
+                  <span className="text-xs font-normal leading-5 text-slate-400">
+                    특정 플랫폼을 선택하면 해당 계정을 연결하지 않은 시청자의 체스 배지는 표시하지 않습니다.
+                  </span>
+                </label>
+
+                <div className="border-t border-white/10 pt-5">
                 <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
                   치지직 배지 전체 표시
                   <input
@@ -501,6 +523,7 @@ export function OverlaySettings({
                     ))}
                   </div>
                 </fieldset>
+                </div>
             </SettingsDisclosure>
 
             <SettingsDisclosure

@@ -5,7 +5,8 @@ import type {
   ChatOverlayEvent,
   ChzzkBadge,
   ChzzkEmoji,
-  RatingBadge
+  ChessBadges,
+  ChessProvider
 } from "@elobadge/core";
 import type { ChzzkAuthConfig } from "../auth/chzzk/client.js";
 import {
@@ -16,6 +17,7 @@ import {
 import { markChzzkStreamerReauthenticationRequired } from "../firebase/chzzk-tokens.js";
 import { publishChatOverlayEvent } from "../realtime/overlay-events.js";
 import { ratingBadgeCache } from "../chess/badge-cache.js";
+import type { ChzzkChessBadgeState } from "../firebase/chess-badges.js";
 import { classifyChzzkChatAuthor } from "./chat-author.js";
 import { classifyChzzkBadge } from "./badge-classifier.js";
 import { chzzkBadgeDiagnostics } from "./badge-diagnostics.js";
@@ -39,7 +41,7 @@ export interface ChzzkSessionDependencies {
   getUserSessions: typeof getChzzkUserSessions;
   subscribeChat: typeof subscribeChzzkChatEvent;
   createSocket(url: string): ChzzkSocket;
-  getRatingBadge(senderChannelId: string): Promise<RatingBadge | null>;
+  getRatingBadge(senderChannelId: string): Promise<ChzzkChessBadgeState>;
   random(): number;
 }
 
@@ -417,10 +419,13 @@ export class ChzzkSession implements ManagedChzzkSession {
     message: z.infer<typeof chatMessageSchema>,
     generation: number
   ): Promise<void> {
-    let rating: RatingBadge | null = null;
+    let badgeState: ChzzkChessBadgeState = {
+      badges: {},
+      preferredProvider: null
+    };
 
     try {
-      rating = await this.dependencies.getRatingBadge(message.senderChannelId);
+      badgeState = await this.dependencies.getRatingBadge(message.senderChannelId);
     } catch (error) {
       this.logger?.warn(
         { err: error, channelId: message.channelId },
@@ -429,7 +434,7 @@ export class ChzzkSession implements ManagedChzzkSession {
     }
 
     if (this.isCurrent(generation)) {
-      publishChatOverlayEvent(this.ownerUid, toChatOverlayEvent(message, rating));
+      publishChatOverlayEvent(this.ownerUid, toChatOverlayEvent(message, badgeState));
     }
   }
 
@@ -744,13 +749,18 @@ function normalizeSocketPayload(payload: unknown): unknown {
 
 function toChatOverlayEvent(
   message: z.infer<typeof chatMessageSchema>,
-  rating: RatingBadge | null
+  badgeState: { badges: ChessBadges; preferredProvider: ChessProvider | null }
 ): ChatOverlayEvent {
+  const rating = badgeState.preferredProvider
+    ? badgeState.badges[badgeState.preferredProvider] ?? null
+    : badgeState.badges.chesscom ?? badgeState.badges.lichess ?? null;
   return {
     id: `chzzk:${message.channelId}:${message.senderChannelId}:${message.messageTime}`,
     nickname: message.profile.nickname,
     content: message.content,
     rating,
+    ratings: badgeState.badges,
+    preferredChessProvider: badgeState.preferredProvider,
     chzzkBadges: normalizeChzzkBadges(message.profile.badges),
     emojis: normalizeChzzkEmojis(message.emojis),
     authorKind: classifyChzzkChatAuthor(message.profile),

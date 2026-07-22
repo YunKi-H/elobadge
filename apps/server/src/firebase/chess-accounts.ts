@@ -68,6 +68,15 @@ export async function disconnectChessComAccount(
     }
 
     const now = FieldValue.serverTimestamp();
+    const existingLichessBadge = chzzkAccountSnapshot.data()?.badges?.lichess;
+    const storedPreference = chzzkAccountSnapshot.data()?.preferredChessProvider;
+    const legacyProvider = chzzkAccountSnapshot.data()?.badge?.provider;
+    const currentPreference =
+      storedPreference === "chesscom" || storedPreference === "lichess"
+        ? storedPreference
+        : legacyProvider === "chesscom" || legacyProvider === "lichess"
+          ? legacyProvider
+          : null;
     transaction.delete(accountRef);
     for (const ratingRef of ratingRefs) {
       transaction.delete(ratingRef);
@@ -78,9 +87,17 @@ export async function disconnectChessComAccount(
       ...(lichessIsActive ? {} : { activeChessProvider: FieldValue.delete() }),
       updatedAt: now
     });
-    if (!lichessIsActive) {
-      transaction.update(chzzkAccountRef, { badge: null, updatedAt: now });
-    }
+    transaction.update(chzzkAccountRef, {
+      "badges.chesscom": FieldValue.delete(),
+      preferredChessProvider:
+        currentPreference === "chesscom"
+          ? existingLichessBadge
+            ? "lichess"
+            : FieldValue.delete()
+          : currentPreference ?? (existingLichessBadge ? "lichess" : FieldValue.delete()),
+      badge: existingLichessBadge ?? null,
+      updatedAt: now
+    });
 
     if (challengeSnapshot.exists) {
       transaction.delete(challengeRef);
@@ -185,6 +202,22 @@ export async function saveUnverifiedChessComAccount(
       transaction.set(
         db.collection("chzzkAccounts").doc(chzzkChannelId),
         {
+          badges: {
+            chesscom: selectedRating
+              ? {
+                  provider: "chesscom",
+                  speed: selectedRating.speed,
+                  value: selectedRating.value,
+                  provisional: false
+                }
+              : null
+          },
+          preferredChessProvider:
+            userSnapshot.data()?.activeChessProvider === "lichess"
+              ? "lichess"
+              : selectedRating
+                ? "chesscom"
+                : FieldValue.delete(),
           badge: selectedRating
             ? {
                 provider: "chesscom",
