@@ -2,7 +2,6 @@ import { UserRound } from "lucide-react";
 import { ChessComAccountSettings } from "./ChessComAccountSettings";
 import { LichessAccountSettings } from "./LichessAccountSettings";
 import { AccountDeletion } from "./AccountDeletion";
-import { ChessBadgePreferenceSettings } from "./ChessBadgePreferenceSettings";
 
 export function ViewerPage() {
   return (
@@ -16,7 +15,6 @@ export function ViewerPage() {
       </header>
       <ChessComAccountSettings />
       <LichessAccountSettings />
-      <ChessBadgePreferenceSettings />
       <AccountDeletion />
     </div>
   );

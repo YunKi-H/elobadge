@@ -480,49 +480,49 @@ export function OverlaySettings({
                   특정 플랫폼을 선택하면 해당 계정을 연결하지 않은 시청자의 체스 배지는 표시하지 않습니다.
                 </p>
 
-                <div className="border-t border-white/10 pt-5">
-                <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
-                  치지직 배지 전체 표시
-                  <input
-                    type="checkbox"
-                    checked={overlay.appearance.chzzkBadgesVisible}
-                    onChange={(event) =>
-                      updateAppearanceDraft({
-                        chzzkBadgesVisible: event.target.checked
-                      })
-                    }
-                    className="size-4 accent-emerald-500"
-                  />
-                </label>
+                <div className="space-y-5 border-t border-white/10 pt-5">
+                  <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
+                    치지직 배지 전체 표시
+                    <input
+                      type="checkbox"
+                      checked={overlay.appearance.chzzkBadgesVisible}
+                      onChange={(event) =>
+                        updateAppearanceDraft({
+                          chzzkBadgesVisible: event.target.checked
+                        })
+                      }
+                      className="size-4 accent-emerald-500"
+                    />
+                  </label>
 
-                <fieldset
-                  disabled={!overlay.appearance.chzzkBadgesVisible}
-                  className="disabled:opacity-40"
-                >
-                  <legend className="mb-3 text-sm font-medium text-slate-200">
-                    표시할 배지
-                  </legend>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {CHZZK_BADGE_KIND_OPTIONS.map(({ kind, label }) => (
-                      <label
-                        key={kind}
-                        className="flex h-10 items-center justify-between gap-3 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-slate-300"
-                      >
-                        {label}
-                        <input
-                          type="checkbox"
-                          checked={
-                            overlay.appearance.chzzkBadgeVisibility[kind]
-                          }
-                          onChange={(event) =>
-                            updateBadgeVisibility(kind, event.target.checked)
-                          }
-                          className="size-4 accent-emerald-500"
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
+                  <fieldset
+                    disabled={!overlay.appearance.chzzkBadgesVisible}
+                    className="disabled:opacity-40"
+                  >
+                    <legend className="mb-3 text-sm font-medium text-slate-200">
+                      표시할 배지
+                    </legend>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {CHZZK_BADGE_KIND_OPTIONS.map(({ kind, label }) => (
+                        <label
+                          key={kind}
+                          className="flex h-10 items-center justify-between gap-3 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-slate-300"
+                        >
+                          {label}
+                          <input
+                            type="checkbox"
+                            checked={
+                              overlay.appearance.chzzkBadgeVisibility[kind]
+                            }
+                            onChange={(event) =>
+                              updateBadgeVisibility(kind, event.target.checked)
+                            }
+                            className="size-4 accent-emerald-500"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                 </div>
             </SettingsDisclosure>
 

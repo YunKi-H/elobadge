@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
 import type { ChessProvider } from "@elobadge/core";
 import { Check, LoaderCircle } from "lucide-react";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   getChessBadgePreference,
   updateChessBadgePreference,
   type ChessBadgePreference
 } from "../api/client";
+import { getFirebaseClientAuth } from "../firebase/client";
 
-export function ChessBadgePreferenceSettings() {
+export function ChessBadgePreferenceControl({
+  provider
+}: {
+  provider: ChessProvider;
+}) {
   const [state, setState] = useState<ChessBadgePreference | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -15,14 +21,31 @@ export function ChessBadgePreferenceSettings() {
   useEffect(() => {
     const load = () => {
       void getChessBadgePreference()
-        .then(setState)
+        .then((preference) => {
+          setState(preference);
+          setError(null);
+        })
         .catch((reason: unknown) => {
           setError(reason instanceof Error ? reason.message : "배지 정보를 불러오지 못했습니다.");
         });
     };
-    load();
+
+    const unsubscribeAuth = onAuthStateChanged(
+      getFirebaseClientAuth(),
+      (user) => {
+        if (user) {
+          load();
+        } else {
+          setState(null);
+          setError(null);
+        }
+      }
+    );
     window.addEventListener("elobadge:chess-badges-changed", load);
-    return () => window.removeEventListener("elobadge:chess-badges-changed", load);
+    return () => {
+      unsubscribeAuth();
+      window.removeEventListener("elobadge:chess-badges-changed", load);
+    };
   }, []);
 
   if (!state && !error) {
@@ -40,6 +63,7 @@ export function ChessBadgePreferenceSettings() {
     setError(null);
     try {
       setState(await updateChessBadgePreference(provider));
+      window.dispatchEvent(new Event("elobadge:chess-badges-changed"));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "배지를 변경하지 못했습니다.");
     } finally {
@@ -47,44 +71,33 @@ export function ChessBadgePreferenceSettings() {
     }
   };
 
+  if (error) {
+    return (
+      <span className="text-xs font-normal text-red-300" title={error}>
+        배지 선택 오류
+      </span>
+    );
+  }
+  if (!state?.badges[provider]) {
+    return null;
+  }
+
+  const selected = state.preferredProvider === provider;
+
   return (
-    <section className="border-y border-white/10 py-8">
-      <h2 className="text-xl font-semibold text-white">표시할 레이팅 배지</h2>
-      <p className="mt-1 text-sm text-slate-400">
-        두 플랫폼이 연결된 경우 채팅에서 기본으로 표시할 배지를 선택합니다.
-      </p>
-      {state ? (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {available.map((provider) => {
-            const badge = state.badges[provider]!;
-            const selected = state.preferredProvider === provider;
-            return (
-              <button
-                key={provider}
-                type="button"
-                disabled={saving}
-                onClick={() => void select(provider)}
-                className={`flex items-center justify-between rounded-md border px-4 py-3 text-left transition ${selected ? "border-emerald-400 bg-emerald-400/10" : "border-white/10 bg-white/[0.03] hover:border-white/20"}`}
-              >
-                <span>
-                  <span className="block font-medium text-white">
-                    {provider === "chesscom" ? "Chess.com" : "Lichess"}
-                  </span>
-                  <span className="mt-1 block text-sm text-slate-400">
-                    {badge.value}{badge.provisional ? "?" : ""} · {badge.speed}
-                  </span>
-                </span>
-                {saving && selected ? (
-                  <LoaderCircle className="animate-spin text-slate-400" size={18} />
-                ) : selected ? (
-                  <Check className="text-emerald-300" size={18} />
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
+    <button
+      type="button"
+      aria-pressed={selected}
+      disabled={saving || selected}
+      onClick={() => void select(provider)}
+      className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium ring-1 transition disabled:cursor-default ${selected ? "bg-emerald-400/10 text-emerald-200 ring-emerald-400/40" : "bg-slate-900 text-slate-300 ring-white/15 hover:bg-slate-800 hover:text-white"}`}
+    >
+      {saving ? (
+        <LoaderCircle aria-hidden="true" className="animate-spin" size={14} />
+      ) : selected ? (
+        <Check aria-hidden="true" size={14} />
       ) : null}
-      {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
-    </section>
+      {selected ? "표시 중" : "이 배지 표시"}
+    </button>
   );
 }

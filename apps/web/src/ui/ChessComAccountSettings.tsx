@@ -21,6 +21,7 @@ import {
   type ChessComVerificationChallenge
 } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
+import { ChessBadgePreferenceControl } from "./ChessBadgePreferenceSettings";
 
 type ViewState =
   | { status: "loading" }
@@ -228,7 +229,10 @@ export function ChessComAccountSettings() {
     <section className="border-y border-white/10 py-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-white">Chess.com 계정</h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xl font-semibold text-white">Chess.com 계정</h2>
+            <ChessBadgePreferenceControl provider="chesscom" />
+          </div>
           <p className="mt-1 text-sm text-slate-400">
             Rapid, Blitz, Bullet 레이팅을 불러옵니다.
           </p>

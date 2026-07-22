@@ -9,6 +9,7 @@ import {
   type LichessAccount
 } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
+import { ChessBadgePreferenceControl } from "./ChessBadgePreferenceSettings";
 
 type State =
   | { status: "loading" }
@@ -130,7 +131,10 @@ export function LichessAccountSettings() {
     <section className="border-b border-white/10 py-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-white">Lichess 계정</h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xl font-semibold text-white">Lichess 계정</h2>
+            <ChessBadgePreferenceControl provider="lichess" />
+          </div>
           <p className="mt-1 text-sm text-slate-400">OAuth로 계정 소유를 확인하고 표준 체스 최고 레이팅을 표시합니다.</p>
         </div>
         {account ? (
