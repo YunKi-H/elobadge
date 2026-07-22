@@ -20,15 +20,15 @@ export function RatingBadge({
         className="flex items-center gap-[0.25em] rounded bg-white px-[0.45em] py-[0.2em] text-[0.72em] font-bold leading-none shadow-sm ring-1 ring-black/10"
         style={{ color: "#020617" }}
       >
-        {rating.provider === "chesscom" ? (
-          <img
-            src="/chess-com-logo.svg"
-            alt=""
-            className="size-[1.15em] shrink-0"
-          />
-        ) : (
-          <span aria-hidden="true">♟</span>
-        )}
+        <img
+          src={
+            rating.provider === "chesscom"
+              ? "/chess-com-logo.svg"
+              : "/lichess-logo.svg"
+          }
+          alt=""
+          className="size-[1.15em] shrink-0"
+        />
         <span>{rating.value}</span>
       </span>
     </span>

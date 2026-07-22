@@ -10,10 +10,12 @@ export async function authenticatedFetch(
   input: RequestInfo | URL,
   init: RequestInit = {}
 ): Promise<Response> {
-  const user = getFirebaseClientAuth().currentUser;
+  const auth = getFirebaseClientAuth();
+  await auth.authStateReady();
+  const user = auth.currentUser;
 
   if (!user) {
-    throw new Error("Firebase 로그인이 필요합니다.");
+    throw new Error("치지직 로그인이 필요합니다.");
   }
 
   const idToken = await user.getIdToken();

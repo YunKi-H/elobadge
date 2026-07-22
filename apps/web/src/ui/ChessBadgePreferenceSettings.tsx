@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ChessProvider } from "@elobadge/core";
-import { Check, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import {
   getChessBadgePreference,
@@ -85,19 +85,28 @@ export function ChessBadgePreferenceControl({
   const selected = state.preferredProvider === provider;
 
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      disabled={saving || selected}
-      onClick={() => void select(provider)}
-      className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium ring-1 transition disabled:cursor-default ${selected ? "bg-emerald-400/10 text-emerald-200 ring-emerald-400/40" : "bg-slate-900 text-slate-300 ring-white/15 hover:bg-slate-800 hover:text-white"}`}
+    <label
+      className={`inline-flex h-8 shrink-0 items-center gap-2 rounded-md px-2.5 text-xs font-medium ring-1 transition ${saving ? "cursor-wait opacity-60" : "cursor-pointer"} ${selected ? "bg-emerald-400/10 text-emerald-200 ring-emerald-400/40" : "bg-slate-900 text-slate-300 ring-white/15 hover:bg-slate-800 hover:text-white"}`}
     >
+      <input
+        type="radio"
+        name="preferred-chess-rating-badge"
+        value={provider}
+        checked={selected}
+        disabled={saving}
+        onChange={() => void select(provider)}
+        className="sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className={`flex size-4 shrink-0 items-center justify-center rounded-full border transition ${selected ? "border-emerald-300 bg-emerald-300/10" : "border-slate-500 bg-slate-950"}`}
+      >
+        {selected ? <span className="size-2 rounded-full bg-emerald-300" /> : null}
+      </span>
+      <span>기본 배지</span>
       {saving ? (
         <LoaderCircle aria-hidden="true" className="animate-spin" size={14} />
-      ) : selected ? (
-        <Check aria-hidden="true" size={14} />
       ) : null}
-      {selected ? "표시 중" : "이 배지 표시"}
-    </button>
+    </label>
   );
 }

@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { ExternalLink, Link, LoaderCircle, RefreshCw, Unlink } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  Link,
+  LoaderCircle,
+  RefreshCw,
+  Unlink
+} from "lucide-react";
 import {
   disconnectLichessAccount,
   getLichessAccount,
@@ -26,7 +33,9 @@ const speedLabels = {
 
 export function LichessAccountSettings() {
   const [state, setState] = useState<State>({ status: "loading" });
-  const [working, setWorking] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [clock, setClock] = useState(() => Date.now());
 
   useEffect(() => onAuthStateChanged(getFirebaseClientAuth(), (user) => {
@@ -67,17 +76,17 @@ export function LichessAccountSettings() {
   }, []);
 
   const connect = async () => {
-    setWorking(true);
+    setConnecting(true);
     try {
       window.location.assign(await startLichessConnection());
     } catch (error) {
       setError(error);
-      setWorking(false);
+      setConnecting(false);
     }
   };
 
   const refresh = async () => {
-    setWorking(true);
+    setRefreshing(true);
     try {
       const refreshed = await refreshLichessAccount();
       setState({ status: "ready", account: refreshed });
@@ -88,7 +97,7 @@ export function LichessAccountSettings() {
     } catch (error) {
       setError(error);
     } finally {
-      setWorking(false);
+      setRefreshing(false);
     }
   };
 
@@ -96,7 +105,7 @@ export function LichessAccountSettings() {
     if (!window.confirm("Lichess 계정 연동과 현재 Lichess 배지를 해제할까요?")) {
       return;
     }
-    setWorking(true);
+    setDisconnecting(true);
     try {
       await disconnectLichessAccount();
       setState({ status: "ready", account: null });
@@ -104,7 +113,7 @@ export function LichessAccountSettings() {
     } catch (error) {
       setError(error);
     } finally {
-      setWorking(false);
+      setDisconnecting(false);
     }
   };
 
@@ -115,7 +124,12 @@ export function LichessAccountSettings() {
   }));
 
   if (state.status === "loading") {
-    return <section className="py-8 text-slate-300"><LoaderCircle className="mr-2 inline animate-spin" size={18} />계정 정보를 확인하고 있습니다.</section>;
+    return (
+      <section className="py-8 text-slate-300">
+        <LoaderCircle className="mr-2 inline animate-spin" size={18} />
+        계정 정보를 확인하고 있습니다.
+      </section>
+    );
   }
   if (state.status === "signed_out") {
     return null;
@@ -135,43 +149,112 @@ export function LichessAccountSettings() {
             <h2 className="text-xl font-semibold text-white">Lichess 계정</h2>
             <ChessBadgePreferenceControl provider="lichess" />
           </div>
-          <p className="mt-1 text-sm text-slate-400">OAuth로 계정 소유를 확인하고 표준 체스 최고 레이팅을 표시합니다.</p>
+          <p className="mt-1 text-sm text-slate-400">
+            Bullet, Blitz, Rapid, Classical 레이팅을 불러옵니다.
+          </p>
         </div>
         {account ? (
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <a href={account.profileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-300 hover:text-emerald-200">
-              {account.username}<ExternalLink aria-hidden="true" size={15} />
+            <a
+              href={account.profileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-300 hover:text-emerald-200"
+            >
+              {account.username}
+              <ExternalLink aria-hidden="true" size={15} />
             </a>
-            <button type="button" disabled={working || cooldownMs > 0} onClick={() => void refresh()} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-800 px-3 text-sm font-medium text-slate-100 ring-1 ring-white/10 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60">
-              <RefreshCw className={working ? "animate-spin" : undefined} size={15} />
-              {cooldownMs > 0 ? `${Math.ceil(cooldownMs / 60_000)}분 후 갱신` : "레이팅 갱신"}
+            <button
+              type="button"
+              disabled={refreshing || disconnecting || cooldownMs > 0}
+              onClick={() => void refresh()}
+              title="Lichess 레이팅 갱신"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-800 px-3 text-sm font-medium text-slate-100 ring-1 ring-white/10 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw
+                className={refreshing ? "animate-spin" : undefined}
+                size={15}
+              />
+              {refreshing
+                ? "갱신 중"
+                : cooldownMs > 0
+                  ? `${Math.ceil(cooldownMs / 60_000)}분 후 갱신`
+                  : "레이팅 갱신"}
             </button>
-            <button type="button" disabled={working} onClick={() => void disconnect()} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-800 px-3 text-sm font-medium text-red-200 ring-1 ring-white/10 transition hover:bg-slate-700 disabled:opacity-60">
-              <Unlink size={15} />연동 해제
+            <button
+              type="button"
+              disabled={refreshing || disconnecting}
+              onClick={() => void disconnect()}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-800 px-3 text-sm font-medium text-red-200 ring-1 ring-white/10 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {disconnecting ? (
+                <LoaderCircle className="animate-spin" size={15} />
+              ) : (
+                <Unlink size={15} />
+              )}
+              연동 해제
             </button>
           </div>
         ) : null}
       </div>
 
       {!account ? (
-        <button type="button" disabled={working} onClick={() => void connect()} className="mt-6 inline-flex h-10 items-center gap-2 rounded-md bg-sky-500 px-4 font-semibold text-slate-950 transition hover:bg-sky-400 disabled:opacity-60">
-          {working ? <LoaderCircle className="animate-spin" size={18} /> : <Link size={18} />}
+        <button
+          type="button"
+          disabled={connecting}
+          onClick={() => void connect()}
+          className="mt-6 inline-flex h-10 items-center gap-2 rounded-md bg-emerald-500 px-4 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {connecting ? (
+            <LoaderCircle className="animate-spin" size={18} />
+          ) : (
+            <Link size={18} />
+          )}
           Lichess로 연결
         </button>
-      ) : (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {account.ratings.map((rating) => (
-            <div key={rating.speed} className={`rounded-md border p-4 ${account.selectedSpeed === rating.speed ? "border-emerald-400/60 bg-emerald-400/10" : "border-white/10 bg-white/[0.03]"}`}>
-              <p className="text-xs font-medium uppercase text-slate-400">{speedLabels[rating.speed]}</p>
-              <p className="mt-1 text-xl font-semibold text-white">{rating.value}{rating.provisional ? "?" : ""}</p>
-              <p className="mt-1 text-xs text-slate-500">{rating.games} games</p>
-            </div>
-          ))}
-        </div>
-      )}
+      ) : null}
 
       {"message" in state && state.message ? (
         <p className={`mt-4 text-sm ${state.status === "error" ? "text-red-300" : "text-emerald-300"}`}>{state.message}</p>
+      ) : null}
+
+      {account ? (
+        <div className="mt-6">
+          {account.ratingsFetchedAt ? (
+            <p className="mb-4 text-xs text-slate-400">
+              마지막 갱신 {formatDateTime(account.ratingsFetchedAt)}
+            </p>
+          ) : null}
+          <div className="flex items-center gap-3 border-l-2 border-emerald-400 pl-3 text-sm text-emerald-100">
+            <CheckCircle2 className="shrink-0" size={18} />
+            <p>Lichess 계정 소유 인증이 완료되었습니다.</p>
+          </div>
+          <dl className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-md bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
+            {account.ratings.length > 0 ? account.ratings.map((rating) => (
+              <div key={rating.speed} className="bg-slate-900 px-4 py-4">
+                <dt className="text-sm text-slate-400">
+                  {speedLabels[rating.speed]}
+                </dt>
+                <dd className="mt-1 text-2xl font-semibold text-white">
+                  {rating.value}{rating.provisional ? "?" : ""}
+                </dd>
+                <p className="mt-1 text-xs text-slate-500">
+                  {rating.games} games
+                </p>
+                {account.selectedSpeed === rating.speed ? (
+                  <span className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md bg-emerald-400 px-3 text-sm font-semibold text-slate-950">
+                    <CheckCircle2 size={15} />
+                    최고 레이팅 적용 중
+                  </span>
+                ) : null}
+              </div>
+            )) : (
+              <div className="bg-slate-900 px-4 py-4 text-sm text-slate-400 sm:col-span-2 lg:col-span-4">
+                지원하는 시간 형식의 레이팅이 없습니다.
+              </div>
+            )}
+          </dl>
+        </div>
       ) : null}
     </section>
   );
@@ -183,4 +266,11 @@ function errorMessage(error: unknown): string {
 
 function notifyChessBadgesChanged() {
   window.dispatchEvent(new Event("elobadge:chess-badges-changed"));
+}
+
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
 }
