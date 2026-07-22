@@ -420,6 +420,7 @@ test("overlay appearance persists and survives public token rotation", async () 
       subscription_gift: true,
       unknown: true
     },
+    ratingProviderPolicy: "viewer_choice",
     nicknameVisible: true,
     nicknameColorMode: "fixed",
     nicknameColor: "#7DD3FC",
@@ -459,6 +460,7 @@ test("overlay appearance persists and survives public token rotation", async () 
       subscription_gift: true,
       unknown: false
     },
+    ratingProviderPolicy: "lichess_only" as const,
     nicknameVisible: false,
     nicknameColorMode: "by_user" as const,
     nicknameColor: "#FDE047",
