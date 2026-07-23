@@ -7,7 +7,6 @@ import {
   disconnectLichessAccount,
   getUserLichessAccount,
   LichessAccountConflictError,
-  LichessRefreshError,
   saveVerifiedLichessAccount,
   type StoredLichessAccount
 } from "../../firebase/lichess-accounts.js";
@@ -46,7 +45,6 @@ export interface LichessRouteDependencies {
   createAuthorizationUrl(state: string, challenge: string): URL;
   exchangeCode(code: string, verifier: string): Promise<string>;
   getCurrentPlayer(accessToken: string): Promise<LichessPlayer>;
-  getPlayer(username: string): Promise<LichessPlayer>;
   revokeToken(accessToken: string): Promise<void>;
   getAccount(uid: string): Promise<StoredLichessAccount | null>;
   saveAccount(uid: string, channelId: string, player: LichessPlayer): Promise<StoredLichessAccount>;
@@ -195,7 +193,6 @@ function defaultDependencies(): LichessRouteDependencies {
     exchangeCode: async (code, verifier) =>
       (await getClient().exchangeCode(code, verifier)).accessToken,
     getCurrentPlayer: (token) => getClient().getCurrentPlayer(token),
-    getPlayer: (username) => getClient().getPlayer(username),
     revokeToken: (token) => getClient().revokeToken(token),
     getAccount: getUserLichessAccount,
     saveAccount: saveVerifiedLichessAccount,
@@ -246,21 +243,6 @@ function redirectToViewer(reply: FastifyReply, webAppUrl: string, result: string
 function sendLichessError(error: unknown, reply: FastifyReply) {
   if (error instanceof LichessAccountConflictError) {
     return reply.code(409).send({ error: "이미 다른 사용자가 연결한 Lichess 계정입니다." });
-  }
-  if (error instanceof LichessRefreshError) {
-    if (error.code === "account_missing") {
-      return reply.code(404).send({ error: "연결된 Lichess 계정이 없습니다." });
-    }
-    if (error.code === "identity_changed") {
-      return reply.code(409).send({ error: "Lichess 계정 식별자가 변경되었습니다. 다시 연결해 주세요." });
-    }
-    const retryAfter = error.retryAt
-      ? Math.max(1, Math.ceil((error.retryAt.getTime() - Date.now()) / 1_000))
-      : 300;
-    return reply.header("Retry-After", String(retryAfter)).code(429).send({
-      error: "레이팅은 5분에 한 번만 직접 갱신할 수 있습니다.",
-      retryAt: error.retryAt?.toISOString() ?? null
-    });
   }
   if (error instanceof LichessRatingRefreshError) {
     if (error.code === "account_missing") {

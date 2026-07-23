@@ -108,7 +108,6 @@ async function createApp(overrides: Partial<LichessRouteDependencies> = {}) {
     createAuthorizationUrl: (state) => new URL(`https://lichess.test/oauth?state=${state}`),
     exchangeCode: async () => "access-token",
     getCurrentPlayer: async () => player,
-    getPlayer: async () => player,
     revokeToken: async () => undefined,
     getAccount: async () => null,
     saveAccount: async () => stored,

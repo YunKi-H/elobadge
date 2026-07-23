@@ -25,18 +25,6 @@ export class LichessAccountConflictError extends Error {
   }
 }
 
-export type LichessRefreshErrorCode = "account_missing" | "cooldown" | "identity_changed";
-
-export class LichessRefreshError extends Error {
-  constructor(
-    public readonly code: LichessRefreshErrorCode,
-    public readonly retryAt: Date | null = null
-  ) {
-    super(code);
-    this.name = "LichessRefreshError";
-  }
-}
-
 export async function saveVerifiedLichessAccount(
   uid: string,
   chzzkChannelId: string,
@@ -203,30 +191,6 @@ export async function getUserLichessAccount(uid: string): Promise<StoredLichessA
       : null,
     ratings
   };
-}
-
-export async function refreshLichessAccount(
-  uid: string,
-  chzzkChannelId: string,
-  getPlayer: (username: string) => Promise<LichessPlayer>,
-  now = new Date()
-): Promise<StoredLichessAccount> {
-  const current = await getUserLichessAccount(uid);
-  if (!current) {
-    throw new LichessRefreshError("account_missing");
-  }
-  if (
-    current.manualRefreshAvailableAt &&
-    current.manualRefreshAvailableAt.getTime() > now.getTime()
-  ) {
-    throw new LichessRefreshError("cooldown", current.manualRefreshAvailableAt);
-  }
-
-  const player = await getPlayer(current.username);
-  if (player.playerId.toLowerCase() !== current.playerId.toLowerCase()) {
-    throw new LichessRefreshError("identity_changed");
-  }
-  return saveVerifiedLichessAccount(uid, chzzkChannelId, player);
 }
 
 export async function disconnectLichessAccount(
