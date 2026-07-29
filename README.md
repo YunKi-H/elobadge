@@ -97,6 +97,11 @@ session with a `CHAT` subscription trigger a fresh session URL with capped
 exponential backoff. Session-list request failures are reported as `unknown` and
 do not force reconnection. Chat inactivity is never treated as a failure.
 
+The bulk Chzzk token revocation command also revokes Firebase refresh tokens for
+the affected streamer UIDs. The web app checks revocation once on startup through
+`/api/me`, signs out an invalid session, and sends the streamer through Chzzk
+OAuth again without adding a remote revocation check to every API request.
+
 To inspect undocumented Chzzk badge shapes temporarily, set
 `CHZZK_BADGE_DIAGNOSTICS=true` and restart the server. The diagnostic logs only
 role, verification state, badge field names, short type-like metadata, and a

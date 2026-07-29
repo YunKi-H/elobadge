@@ -8,11 +8,13 @@ import {
   listChzzkStreamerTokenUids,
   loadChzzkStreamerTokens
 } from "../firebase/chzzk-tokens.js";
+import { getFirebaseAuth } from "../firebase/admin.js";
 
 interface BulkTokenRevocationDependencies {
   listUids: typeof listChzzkStreamerTokenUids;
   loadTokens: typeof loadChzzkStreamerTokens;
   revokeToken: typeof revokeChzzkToken;
+  revokeFirebaseSessions(uid: string): Promise<void>;
   deleteTokens: typeof deleteChzzkStreamerTokens;
 }
 
@@ -20,6 +22,8 @@ const defaultDependencies: BulkTokenRevocationDependencies = {
   listUids: listChzzkStreamerTokenUids,
   loadTokens: loadChzzkStreamerTokens,
   revokeToken: revokeChzzkToken,
+  revokeFirebaseSessions: (uid) =>
+    getFirebaseAuth().revokeRefreshTokens(uid),
   deleteTokens: deleteChzzkStreamerTokens
 };
 
@@ -59,6 +63,8 @@ export async function revokeAllChzzkStreamerTokens(
         continue;
       }
 
+      let alreadyInvalid = false;
+
       try {
         await dependencies.revokeToken(
           config,
@@ -80,15 +86,17 @@ export async function revokeAllChzzkStreamerTokens(
           if (!isChzzkInvalidTokenError(accessError)) {
             throw accessError;
           }
-
-          await dependencies.deleteTokens(uid);
-          result.alreadyInvalid.push(uid);
-          continue;
+          alreadyInvalid = true;
         }
       }
 
+      await dependencies.revokeFirebaseSessions(uid);
       await dependencies.deleteTokens(uid);
-      result.revoked.push(uid);
+      if (alreadyInvalid) {
+        result.alreadyInvalid.push(uid);
+      } else {
+        result.revoked.push(uid);
+      }
     } catch (error) {
       result.failures.push({ uid, error });
     }

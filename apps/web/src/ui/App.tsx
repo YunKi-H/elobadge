@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { LogOut, Radio, UserRound } from "lucide-react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { validateCurrentFirebaseSession } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
 
 const navigation = [
@@ -15,10 +16,36 @@ export function App() {
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
-    return onAuthStateChanged(getFirebaseClientAuth(), (user) => {
-      setSignedIn(Boolean(user));
+    const auth = getFirebaseClientAuth();
+    let disposed = false;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setSignedIn(false);
+        return;
+      }
+
+      setSignedIn(true);
+      void validateCurrentFirebaseSession().then(async (status) => {
+        if (
+          disposed ||
+          status !== "invalid" ||
+          auth.currentUser?.uid !== user.uid
+        ) {
+          return;
+        }
+
+        await signOut(auth).catch(() => undefined);
+        if (!disposed) {
+          void navigate("/", { replace: true });
+        }
+      });
     });
-  }, []);
+
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
+  }, [navigate]);
 
   const handleSignOut = async () => {
     setSigningOut(true);

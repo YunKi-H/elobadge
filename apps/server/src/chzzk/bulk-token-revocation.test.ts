@@ -27,6 +27,9 @@ test("revokes each stored token before deleting it", async () => {
     revokeToken: async (_config, token, hint) => {
       operations.push(`revoke:${token}:${hint}`);
     },
+    revokeFirebaseSessions: async (uid) => {
+      operations.push(`revoke-firebase:${uid}`);
+    },
     deleteTokens: async (uid) => {
       operations.push(`delete:${uid}`);
     }
@@ -34,8 +37,10 @@ test("revokes each stored token before deleting it", async () => {
 
   assert.deepEqual(operations, [
     "revoke:first-refresh:refresh_token",
+    "revoke-firebase:first",
     "delete:first",
     "revoke:second-refresh:refresh_token",
+    "revoke-firebase:second",
     "delete:second"
   ]);
   assert.deepEqual(result.revoked, ["first", "second"]);
@@ -60,6 +65,9 @@ test("falls back to the access token when the refresh token is invalid", async (
         throw new ChzzkTokenRequestError(401, "401", "INVALID_TOKEN");
       }
     },
+    revokeFirebaseSessions: async (uid) => {
+      operations.push(`revoke-firebase:${uid}`);
+    },
     deleteTokens: async (uid) => {
       operations.push(`delete:${uid}`);
     }
@@ -68,13 +76,14 @@ test("falls back to the access token when the refresh token is invalid", async (
   assert.deepEqual(operations, [
     "revoke:refresh:refresh_token",
     "revoke:access:access_token",
+    "revoke-firebase:streamer",
     "delete:streamer"
   ]);
   assert.deepEqual(result.revoked, ["streamer"]);
 });
 
 test("removes local tokens when both remote tokens are already invalid", async () => {
-  const deleted: string[] = [];
+  const operations: string[] = [];
   const result = await revokeAllChzzkStreamerTokens(config, {
     listUids: async () => ["expired"],
     loadTokens: async () => ({
@@ -87,12 +96,18 @@ test("removes local tokens when both remote tokens are already invalid", async (
     revokeToken: async () => {
       throw new ChzzkTokenRequestError(401, "401", "INVALID_TOKEN");
     },
+    revokeFirebaseSessions: async (uid) => {
+      operations.push(`revoke-firebase:${uid}`);
+    },
     deleteTokens: async (uid) => {
-      deleted.push(uid);
+      operations.push(`delete:${uid}`);
     }
   });
 
-  assert.deepEqual(deleted, ["expired"]);
+  assert.deepEqual(operations, [
+    "revoke-firebase:expired",
+    "delete:expired"
+  ]);
   assert.deepEqual(result.alreadyInvalid, ["expired"]);
   assert.deepEqual(result.failures, []);
 });
@@ -114,6 +129,7 @@ test("keeps local tokens when remote revocation fails", async () => {
     revokeToken: async () => {
       throw new Error("revoke failed");
     },
+    revokeFirebaseSessions: async () => {},
     deleteTokens: async (uid) => {
       deleted.push(uid);
     }
@@ -138,6 +154,32 @@ test("keeps local tokens when the Chzzk client credentials are invalid", async (
     }),
     revokeToken: async () => {
       throw new ChzzkTokenRequestError(401, "401", "INVALID_CLIENT");
+    },
+    revokeFirebaseSessions: async () => {},
+    deleteTokens: async (uid) => {
+      deleted.push(uid);
+    }
+  });
+
+  assert.deepEqual(deleted, []);
+  assert.equal(result.failures.length, 1);
+  assert.equal(result.failures[0]?.uid, "streamer");
+});
+
+test("keeps local tokens when Firebase session revocation fails", async () => {
+  const deleted: string[] = [];
+  const result = await revokeAllChzzkStreamerTokens(config, {
+    listUids: async () => ["streamer"],
+    loadTokens: async () => ({
+      accessToken: "access",
+      refreshToken: "refresh",
+      tokenType: "Bearer",
+      expiresAt: new Date(),
+      scope: null
+    }),
+    revokeToken: async () => {},
+    revokeFirebaseSessions: async () => {
+      throw new Error("Firebase session revocation failed");
     },
     deleteTokens: async (uid) => {
       deleted.push(uid);

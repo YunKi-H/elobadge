@@ -35,6 +35,11 @@ export interface CurrentApiUser {
   email: string | null;
 }
 
+export type FirebaseSessionValidation =
+  | "valid"
+  | "invalid"
+  | "unavailable";
+
 export interface OverlayAccess {
   publicToken: string;
   active: boolean;
@@ -281,6 +286,19 @@ export async function getCurrentApiUser(): Promise<CurrentApiUser> {
   return body.user;
 }
 
+export async function validateCurrentFirebaseSession(): Promise<FirebaseSessionValidation> {
+  try {
+    const response = await authenticatedFetch("/api/me");
+
+    if (response.status === 401) {
+      return "invalid";
+    }
+    return response.ok ? "valid" : "unavailable";
+  } catch (error) {
+    return isInvalidFirebaseSessionError(error) ? "invalid" : "unavailable";
+  }
+}
+
 export async function getOverlayAccess(): Promise<OverlayAccess | null> {
   const response = await authenticatedFetch("/api/overlay");
   const body: unknown = await response.json().catch(() => null);
@@ -357,6 +375,19 @@ function isCurrentUserResponse(
     response.ok === true &&
     Boolean(response.user) &&
     typeof response.user?.uid === "string"
+  );
+}
+
+function isInvalidFirebaseSessionError(error: unknown): boolean {
+  if (!error || typeof error !== "object" || !("code" in error)) {
+    return false;
+  }
+
+  return (
+    error.code === "auth/id-token-revoked" ||
+    error.code === "auth/invalid-user-token" ||
+    error.code === "auth/user-disabled" ||
+    error.code === "auth/user-token-expired"
   );
 }
 

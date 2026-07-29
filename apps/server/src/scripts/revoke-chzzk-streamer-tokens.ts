@@ -11,7 +11,7 @@ const uids = await listChzzkStreamerTokenUids();
 if (!execute) {
   console.log(`Dry run: found ${uids.length} Chzzk token document(s).`);
   console.log(`Firebase project: ${projectId}`);
-  console.log("No token was revoked or deleted.");
+  console.log("No Chzzk token or Firebase session was revoked.");
   console.log(
     `To execute: pnpm chzzk:revoke-all --execute --confirm-project=${projectId}`
   );
@@ -25,7 +25,7 @@ if (confirmedProject !== projectId) {
 }
 
 console.log(
-  `Revoking ${uids.length} Chzzk token document(s) in Firebase project ${projectId}...`
+  `Revoking ${uids.length} Chzzk token and Firebase session(s) in project ${projectId}...`
 );
 
 const result = await revokeAllChzzkStreamerTokens(getChzzkAuthConfig());

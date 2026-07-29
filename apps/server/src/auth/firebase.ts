@@ -33,6 +33,9 @@ export async function registerFirebaseAuthentication(app: FastifyInstance) {
 }
 
 export const requireFirebaseUser = createFirebaseAuthPreHandler();
+export const requireUnrevokedFirebaseUser = createFirebaseAuthPreHandler(
+  verifyUnrevokedFirebaseIdToken
+);
 
 export function createFirebaseAuthPreHandler(
   verifyToken: VerifyFirebaseToken = verifyFirebaseIdToken
@@ -80,6 +83,12 @@ function extractBearerToken(authorization: string | undefined): string | null {
 
 async function verifyFirebaseIdToken(idToken: string): Promise<VerifiedFirebaseToken> {
   return getFirebaseAuth().verifyIdToken(idToken);
+}
+
+async function verifyUnrevokedFirebaseIdToken(
+  idToken: string
+): Promise<VerifiedFirebaseToken> {
+  return getFirebaseAuth().verifyIdToken(idToken, true);
 }
 
 function stringClaim(value: unknown): string | null {
