@@ -35,6 +35,13 @@ const sessionListResponseSchema = z.object({
   )
 });
 
+const restrictedChannelSchema = z.object({
+  restrictedChannelId: z.string().min(1),
+  restrictedChannelName: z.string().optional(),
+  createdDate: z.union([z.string(), z.number()]).nullable().optional(),
+  releaseDate: z.union([z.string(), z.number()]).nullable().optional()
+});
+
 export interface ChzzkAuthConfig {
   clientId: string;
   clientSecret: string;
@@ -67,6 +74,17 @@ export interface ChzzkUserSession {
     eventType: string;
     channelId: string | null;
   }>;
+}
+
+export interface ChzzkRestrictedChannel {
+  restrictedChannelId: string;
+  createdDate: string | number | null;
+  releaseDate: string | number | null;
+}
+
+export interface ChzzkRestrictedChannelPage {
+  data: ChzzkRestrictedChannel[];
+  next: string | null;
 }
 
 export type ChzzkTokenTypeHint = "access_token" | "refresh_token";
@@ -332,10 +350,83 @@ export async function getChzzkUserSessions(
   }));
 }
 
+export async function getChzzkRestrictedChannels(
+  config: ChzzkAuthConfig,
+  accessToken: string,
+  next: string | null = null
+): Promise<ChzzkRestrictedChannelPage> {
+  const url = new URL(`${config.openApiBaseUrl}/open/v1/restrict-channels`);
+  url.searchParams.set("size", "50");
+  if (next) {
+    url.searchParams.set("next", next);
+  }
+
+  const response = await fetch(url, {
+    method: "GET",
+    signal: AbortSignal.timeout(CHZZK_REQUEST_TIMEOUT_MS),
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json"
+    }
+  });
+
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      `Chzzk restriction list request failed with status ${response.status}`
+    );
+  }
+
+  const content = unwrapChzzkContent(body);
+  const data = readRestrictionData(content);
+
+  return {
+    data: restrictedChannelSchema.array().parse(data).map((restriction) => ({
+      restrictedChannelId: restriction.restrictedChannelId,
+      createdDate: restriction.createdDate ?? null,
+      releaseDate: restriction.releaseDate ?? null
+    })),
+    next: readRestrictionNext(content)
+  };
+}
+
 function unwrapChzzkContent(body: unknown) {
   if (body && typeof body === "object" && "content" in body) {
     return body.content;
   }
 
   return body;
+}
+
+function readRestrictionData(content: unknown): unknown {
+  if (Array.isArray(content)) {
+    return content;
+  }
+  if (content && typeof content === "object" && "data" in content) {
+    return content.data;
+  }
+  return content;
+}
+
+function readRestrictionNext(content: unknown): string | null {
+  if (!content || typeof content !== "object") {
+    return null;
+  }
+
+  if ("next" in content && typeof content.next === "string") {
+    return content.next || null;
+  }
+
+  if (
+    "page" in content &&
+    content.page &&
+    typeof content.page === "object" &&
+    "next" in content.page &&
+    typeof content.page.next === "string"
+  ) {
+    return content.page.next || null;
+  }
+
+  return null;
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   ChzzkTokenRequestError,
+  getChzzkRestrictedChannels,
   getChzzkUserSessions,
   refreshChzzkAccessToken,
   revokeChzzkToken,
@@ -146,6 +147,58 @@ test("Chzzk session list preserves connection and subscription state", async () 
         ]
       }
     ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Chzzk restriction list preserves identifiers, dates, and pagination", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
+
+  globalThis.fetch = async (input) => {
+    requestedUrl = String(input);
+
+    return new Response(
+      JSON.stringify({
+        content: {
+          data: [
+            {
+              restrictedChannelId: "restricted-channel",
+              restrictedChannelName: "private-name",
+              createdDate: "2026-07-29T00:00:00Z",
+              releaseDate: "2026-07-29T00:05:00Z"
+            }
+          ],
+          page: { next: "next-page" }
+        }
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  };
+
+  try {
+    const restrictions = await getChzzkRestrictedChannels(
+      config,
+      "access-token",
+      "current-page"
+    );
+
+    assert.match(
+      requestedUrl,
+      /\/open\/v1\/restrict-channels\?size=50&next=current-page$/
+    );
+    assert.deepEqual(restrictions, {
+      data: [
+        {
+          restrictedChannelId: "restricted-channel",
+          createdDate: "2026-07-29T00:00:00Z",
+          releaseDate: "2026-07-29T00:05:00Z"
+        }
+      ],
+      next: "next-page"
+    });
+    assert.equal(JSON.stringify(restrictions).includes("private-name"), false);
   } finally {
     globalThis.fetch = originalFetch;
   }
