@@ -41,6 +41,29 @@ test("rating badge cache coalesces concurrent Firestore lookups", async () => {
   assert.equal(loads, 1);
 });
 
+test("rating badge cache exposes an expired entry as a stale fallback", async () => {
+  const cache = new RatingBadgeCache(
+    async () => ({
+      badges: {
+        lichess: {
+          provider: "lichess",
+          speed: "blitz",
+          value: 1710,
+          provisional: false
+        }
+      },
+      preferredProvider: "lichess"
+    }),
+    0
+  );
+
+  await cache.get("viewer");
+
+  assert.equal(cache.peek("viewer")?.badges.lichess?.value, 1710);
+  cache.invalidate("viewer");
+  assert.equal(cache.peek("viewer"), null);
+});
+
 test("an invalidated in-flight lookup cannot overwrite a newer badge", async () => {
   let releaseFirst: (() => void) | undefined;
   let value = 1500;

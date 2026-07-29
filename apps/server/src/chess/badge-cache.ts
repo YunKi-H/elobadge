@@ -58,6 +58,11 @@ export class RatingBadgeCache {
     return load;
   }
 
+  peek(channelId: string): ChzzkChessBadgeState | null {
+    const cached = this.entries.get(channelId);
+    return cached ? cloneState(cached.state) : null;
+  }
+
   invalidate(channelId: string): void {
     this.versions.set(channelId, (this.versions.get(channelId) ?? 0) + 1);
     this.entries.delete(channelId);

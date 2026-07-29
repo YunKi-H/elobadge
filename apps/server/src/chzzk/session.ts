@@ -42,6 +42,10 @@ export interface ChzzkSessionDependencies {
   subscribeChat: typeof subscribeChzzkChatEvent;
   createSocket(url: string): ChzzkSocket;
   getRatingBadge(senderChannelId: string): Promise<ChzzkChessBadgeState>;
+  getCachedRatingBadge?(
+    senderChannelId: string
+  ): ChzzkChessBadgeState | null;
+  ratingLookupTimeoutMs?: number;
   random(): number;
 }
 
@@ -57,6 +61,7 @@ const defaultSessionDependencies: ChzzkSessionDependencies = {
       timeout: 3000
     }),
   getRatingBadge: (senderChannelId) => ratingBadgeCache.get(senderChannelId),
+  getCachedRatingBadge: (senderChannelId) => ratingBadgeCache.peek(senderChannelId),
   random: Math.random
 };
 
@@ -66,6 +71,7 @@ interface SocketIoPacket {
 
 const MAX_CHZZK_BADGES_PER_MESSAGE = 10;
 const MAX_CHZZK_EMOJIS_PER_MESSAGE = 50;
+const DEFAULT_RATING_LOOKUP_TIMEOUT_MS = 2_000;
 
 const systemMessageSchema = z.object({
   type: z.string(),
@@ -425,16 +431,40 @@ export class ChzzkSession implements ManagedChzzkSession {
     };
 
     try {
-      badgeState = await this.dependencies.getRatingBadge(message.senderChannelId);
+      badgeState = await withTimeout(
+        this.dependencies.getRatingBadge(message.senderChannelId),
+        this.dependencies.ratingLookupTimeoutMs ?? DEFAULT_RATING_LOOKUP_TIMEOUT_MS
+      );
     } catch (error) {
+      const cachedBadgeState = this.dependencies.getCachedRatingBadge?.(
+        message.senderChannelId
+      );
+      if (cachedBadgeState) {
+        badgeState = cachedBadgeState;
+      }
+
       this.logger?.warn(
-        { err: error, channelId: message.channelId },
+        {
+          err: error,
+          channelId: message.channelId,
+          messageTime: message.messageTime,
+          usedCachedRatingBadge: cachedBadgeState !== undefined &&
+            cachedBadgeState !== null
+        },
         "Chess rating badge lookup failed"
       );
     }
 
     if (this.isCurrent(generation)) {
       publishChatOverlayEvent(this.ownerUid, toChatOverlayEvent(message, badgeState));
+      this.logger?.info(
+        {
+          channelId: message.channelId,
+          messageTime: message.messageTime,
+          ratingProviderCount: Object.keys(badgeState.badges).length
+        },
+        "Chzzk chat overlay event published"
+      );
     }
   }
 
@@ -744,6 +774,25 @@ function normalizeSocketPayload(payload: unknown): unknown {
     return JSON.parse(payload);
   } catch {
     return payload;
+  }
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`Operation timed out after ${timeoutMs}ms`)),
+      timeoutMs
+    );
+    timer.unref();
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
   }
 }
 

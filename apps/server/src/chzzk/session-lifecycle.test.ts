@@ -190,6 +190,14 @@ test("published chat includes the sender's cached rating badge", async () => {
   assert.equal(JSON.stringify(chatLog).includes("viewer-channel"), false);
   assert.equal(JSON.stringify(chatLog).includes("viewer"), false);
   assert.equal(JSON.stringify(chatLog).includes("good move"), false);
+  const publishedLog = infoLogs.find(
+    ({ message }) => message === "Chzzk chat overlay event published"
+  );
+  assert.deepEqual(publishedLog?.context, {
+    channelId: "streamer-channel",
+    messageTime: 1_783_000_000_000,
+    ratingProviderCount: 1
+  });
 
   sockets[0]?.emit("CHAT", {
     nickname: "private-nickname",
@@ -200,6 +208,46 @@ test("published chat includes the sender's cached rating badge", async () => {
   );
   assert.equal(JSON.stringify(invalidChatLog).includes("private-nickname"), false);
   assert.equal(JSON.stringify(invalidChatLog).includes("private-message"), false);
+  unsubscribe();
+  session.stop();
+});
+
+test("stalled rating lookup does not block the chat overlay", async () => {
+  const sockets: FakeSocket[] = [];
+  const deps = dependencies(sockets, () => {});
+  deps.getRatingBadge = () => new Promise(() => {});
+  deps.getCachedRatingBadge = () => ({
+    badges: {
+      chesscom: {
+        provider: "chesscom",
+        speed: "rapid",
+        value: 1490,
+        provisional: false
+      }
+    },
+    preferredProvider: "chesscom"
+  });
+  deps.ratingLookupTimeoutMs = 5;
+  const session = new ChzzkSession("streamer-a", policy, deps);
+  const events: Array<{ ratings: Record<string, unknown> }> = [];
+  const unsubscribe = subscribeStreamerChatOverlayEvents("streamer-a", (event) => {
+    events.push(event);
+  });
+
+  await session.start(config, "access-token", logger);
+  sockets[0]?.emit("CHAT", {
+    channelId: "streamer-channel",
+    senderChannelId: "viewer-channel",
+    profile: {
+      nickname: "viewer",
+      userRoleCode: "common_user"
+    },
+    content: "plain message",
+    messageTime: 1_783_000_000_001
+  });
+  await waitFor(() => events.length === 1, 100);
+
+  assert.equal(events[0]?.ratings.chesscom?.value, 1490);
   unsubscribe();
   session.stop();
 });
