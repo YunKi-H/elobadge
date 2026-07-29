@@ -104,19 +104,6 @@ sanitized image host/path/fingerprint. It omits chat content, nicknames, channel
 IDs, full image URLs, query strings, and fragments, and logs each unique shape
 once per process. Disable the flag and restart after collecting samples.
 
-To inspect undocumented Chzzk socket events temporarily, set
-`CHZZK_SOCKET_DIAGNOSTICS=true` and restart the server. Raw payloads are never
-logged. The diagnostic records event names, field structures, safe protocol
-signals and timestamps, plus short SHA-256 fingerprints for identifiers. Disable
-the flag and restart immediately after the controlled deletion test.
-
-To compare a streamer's activity restrictions before and after deleting a chat,
-run `pnpm chzzk:restrictions:snapshot --streamer-uid=chzzk:{channelId}`. The
-snapshot omits channel names and replaces IDs with short SHA-256 fingerprints.
-In a production image, run
-`node apps/server/dist/scripts/snapshot-chzzk-restrictions.js` with the same
-argument.
-
 Authenticated streamers can create, rotate, enable, and disable a 256-bit public
 overlay token. `/overlay/{token}` is the OBS browser-source page and
 `/events/overlay/{token}` streams only that token's streamer events. Rotation or
