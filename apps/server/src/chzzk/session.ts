@@ -21,6 +21,7 @@ import type { ChzzkChessBadgeState } from "../firebase/chess-badges.js";
 import { classifyChzzkChatAuthor } from "./chat-author.js";
 import { classifyChzzkBadge } from "./badge-classifier.js";
 import { chzzkBadgeDiagnostics } from "./badge-diagnostics.js";
+import { logChzzkSocketEvent } from "./socket-diagnostics.js";
 import {
   defaultChzzkSessionPolicy,
   getChzzkReconnectDelay,
@@ -737,13 +738,7 @@ function attachRawEventLogger(socket: ChzzkSocket, logger: FastifyBaseLogger) {
   socket.onevent = function onevent(packet: SocketIoPacket) {
     const [eventName, payload] = packet.data ?? [];
 
-    logger.debug(
-      {
-        eventName,
-        payload: summarizeSocketPayload(payload)
-      },
-      "Chzzk raw socket event received"
-    );
+    logChzzkSocketEvent(eventName, payload, logger);
 
     originalOnevent.call(this, packet);
   };
