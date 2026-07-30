@@ -47,6 +47,7 @@ import {
   toPlatformAccountDocumentId,
   upsertPlatformAccount
 } from "../platform-accounts.js";
+import { migrateChzzkPlatformAccounts } from "../platform-account-migration.js";
 
 const projectId = "demo-elobadge-emulator";
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
@@ -219,6 +220,95 @@ test("platform account ownership is stable while profile data can update", async
     }),
     (error: unknown) => error instanceof PlatformAccountConflictError
   );
+});
+
+test("platform account migration is idempotent and preserves conflicts", async () => {
+  const db = getFirestoreDb();
+  const chzzkAccounts = db.collection("chzzkAccounts");
+  const platformAccounts = db.collection("platformAccounts");
+  const target = (channelId: string) =>
+    platformAccounts.doc(toPlatformAccountDocumentId("chzzk", channelId));
+
+  await Promise.all([
+    chzzkAccounts.doc("create").set({
+      uid: "chzzk:create",
+      displayName: "Create"
+    }),
+    chzzkAccounts.doc("update").set({
+      uid: "chzzk:update",
+      displayName: "Updated"
+    }),
+    chzzkAccounts.doc("unchanged").set({
+      uid: "chzzk:unchanged",
+      displayName: "Unchanged"
+    }),
+    chzzkAccounts.doc("conflict").set({
+      uid: "chzzk:expected",
+      displayName: "Conflict"
+    }),
+    chzzkAccounts.doc("invalid").set({ displayName: "Invalid" }),
+    target("update").set({
+      userId: "chzzk:update",
+      platform: "chzzk",
+      platformUserId: "update",
+      displayName: "Before"
+    }),
+    target("unchanged").set({
+      userId: "chzzk:unchanged",
+      platform: "chzzk",
+      platformUserId: "unchanged",
+      displayName: "Unchanged"
+    }),
+    target("conflict").set({
+      userId: "chzzk:actual",
+      platform: "chzzk",
+      platformUserId: "conflict",
+      displayName: "Conflict"
+    })
+  ]);
+
+  assert.deepEqual(await migrateChzzkPlatformAccounts(false), {
+    scanned: 5,
+    candidates: 2,
+    migrated: 0,
+    unchanged: 1,
+    invalid: 1,
+    conflicts: [{
+      channelId: "conflict",
+      expectedUserId: "chzzk:expected",
+      actualUserId: "chzzk:actual"
+    }]
+  });
+  assert.equal((await target("create").get()).exists, false);
+
+  assert.deepEqual(await migrateChzzkPlatformAccounts(true), {
+    scanned: 5,
+    candidates: 2,
+    migrated: 2,
+    unchanged: 1,
+    invalid: 1,
+    conflicts: [{
+      channelId: "conflict",
+      expectedUserId: "chzzk:expected",
+      actualUserId: "chzzk:actual"
+    }]
+  });
+  assert.equal((await target("create").get()).data()?.userId, "chzzk:create");
+  assert.equal((await target("update").get()).data()?.displayName, "Updated");
+  assert.equal((await target("conflict").get()).data()?.userId, "chzzk:actual");
+
+  assert.deepEqual(await migrateChzzkPlatformAccounts(false), {
+    scanned: 5,
+    candidates: 0,
+    migrated: 0,
+    unchanged: 3,
+    invalid: 1,
+    conflicts: [{
+      channelId: "conflict",
+      expectedUserId: "chzzk:expected",
+      actualUserId: "chzzk:actual"
+    }]
+  });
 });
 
 test("Lichess OAuth linking stores ratings, selects a badge, and disconnects", async () => {
