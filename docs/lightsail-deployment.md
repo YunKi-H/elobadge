@@ -80,6 +80,11 @@ openssl rand -base64 32
 Use the generated value for `CHZZK_TOKEN_ENCRYPTION_KEY`. Do not rotate this key
 after streamer tokens have been stored unless every streamer will log in again.
 
+Set `ADMIN_FIREBASE_UIDS` to a comma-separated allowlist of operator Firebase
+UIDs. A Chzzk user's UID has the form `chzzk:<channel-id>` and can be copied from
+Firebase Authentication. Only these users can open `/admin`; the route is not
+linked from the public navigation.
+
 Set `LICHESS_CLIENT_ID=elobadge.com` and
 `LICHESS_REDIRECT_URI=https://elobadge.com/api/auth/lichess/callback` for the
 Lichess OAuth PKCE flow. Lichess public clients do not use a client secret.

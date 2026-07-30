@@ -24,6 +24,7 @@ import {
   subscribeOverlayAppearance,
   subscribeOverlayRevocation
 } from "../realtime/overlay-access-events.js";
+import { overlayConnectionTracker } from "../realtime/overlay-connections.js";
 import { subscribeStreamerChatOverlayEvents } from "../realtime/overlay-events.js";
 
 const testEventsQuerySchema = z.object({
@@ -252,6 +253,7 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
     }
 
     const { streamerUid } = activeOverlay;
+    const disconnectOverlay = overlayConnectionTracker.connect(publicToken);
 
     reply.hijack();
     reply.raw.writeHead(200, {
@@ -303,6 +305,7 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
       unsubscribeChat();
       unsubscribeAppearance();
       unsubscribeRevocation();
+      disconnectOverlay();
       clearInterval(heartbeat);
     };
 

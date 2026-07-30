@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import Fastify from "fastify";
 import {
+  createFirebaseAdminPreHandler,
   createFirebaseAuthPreHandler,
   getRequiredFirebaseUser,
   registerFirebaseAuthentication
@@ -23,6 +24,37 @@ test("Firebase auth guard rejects a request without a bearer token", async () =>
 
   assert.equal(response.statusCode, 401);
   assert.equal(response.headers["www-authenticate"], "Bearer");
+  await app.close();
+});
+
+test("Firebase admin guard allows only configured administrator UIDs", async () => {
+  const app = Fastify();
+  await registerFirebaseAuthentication(app);
+
+  app.get(
+    "/admin",
+    {
+      preHandler: createFirebaseAdminPreHandler(
+        async (token) => ({ uid: token }),
+        () => new Set(["chzzk:admin"])
+      )
+    },
+    async () => ({ ok: true })
+  );
+
+  const denied = await app.inject({
+    method: "GET",
+    url: "/admin",
+    headers: { authorization: "Bearer chzzk:viewer" }
+  });
+  const allowed = await app.inject({
+    method: "GET",
+    url: "/admin",
+    headers: { authorization: "Bearer chzzk:admin" }
+  });
+
+  assert.equal(denied.statusCode, 403);
+  assert.equal(allowed.statusCode, 200);
   await app.close();
 });
 

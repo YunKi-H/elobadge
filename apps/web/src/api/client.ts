@@ -35,6 +35,45 @@ export interface CurrentApiUser {
   email: string | null;
 }
 
+export type ChzzkSessionHealth =
+  | "connecting"
+  | "healthy_idle"
+  | "healthy_active"
+  | "reconnecting"
+  | "subscription_failed"
+  | "connection_failed"
+  | "unknown";
+
+export interface AdminStatus {
+  generatedAt: string;
+  database: {
+    users: number;
+    streamers: number;
+    chatEnabledStreamers: number;
+    activeOverlays: number;
+  };
+  runtime: {
+    uptimeSeconds: number;
+    memory: {
+      rssMb: number;
+      heapUsedMb: number;
+      heapTotalMb: number;
+    };
+    chzzkSessions: {
+      total: number;
+      connected: number;
+      subscribed: number;
+      healthy: number;
+      unhealthy: number;
+      byHealth: Record<ChzzkSessionHealth, number>;
+    };
+    overlayConnections: {
+      total: number;
+      uniqueOverlays: number;
+    };
+  };
+}
+
 export type FirebaseSessionValidation =
   | "valid"
   | "invalid"
@@ -286,6 +325,24 @@ export async function getCurrentApiUser(): Promise<CurrentApiUser> {
   return body.user;
 }
 
+export async function getAdminStatus(): Promise<AdminStatus> {
+  const response = await authenticatedFetch("/api/admin/status");
+  const body: unknown = await response.json().catch(() => null);
+
+  if (response.status === 403) {
+    throw new Error("관리자 권한이 없는 계정입니다.");
+  }
+  if (!response.ok || !isAdminStatusResponse(body)) {
+    throw new Error(apiError(body, "운영 현황을 불러오지 못했습니다."));
+  }
+
+  return {
+    generatedAt: body.generatedAt,
+    database: body.database,
+    runtime: body.runtime
+  };
+}
+
 export async function validateCurrentFirebaseSession(): Promise<FirebaseSessionValidation> {
   try {
     const response = await authenticatedFetch("/api/me");
@@ -375,6 +432,65 @@ function isCurrentUserResponse(
     response.ok === true &&
     Boolean(response.user) &&
     typeof response.user?.uid === "string"
+  );
+}
+
+function isAdminStatusResponse(
+  value: unknown
+): value is { ok: true } & AdminStatus {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const response = value as {
+    ok?: unknown;
+    generatedAt?: unknown;
+    database?: Record<string, unknown>;
+    runtime?: {
+      uptimeSeconds?: unknown;
+      memory?: Record<string, unknown>;
+      chzzkSessions?: Record<string, unknown>;
+      overlayConnections?: Record<string, unknown>;
+    };
+  };
+
+  return (
+    response.ok === true &&
+    typeof response.generatedAt === "string" &&
+    hasNumericFields(response.database, [
+      "users",
+      "streamers",
+      "chatEnabledStreamers",
+      "activeOverlays"
+    ]) &&
+    typeof response.runtime?.uptimeSeconds === "number" &&
+    hasNumericFields(response.runtime.memory, [
+      "rssMb",
+      "heapUsedMb",
+      "heapTotalMb"
+    ]) &&
+    hasNumericFields(response.runtime.chzzkSessions, [
+      "total",
+      "connected",
+      "subscribed",
+      "healthy",
+      "unhealthy"
+    ]) &&
+    Boolean(response.runtime.chzzkSessions?.byHealth) &&
+    hasNumericFields(response.runtime.overlayConnections, [
+      "total",
+      "uniqueOverlays"
+    ])
+  );
+}
+
+function hasNumericFields(
+  value: Record<string, unknown> | undefined,
+  fields: string[]
+): boolean {
+  return Boolean(
+    value &&
+      fields.every((field) => typeof value[field] === "number")
   );
 }
 

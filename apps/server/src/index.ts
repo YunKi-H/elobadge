@@ -20,6 +20,7 @@ import { chessComVerificationCleanupService } from "./chess/chesscom/verificatio
 import { overlayCleanupService } from "./firebase/overlay-cleanup-service.js";
 import { registerHttpSecurity } from "./security/http-security.js";
 import { operationalMonitor } from "./monitoring/operational-monitor.js";
+import { registerAdminRoutes } from "./routes/admin.js";
 
 const port = Number(process.env.PORT ?? 3000);
 
@@ -57,6 +58,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 await registerHealthRoutes(app);
+await registerAdminRoutes(app);
 await registerFirebaseRoutes(app);
 await registerChessComRoutes(app);
 await registerLichessRoutes(app);

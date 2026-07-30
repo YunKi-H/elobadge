@@ -36,6 +36,7 @@ export const requireFirebaseUser = createFirebaseAuthPreHandler();
 export const requireUnrevokedFirebaseUser = createFirebaseAuthPreHandler(
   verifyUnrevokedFirebaseIdToken
 );
+export const requireFirebaseAdmin = createFirebaseAdminPreHandler();
 
 export function createFirebaseAuthPreHandler(
   verifyToken: VerifyFirebaseToken = verifyFirebaseIdToken
@@ -60,6 +61,29 @@ export function createFirebaseAuthPreHandler(
     } catch (error) {
       request.log.warn({ err: error }, "Firebase ID token rejected");
       sendUnauthorized(reply);
+    }
+  };
+}
+
+export function createFirebaseAdminPreHandler(
+  verifyToken: VerifyFirebaseToken = verifyUnrevokedFirebaseIdToken,
+  getAdminUids: () => ReadonlySet<string> = readAdminFirebaseUids
+): preHandlerAsyncHookHandler {
+  const authenticate = createFirebaseAuthPreHandler(verifyToken);
+
+  return async (request, reply) => {
+    await authenticate.call(request.server, request, reply);
+
+    if (reply.sent || !request.firebaseUser) {
+      return;
+    }
+
+    if (!getAdminUids().has(request.firebaseUser.uid)) {
+      request.log.warn(
+        { uid: request.firebaseUser.uid },
+        "Firebase user denied administrator access"
+      );
+      await reply.code(403).send({ error: "Administrator access required" });
     }
   };
 }
@@ -100,4 +124,13 @@ function sendUnauthorized(reply: FastifyReply) {
     .code(401)
     .header("WWW-Authenticate", "Bearer")
     .send({ error: "Authentication required" });
+}
+
+function readAdminFirebaseUids(): ReadonlySet<string> {
+  return new Set(
+    (process.env.ADMIN_FIREBASE_UIDS ?? "")
+      .split(",")
+      .map((uid) => uid.trim())
+      .filter(Boolean)
+  );
 }
