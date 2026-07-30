@@ -1,7 +1,7 @@
 import type { ChatOverlayEvent } from "@elobadge/core";
 import { Fragment } from "react";
 
-const CHZZK_EMOJI_TOKEN_PATTERN = /(\{:[^{}]+:\})/g;
+const CHAT_EMOTE_TOKEN_PATTERN = /(\{:[^{}]+:\})/g;
 
 export function ChatMessageContent({
   message,
@@ -10,10 +10,10 @@ export function ChatMessageContent({
   message: ChatOverlayEvent;
   color: string;
 }) {
-  const emojisByToken = new Map(
-    message.emojis.map((emoji) => [emoji.token, emoji.imageUrl])
+  const emotesByToken = new Map(
+    message.emotes.map((emote) => [emote.token, emote.imageUrl])
   );
-  const parts = message.content.split(CHZZK_EMOJI_TOKEN_PATTERN);
+  const parts = message.content.split(CHAT_EMOTE_TOKEN_PATTERN);
 
   return (
     <span
@@ -24,7 +24,7 @@ export function ChatMessageContent({
       }}
     >
       {parts.map((part, index) => {
-        const imageUrl = emojisByToken.get(part);
+        const imageUrl = emotesByToken.get(part);
 
         return imageUrl ? (
           <img

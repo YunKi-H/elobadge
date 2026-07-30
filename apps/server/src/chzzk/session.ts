@@ -2,11 +2,11 @@ import socketIoClient from "socket.io-client";
 import { z } from "zod";
 import type { FastifyBaseLogger } from "fastify";
 import type {
+  ChatEmote,
   ChatOverlayEvent,
-  ChzzkBadge,
-  ChzzkEmoji,
   ChessBadges,
-  ChessProvider
+  ChessProvider,
+  PlatformChatBadge
 } from "@elobadge/core";
 import type { ChzzkAuthConfig } from "../auth/chzzk/client.js";
 import {
@@ -21,6 +21,7 @@ import type { ChzzkChessBadgeState } from "../firebase/chess-badges.js";
 import { classifyChzzkChatAuthor } from "./chat-author.js";
 import { classifyChzzkBadge } from "./badge-classifier.js";
 import { chzzkBadgeDiagnostics } from "./badge-diagnostics.js";
+import { createChatOverlayEvent } from "../chat/chat-event.js";
 import {
   defaultChzzkSessionPolicy,
   getChzzkReconnectDelay,
@@ -841,29 +842,32 @@ function toChatOverlayEvent(
   message: z.infer<typeof chatMessageSchema>,
   badgeState: { badges: ChessBadges; preferredProvider: ChessProvider | null }
 ): ChatOverlayEvent {
-  return {
-    id: `chzzk:${message.channelId}:${message.senderChannelId}:${message.messageTime}`,
+  const id =
+    `chzzk:${message.channelId}:${message.senderChannelId}:` +
+    `${message.messageTime}`;
+  return createChatOverlayEvent({
+    id,
     nickname: message.profile.nickname,
     content: message.content,
     ratings: badgeState.badges,
     preferredChessProvider: badgeState.preferredProvider,
-    chzzkBadges: normalizeChzzkBadges(message.profile.badges),
-    emojis: normalizeChzzkEmojis(message.emojis),
+    platformBadges: normalizeChzzkBadges(message.profile.badges),
+    emotes: normalizeChzzkEmojis(message.emojis),
     authorKind: classifyChzzkChatAuthor(message.profile),
     sentAt: new Date(message.messageTime).toISOString(),
     source: {
       provider: "chzzk",
       channelId: message.channelId,
-      senderChannelId: message.senderChannelId,
-      messageTime: message.messageTime
+      senderId: message.senderChannelId,
+      messageId: id
     }
-  };
+  });
 }
 
 function normalizeChzzkEmojis(
   emojis: Record<string, string> | undefined
-): ChzzkEmoji[] {
-  const normalized: ChzzkEmoji[] = [];
+): ChatEmote[] {
+  const normalized: ChatEmote[] = [];
 
   for (const [key, imageUrl] of Object.entries(emojis ?? {})) {
     const token = normalizeChzzkEmojiToken(key);
@@ -900,8 +904,10 @@ function normalizeChzzkEmojiToken(key: string): string | null {
   return null;
 }
 
-function normalizeChzzkBadges(badges: unknown[] | undefined): ChzzkBadge[] {
-  const normalized: ChzzkBadge[] = [];
+function normalizeChzzkBadges(
+  badges: unknown[] | undefined
+): PlatformChatBadge[] {
+  const normalized: PlatformChatBadge[] = [];
   const seenUrls = new Set<string>();
 
   for (const badge of badges ?? []) {
@@ -920,7 +926,11 @@ function normalizeChzzkBadges(badges: unknown[] | undefined): ChzzkBadge[] {
     }
 
     seenUrls.add(imageUrl);
-    normalized.push({ kind: classifyChzzkBadge(badge), imageUrl });
+    normalized.push({
+      provider: "chzzk",
+      kind: classifyChzzkBadge(badge),
+      imageUrl
+    });
 
     if (normalized.length === MAX_CHZZK_BADGES_PER_MESSAGE) {
       break;

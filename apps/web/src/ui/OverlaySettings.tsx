@@ -1,13 +1,13 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   type ChatAuthorKind,
-  type ChzzkBadgeKind,
   DEFAULT_OVERLAY_APPEARANCE,
   type OverlayAppearance,
   type OverlayFontFamily,
   type OverlayFontLineHeight,
   type OverlayFontWeight,
   type OverlayMessageDurationSeconds,
+  type PlatformBadgeKind,
   type RatingProviderPolicy
 } from "@elobadge/core";
 import {
@@ -152,7 +152,7 @@ const CHAT_AUTHOR_KIND_OPTIONS: ReadonlyArray<{
 ];
 
 const CHZZK_BADGE_KIND_OPTIONS: ReadonlyArray<{
-  kind: ChzzkBadgeKind;
+  kind: PlatformBadgeKind;
   label: string;
 }> = [
   { kind: "role", label: "스트리머·매니저" },
@@ -278,7 +278,7 @@ export function OverlaySettings({
     });
   };
 
-  const updateBadgeVisibility = (kind: ChzzkBadgeKind, visible: boolean) => {
+  const updateBadgeVisibility = (kind: PlatformBadgeKind, visible: boolean) => {
     if (!overlay) {
       return;
     }

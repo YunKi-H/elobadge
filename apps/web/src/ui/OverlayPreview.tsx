@@ -17,7 +17,7 @@ import {
   overlayNicknameColor,
   overlayRating
 } from "./overlay-appearance";
-import { ChzzkBadges } from "./ChzzkBadges";
+import { PlatformBadges } from "./PlatformBadges";
 import { ChatMessageContent } from "./ChatMessageContent";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
@@ -83,8 +83,9 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
       return;
     }
 
+    const messageId = `preview-${crypto.randomUUID()}`;
     const message: ChatOverlayEvent = {
-      id: `preview-${crypto.randomUUID()}`,
+      id: messageId,
       nickname: trimmedNickname,
       content: trimmedContent,
       ratings:
@@ -100,8 +101,15 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
             },
       preferredChessProvider: ratingValue === null ? null : ratingProvider,
       authorKind,
-      emojis: [],
-      sentAt: new Date().toISOString()
+      platformBadges: [],
+      emotes: [],
+      sentAt: new Date().toISOString(),
+      source: {
+        provider: "chzzk",
+        channelId: "preview",
+        senderId: `preview:${trimmedNickname}`,
+        messageId
+      }
     };
 
     addMessage(message);
@@ -136,8 +144,8 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
               }}
             >
               {appearance.chzzkBadgesVisible ? (
-                <ChzzkBadges
-                  badges={message.chzzkBadges}
+                <PlatformBadges
+                  badges={message.platformBadges}
                   visibility={appearance.chzzkBadgeVisibility}
                   lineHeight={appearance.fontLineHeight}
                 />

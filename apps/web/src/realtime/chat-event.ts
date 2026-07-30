@@ -1,13 +1,14 @@
 import {
   isOverlayFontFamily,
   type ChatAuthorKind,
+  type ChatEmote,
+  type ChatEventSource,
   type ChatOverlayEvent,
-  type ChzzkBadge,
-  type ChzzkBadgeKind,
-  type ChzzkEmoji,
   type ChessBadges,
   type ChessProvider,
   type OverlayAppearance,
+  type PlatformBadgeKind,
+  type PlatformChatBadge,
   type RatingBadge
 } from "@elobadge/core";
 
@@ -39,35 +40,38 @@ export function parseChatOverlayEvent(data: unknown): ChatOverlayEvent | null {
     return null;
   }
 
-  const chzzkBadges = parseChzzkBadges(event.chzzkBadges);
+  const platformBadges = parsePlatformBadges(event.platformBadges);
   const ratings = parseChessBadges(event.ratings);
   const preferredChessProvider = parseChessProvider(
     event.preferredChessProvider
   );
-  const emojis = parseChzzkEmojis(event.emojis);
+  const emotes = parseChatEmotes(event.emotes);
   const authorKind = parseChatAuthorKind(event.authorKind);
+  const source = parseChatEventSource(event.source);
 
   if (
-    !chzzkBadges ||
+    !platformBadges ||
     !ratings ||
     preferredChessProvider === undefined ||
-    !emojis ||
-    !authorKind
+    !emotes ||
+    !authorKind ||
+    !source
   ) {
     return null;
   }
 
   return {
     ...(event as ChatOverlayEvent),
-    chzzkBadges,
+    platformBadges,
     ratings,
     preferredChessProvider,
-    emojis,
-    authorKind
+    emotes,
+    authorKind,
+    source
   };
 }
 
-function parseChzzkEmojis(value: unknown): ChzzkEmoji[] | null {
+function parseChatEmotes(value: unknown): ChatEmote[] | null {
   if (value === undefined) {
     return [];
   }
@@ -76,14 +80,14 @@ function parseChzzkEmojis(value: unknown): ChzzkEmoji[] | null {
     return null;
   }
 
-  const emojis: ChzzkEmoji[] = [];
+  const emotes: ChatEmote[] = [];
 
-  for (const emoji of value) {
-    if (!emoji || typeof emoji !== "object") {
+  for (const emote of value) {
+    if (!emote || typeof emote !== "object") {
       return null;
     }
 
-    const parsed = emoji as Partial<ChzzkEmoji>;
+    const parsed = emote as Partial<ChatEmote>;
 
     if (
       typeof parsed.token !== "string" ||
@@ -94,10 +98,10 @@ function parseChzzkEmojis(value: unknown): ChzzkEmoji[] | null {
       return null;
     }
 
-    emojis.push({ token: parsed.token, imageUrl: parsed.imageUrl });
+    emotes.push({ token: parsed.token, imageUrl: parsed.imageUrl });
   }
 
-  return emojis;
+  return emotes;
 }
 
 export function parseOverlayAppearanceEvent(
@@ -305,7 +309,7 @@ function parseChessProvider(
   return value === "chesscom" || value === "lichess" ? value : undefined;
 }
 
-function parseChzzkBadges(value: unknown): ChzzkBadge[] | null {
+function parsePlatformBadges(value: unknown): PlatformChatBadge[] | null {
   if (value === undefined) {
     return [];
   }
@@ -314,29 +318,36 @@ function parseChzzkBadges(value: unknown): ChzzkBadge[] | null {
     return null;
   }
 
-  const badges: ChzzkBadge[] = [];
+  const badges: PlatformChatBadge[] = [];
 
   for (const badge of value) {
     if (!badge || typeof badge !== "object") {
       return null;
     }
 
-    const parsed = badge as Partial<ChzzkBadge>;
+    const parsed = badge as Partial<PlatformChatBadge>;
     const imageUrl = parsed.imageUrl;
     const kind =
-      parsed.kind === undefined ? "unknown" : parseChzzkBadgeKind(parsed.kind);
+      parsed.kind === undefined
+        ? "unknown"
+        : parsePlatformBadgeKind(parsed.kind);
 
-    if (!kind || typeof imageUrl !== "string" || !isHttpsUrl(imageUrl)) {
+    if (
+      (parsed.provider !== "chzzk" && parsed.provider !== "twitch") ||
+      !kind ||
+      typeof imageUrl !== "string" ||
+      !isHttpsUrl(imageUrl)
+    ) {
       return null;
     }
 
-    badges.push({ kind, imageUrl });
+    badges.push({ provider: parsed.provider, kind, imageUrl });
   }
 
   return badges;
 }
 
-function parseChzzkBadgeKind(value: unknown): ChzzkBadgeKind | null {
+function parsePlatformBadgeKind(value: unknown): PlatformBadgeKind | null {
   return value === "role" ||
     value === "subscription" ||
     value === "donation" ||
@@ -344,6 +355,32 @@ function parseChzzkBadgeKind(value: unknown): ChzzkBadgeKind | null {
     value === "unknown"
     ? value
     : null;
+}
+
+function parseChatEventSource(value: unknown): ChatEventSource | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const source = value as Partial<ChatEventSource>;
+  if (
+    (source.provider !== "chzzk" && source.provider !== "twitch") ||
+    typeof source.channelId !== "string" ||
+    source.channelId.length === 0 ||
+    typeof source.senderId !== "string" ||
+    source.senderId.length === 0 ||
+    typeof source.messageId !== "string" ||
+    source.messageId.length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    provider: source.provider,
+    channelId: source.channelId,
+    senderId: source.senderId,
+    messageId: source.messageId
+  };
 }
 
 function isHttpsUrl(value: string): boolean {

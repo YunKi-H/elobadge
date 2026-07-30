@@ -1,7 +1,7 @@
 import type {
   ChatAuthorKind,
-  ChatOverlayEvent,
-  ChzzkEmoji
+  ChatEmote,
+  ChatOverlayEvent
 } from "@elobadge/core";
 import type { FastifyBaseLogger } from "fastify";
 import { z } from "zod";
@@ -15,6 +15,7 @@ import type { ChzzkChessBadgeState } from "../firebase/chess-badges.js";
 import { getPlatformAccount } from "../firebase/platform-accounts.js";
 import { markTwitchStreamerReauthenticationRequired } from "../firebase/twitch-tokens.js";
 import { publishChatOverlayEvent } from "../realtime/overlay-events.js";
+import { createChatOverlayEvent } from "../chat/chat-event.js";
 
 const DEFAULT_EVENTSUB_URL = "wss://eventsub.wss.twitch.tv/ws";
 const MAX_RECONNECT_DELAY_MS = 60_000;
@@ -405,22 +406,25 @@ export class TwitchSession {
     }
 
     const normalized = normalizeTwitchMessage(message);
-    this.dependencies.publish(this.ownerUid, {
-      id: `twitch:${message.message_id}`,
-      nickname: message.chatter_user_name,
-      content: normalized.content,
-      ratings: badgeState.badges,
-      preferredChessProvider: badgeState.preferredProvider,
-      emojis: normalized.emojis,
-      authorKind: classifyTwitchAuthor(message),
-      sentAt: messageTimestamp ?? new Date().toISOString(),
-      source: {
-        provider: "twitch",
-        broadcasterUserId: message.broadcaster_user_id,
-        chatterUserId: message.chatter_user_id,
-        messageId: message.message_id
-      }
-    });
+    this.dependencies.publish(
+      this.ownerUid,
+      createChatOverlayEvent({
+        id: `twitch:${message.message_id}`,
+        nickname: message.chatter_user_name,
+        content: normalized.content,
+        ratings: badgeState.badges,
+        preferredChessProvider: badgeState.preferredProvider,
+        emotes: normalized.emotes,
+        authorKind: classifyTwitchAuthor(message),
+        sentAt: messageTimestamp ?? new Date().toISOString(),
+        source: {
+          provider: "twitch",
+          channelId: message.broadcaster_user_id,
+          senderId: message.chatter_user_id,
+          messageId: message.message_id
+        }
+      })
+    );
     this.logger?.info(
       {
         broadcasterUserId: message.broadcaster_user_id,
@@ -588,8 +592,8 @@ async function getCachedTwitchRatingBadge(
 
 function normalizeTwitchMessage(
   event: z.infer<typeof chatEventSchema>
-): { content: string; emojis: ChzzkEmoji[] } {
-  const emojis: ChzzkEmoji[] = [];
+): { content: string; emotes: ChatEmote[] } {
+  const emotes: ChatEmote[] = [];
   let emoteIndex = 0;
   const content = event.message.fragments.map((fragment) => {
     if (fragment.type !== "emote" || !fragment.emote) {
@@ -597,7 +601,7 @@ function normalizeTwitchMessage(
     }
     const token = `{:twitch_emote_${emoteIndex}:}`;
     emoteIndex += 1;
-    emojis.push({
+    emotes.push({
       token,
       imageUrl:
         `https://static-cdn.jtvnw.net/emoticons/v2/` +
@@ -608,7 +612,7 @@ function normalizeTwitchMessage(
 
   return {
     content: content || event.message.text,
-    emojis
+    emotes
   };
 }
 

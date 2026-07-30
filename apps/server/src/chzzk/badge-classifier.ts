@@ -1,6 +1,6 @@
-import type { ChzzkBadgeKind } from "@elobadge/core";
+import type { PlatformBadgeKind } from "@elobadge/core";
 
-export function classifyChzzkBadge(badge: unknown): ChzzkBadgeKind {
+export function classifyChzzkBadge(badge: unknown): PlatformBadgeKind {
   if (!badge || typeof badge !== "object") {
     return "unknown";
   }
@@ -27,7 +27,7 @@ export function classifyChzzkBadge(badge: unknown): ChzzkBadgeKind {
   return classifyBadgeType(candidate.badgeType);
 }
 
-function classifyBadgeType(value: unknown): ChzzkBadgeKind {
+function classifyBadgeType(value: unknown): PlatformBadgeKind {
   if (typeof value !== "string") {
     return "unknown";
   }

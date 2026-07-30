@@ -1,12 +1,15 @@
-import type { ChzzkBadge, ChzzkBadgeVisibility } from "@elobadge/core";
+import type {
+  PlatformBadgeVisibility,
+  PlatformChatBadge
+} from "@elobadge/core";
 
-export function ChzzkBadges({
+export function PlatformBadges({
   badges,
   visibility,
   lineHeight
 }: {
-  badges: ChzzkBadge[] | undefined;
-  visibility: ChzzkBadgeVisibility;
+  badges: PlatformChatBadge[];
+  visibility: PlatformBadgeVisibility;
   lineHeight: number;
 }) {
   const visibleBadges = badges?.filter((badge) => visibility[badge.kind]);
@@ -19,7 +22,7 @@ export function ChzzkBadges({
     <span
       className="mr-[0.45em] inline-flex items-center gap-1 align-top"
       style={{ height: `${lineHeight}em` }}
-      aria-label="치지직 배지"
+      aria-label="플랫폼 배지"
     >
       {visibleBadges.map((badge) => (
         <img

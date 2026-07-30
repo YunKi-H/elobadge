@@ -96,23 +96,31 @@ export function resolveRatingBadge(
   return badges.chesscom ?? badges.lichess ?? null;
 }
 
-export type ChzzkBadgeKind =
+export type PlatformBadgeKind =
   | "role"
   | "subscription"
   | "donation"
   | "subscription_gift"
   | "unknown";
 
-export type ChzzkBadgeVisibility = Record<ChzzkBadgeKind, boolean>;
+export type PlatformBadgeVisibility = Record<PlatformBadgeKind, boolean>;
 
-export interface ChzzkBadge {
-  kind: ChzzkBadgeKind;
+export interface PlatformChatBadge {
+  provider: StreamingPlatform;
+  kind: PlatformBadgeKind;
   imageUrl: string;
 }
 
-export interface ChzzkEmoji {
+export interface ChatEmote {
   token: string;
   imageUrl: string;
+}
+
+export interface ChatEventSource {
+  provider: StreamingPlatform;
+  channelId: string;
+  senderId: string;
+  messageId: string;
 }
 
 export interface ChatOverlayEvent {
@@ -121,23 +129,11 @@ export interface ChatOverlayEvent {
   content: string;
   ratings: ChessBadges;
   preferredChessProvider: ChessProvider | null;
-  chzzkBadges?: ChzzkBadge[];
-  emojis: ChzzkEmoji[];
+  platformBadges: PlatformChatBadge[];
+  emotes: ChatEmote[];
   authorKind: ChatAuthorKind;
   sentAt: string;
-  source?:
-    | {
-        provider: "chzzk";
-        channelId: string;
-        senderChannelId: string;
-        messageTime: number;
-      }
-    | {
-        provider: "twitch";
-        broadcasterUserId: string;
-        chatterUserId: string;
-        messageId: string;
-      };
+  source: ChatEventSource;
 }
 
 export interface OverlayAppearance {
@@ -146,7 +142,7 @@ export interface OverlayAppearance {
   backgroundColor: string;
   backgroundOpacity: number;
   chzzkBadgesVisible: boolean;
-  chzzkBadgeVisibility: ChzzkBadgeVisibility;
+  chzzkBadgeVisibility: PlatformBadgeVisibility;
   ratingProviderPolicy: RatingProviderPolicy;
   nicknameVisible: boolean;
   nicknameColorMode: NicknameColorMode;

@@ -29,8 +29,15 @@ function chatEvent(id: string): ChatOverlayEvent {
     content: "message",
     ratings: {},
     preferredChessProvider: null,
-    emojis: [],
+    platformBadges: [],
+    emotes: [],
     authorKind: "viewer",
-    sentAt: "2026-07-14T00:00:00.000Z"
+    sentAt: "2026-07-14T00:00:00.000Z",
+    source: {
+      provider: "chzzk",
+      channelId: "streamer",
+      senderId: "viewer",
+      messageId: id
+    }
   };
 }

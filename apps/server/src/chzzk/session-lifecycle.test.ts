@@ -132,8 +132,12 @@ test("published chat includes the sender's cached rating badge", async () => {
   const events: Array<{
     ratings: { chesscom?: { value: number } };
     preferredChessProvider: string | null;
-    chzzkBadges?: Array<{ kind: string; imageUrl: string }>;
-    emojis: Array<{ token: string; imageUrl: string }>;
+    platformBadges: Array<{
+      provider: string;
+      kind: string;
+      imageUrl: string;
+    }>;
+    emotes: Array<{ token: string; imageUrl: string }>;
     authorKind: string;
   }> = [];
   const unsubscribe = subscribeStreamerChatOverlayEvents("streamer-a", (event) => {
@@ -161,11 +165,15 @@ test("published chat includes the sender's cached rating badge", async () => {
 
   assert.equal(events[0]?.ratings?.chesscom?.value, 1520);
   assert.equal(events[0]?.preferredChessProvider, "chesscom");
-  assert.deepEqual(events[0]?.chzzkBadges, [
-    { kind: "subscription", imageUrl: "https://example.com/badge.png" }
+  assert.deepEqual(events[0]?.platformBadges, [
+    {
+      provider: "chzzk",
+      kind: "subscription",
+      imageUrl: "https://example.com/badge.png"
+    }
   ]);
   assert.equal(events[0]?.authorKind, "subscriber");
-  assert.deepEqual(events[0]?.emojis, [
+  assert.deepEqual(events[0]?.emotes, [
     {
       token: "{:brilliant:}",
       imageUrl: "https://example.com/brilliant.png"

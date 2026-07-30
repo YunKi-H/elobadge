@@ -15,7 +15,7 @@ import {
   overlayNicknameColor,
   overlayRating
 } from "./overlay-appearance";
-import { ChzzkBadges } from "./ChzzkBadges";
+import { PlatformBadges } from "./PlatformBadges";
 import { ChatMessageContent } from "./ChatMessageContent";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
@@ -84,8 +84,8 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
             }}
           >
             {appearance.chzzkBadgesVisible ? (
-              <ChzzkBadges
-                badges={message.chzzkBadges}
+              <PlatformBadges
+                badges={message.platformBadges}
                 visibility={appearance.chzzkBadgeVisibility}
                 lineHeight={appearance.fontLineHeight}
               />

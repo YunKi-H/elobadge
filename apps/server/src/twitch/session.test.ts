@@ -46,13 +46,13 @@ test("publishes Twitch chat with ratings, role, and emotes", async () => {
   assert.equal(published[0]?.authorKind, "subscriber");
   assert.equal(published[0]?.content, "hello {:twitch_emote_0:}");
   assert.match(
-    published[0]?.emojis[0]?.imageUrl ?? "",
+    published[0]?.emotes[0]?.imageUrl ?? "",
     /emoticons\/v2\/25\/default\/dark\/2\.0/
   );
   assert.deepEqual(published[0]?.source, {
     provider: "twitch",
-    broadcasterUserId: "broadcaster-1",
-    chatterUserId: "viewer-1",
+    channelId: "broadcaster-1",
+    senderId: "viewer-1",
     messageId: "chat-1"
   });
   assert.equal(session.getStatus().health, "healthy_active");
