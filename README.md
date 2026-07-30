@@ -198,6 +198,33 @@ docker compose exec -T app \
   --execute --confirm-project=<FIREBASE_PROJECT_ID>
 ```
 
+## Twitch Account Link
+
+Register a dedicated EloBadge application in the
+[Twitch Developer Console](https://dev.twitch.tv/console/apps). Add both callback
+URLs that will be used:
+
+```text
+http://localhost:3000/api/auth/twitch/callback
+https://elobadge.com/api/auth/twitch/callback
+```
+
+Choose the category closest to a website or broadcasting tool, then create a
+client secret from the application management screen. Configure the server:
+
+```text
+TWITCH_CLIENT_ID=<application client ID>
+TWITCH_CLIENT_SECRET=<application client secret>
+TWITCH_REDIRECT_URI=https://elobadge.com/api/auth/twitch/callback
+```
+
+The account-link flow uses Twitch's server-side Authorization Code Flow with
+the minimal `openid` scope. Fastify exchanges the callback code, loads the
+current user through `GET /helix/users`, stores only the numeric Twitch user ID
+and display name in `platformAccounts`, and immediately revokes the temporary
+access token. Twitch chat collection will use a separate streamer
+authorization flow with its own chat scopes and encrypted persistent tokens.
+
 ## Chess.com Rating Link
 
 The viewer page at `/viewer` can register a Chess.com username. Fastify reads

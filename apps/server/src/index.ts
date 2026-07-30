@@ -5,6 +5,7 @@ import fastifyStatic from "@fastify/static";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { registerChzzkAuthRoutes } from "./auth/chzzk/routes.js";
+import { registerTwitchRoutes } from "./auth/twitch/routes.js";
 import { registerChessComRoutes } from "./chess/chesscom/routes.js";
 import { registerLichessRoutes } from "./chess/lichess/routes.js";
 import { registerChessPreferenceRoutes } from "./chess/preferences/routes.js";
@@ -64,6 +65,7 @@ await registerChessComRoutes(app);
 await registerLichessRoutes(app);
 await registerChessPreferenceRoutes(app);
 await registerOverlayRoutes(app);
+await registerTwitchRoutes(app);
 await registerChzzkAuthRoutes(app);
 
 app.addHook("onClose", async () => {

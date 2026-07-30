@@ -148,6 +148,43 @@ export async function getPlatformAccounts(): Promise<PlatformAccount[]> {
   return body.accounts;
 }
 
+export async function startTwitchConnection(): Promise<string> {
+  const response = await authenticatedFetch("/api/auth/twitch/start", {
+    method: "POST"
+  });
+  const body: unknown = await response.json().catch(() => null);
+
+  if (
+    !response.ok ||
+    !body ||
+    typeof body !== "object" ||
+    (body as { ok?: unknown }).ok !== true ||
+    typeof (body as { authorizationUrl?: unknown }).authorizationUrl !==
+      "string"
+  ) {
+    throw new Error(apiError(body, "Twitch 연결을 시작하지 못했습니다."));
+  }
+
+  return (body as { authorizationUrl: string }).authorizationUrl;
+}
+
+export async function disconnectTwitchAccount(): Promise<void> {
+  const response = await authenticatedFetch("/api/platform-accounts/twitch", {
+    method: "DELETE"
+  });
+  const body: unknown = await response.json().catch(() => null);
+
+  if (
+    !response.ok ||
+    !body ||
+    typeof body !== "object" ||
+    (body as { ok?: unknown }).ok !== true ||
+    typeof (body as { disconnected?: unknown }).disconnected !== "number"
+  ) {
+    throw new Error(apiError(body, "Twitch 연결을 해제하지 못했습니다."));
+  }
+}
+
 export async function getChessBadgePreference(): Promise<ChessBadgePreference> {
   const response = await authenticatedFetch("/api/chess/badge-preference");
   const body: unknown = await response.json().catch(() => null);

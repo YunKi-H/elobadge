@@ -129,6 +129,31 @@ export async function listUserPlatformAccounts(
     .sort(comparePlatformAccounts);
 }
 
+export async function deleteUserPlatformAccounts(
+  userId: string,
+  platform: StreamingPlatform
+): Promise<number> {
+  const db = getFirestoreDb();
+  const snapshot = await db
+    .collection("platformAccounts")
+    .where("userId", "==", userId)
+    .get();
+  const ownedAccounts = snapshot.docs.filter(
+    (document) => document.data().platform === platform
+  );
+
+  if (ownedAccounts.length === 0) {
+    return 0;
+  }
+
+  const batch = db.batch();
+  for (const account of ownedAccounts) {
+    batch.delete(account.ref);
+  }
+  await batch.commit();
+  return ownedAccounts.length;
+}
+
 export function toPlatformAccountDocumentId(
   platform: StreamingPlatform,
   platformUserId: string

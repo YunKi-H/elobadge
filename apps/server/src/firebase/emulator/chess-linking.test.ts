@@ -42,6 +42,7 @@ import {
   updateStreamerOverlayAppearance
 } from "../overlays.js";
 import {
+  deleteUserPlatformAccounts,
   getPlatformAccount,
   listUserPlatformAccounts,
   PlatformAccountConflictError,
@@ -218,6 +219,16 @@ test("platform account ownership is stable while profile data can update", async
     platformUserId,
     displayName: "After"
   }]);
+  assert.equal(
+    await deleteUserPlatformAccounts("chzzk:another-viewer", "chzzk"),
+    0
+  );
+  assert.equal(await getPlatformAccount("chzzk", platformUserId) !== null, true);
+  assert.equal(
+    await deleteUserPlatformAccounts("chzzk:viewer", "chzzk"),
+    1
+  );
+  assert.equal(await getPlatformAccount("chzzk", platformUserId), null);
 
   await assert.rejects(
     upsertPlatformAccount("chzzk:another-viewer", {
