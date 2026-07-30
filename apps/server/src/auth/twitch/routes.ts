@@ -1,4 +1,5 @@
 import type {
+  FastifyBaseLogger,
   FastifyInstance,
   FastifyReply,
   preHandlerAsyncHookHandler
@@ -34,6 +35,7 @@ import {
   type TwitchClient,
   type TwitchUser
 } from "./client.js";
+import { twitchSessionService } from "../../twitch/session-service.js";
 
 const callbackQuerySchema = z.object({
   state: z.string().min(1),
@@ -53,6 +55,11 @@ export interface TwitchRouteDependencies {
     uid: string,
     user: TwitchUser,
     token: TwitchAccessToken
+  ): Promise<void>;
+  startStreamerSession(
+    uid: string,
+    user: TwitchUser,
+    logger: FastifyBaseLogger
   ): Promise<void>;
   disconnectAccount(uid: string): Promise<number>;
   revokeToken(accessToken: string): Promise<void>;
@@ -128,6 +135,18 @@ export async function registerTwitchRoutes(
             twitchUser,
             token
           );
+          try {
+            await dependencies.startStreamerSession(
+              pending.uid,
+              twitchUser,
+              request.log
+            );
+          } catch (error) {
+            request.log.error(
+              { err: error, uid: pending.uid },
+              "Twitch chat session did not start after authorization"
+            );
+          }
         } else {
           await dependencies.saveAccount(pending.uid, twitchUser);
         }
@@ -222,10 +241,18 @@ function defaultDependencies(): TwitchRouteDependencies {
         displayName: user.displayName
       }),
     saveStreamerAuthorization: saveTwitchStreamerAuthorization,
+    startStreamerSession: (uid, user, logger) =>
+      twitchSessionService.startAfterAuthorization(
+        uid,
+        getTwitchAuthConfig(),
+        user.id,
+        logger
+      ),
     disconnectAccount: async (uid) => {
       const tokens = await loadTwitchStreamerTokens(uid);
 
       if (tokens) {
+        await twitchSessionService.stop(uid, false);
         try {
           await getClient().revokeToken(tokens.accessToken);
         } catch (error) {

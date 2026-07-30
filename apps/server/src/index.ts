@@ -23,6 +23,8 @@ import { overlayCleanupService } from "./firebase/overlay-cleanup-service.js";
 import { registerHttpSecurity } from "./security/http-security.js";
 import { operationalMonitor } from "./monitoring/operational-monitor.js";
 import { registerAdminRoutes } from "./routes/admin.js";
+import { getTwitchAuthConfig } from "./auth/twitch/client.js";
+import { twitchSessionService } from "./twitch/session-service.js";
 
 const port = Number(process.env.PORT ?? 3000);
 
@@ -76,11 +78,13 @@ app.addHook("onClose", async () => {
   chessComVerificationCleanupService.stop();
   overlayCleanupService.stop();
   operationalMonitor.stop();
+  twitchSessionService.close();
 });
 
 await app.listen({ port, host: "0.0.0.0" });
 
 void restoreChzzkSessions();
+void restoreTwitchSessions();
 chessComRatingRefreshService.start(app.log);
 lichessRatingRefreshService.start(app.log);
 chessComVerificationCleanupService.start(app.log);
@@ -95,6 +99,20 @@ async function restoreChzzkSessions() {
     );
   } catch (error) {
     app.log.error({ err: error }, "Chzzk session startup recovery did not run");
+  }
+}
+
+async function restoreTwitchSessions() {
+  try {
+    await twitchSessionService.restoreEnabledSessions(
+      getTwitchAuthConfig(),
+      app.log
+    );
+  } catch (error) {
+    app.log.error(
+      { err: error },
+      "Twitch session startup recovery did not run"
+    );
   }
 }
 

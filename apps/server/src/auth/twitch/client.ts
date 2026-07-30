@@ -20,12 +20,24 @@ const usersSchema = z.object({
   )
 });
 
+const eventSubSubscriptionsSchema = z.object({
+  data: z.array(
+    z.object({
+      id: z.string().min(1),
+      status: z.string().min(1),
+      type: z.string().min(1),
+      version: z.string().min(1)
+    })
+  )
+});
+
 export interface TwitchAuthConfig {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
   identityBaseUrl: string;
   apiBaseUrl: string;
+  eventSubWebSocketUrl: string;
 }
 
 export interface TwitchAccessToken {
@@ -40,6 +52,13 @@ export interface TwitchUser {
   id: string;
   login: string;
   displayName: string;
+}
+
+export interface TwitchEventSubSubscription {
+  id: string;
+  status: string;
+  type: string;
+  version: string;
 }
 
 export type TwitchClientErrorCode =
@@ -217,6 +236,49 @@ export function createTwitchClient(
       };
     },
 
+    async createChatMessageSubscription(
+      accessToken: string,
+      broadcasterUserId: string,
+      sessionId: string
+    ): Promise<TwitchEventSubSubscription> {
+      const result = eventSubSubscriptionsSchema.safeParse(
+        await requestJson(
+          new URL("/helix/eventsub/subscriptions", config.apiBaseUrl),
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Client-Id": config.clientId,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              type: "channel.chat.message",
+              version: "1",
+              condition: {
+                broadcaster_user_id: broadcasterUserId,
+                user_id: broadcasterUserId
+              },
+              transport: {
+                method: "websocket",
+                session_id: sessionId
+              }
+            })
+          },
+          "request_failed"
+        )
+      );
+
+      const subscription = result.success ? result.data.data[0] : undefined;
+      if (!subscription) {
+        throw new TwitchClientError(
+          "invalid_response",
+          "Twitch returned an invalid EventSub subscription response"
+        );
+      }
+
+      return subscription;
+    },
+
     async revokeToken(accessToken: string): Promise<void> {
       let response: Response;
 
@@ -265,7 +327,10 @@ export function getTwitchAuthConfig(): TwitchAuthConfig {
       "https://id.twitch.tv",
     apiBaseUrl:
       process.env.TWITCH_API_BASE_URL?.trim() ||
-      "https://api.twitch.tv"
+      "https://api.twitch.tv",
+    eventSubWebSocketUrl:
+      process.env.TWITCH_EVENTSUB_WEBSOCKET_URL?.trim() ||
+      "wss://eventsub.wss.twitch.tv/ws"
   };
 }
 

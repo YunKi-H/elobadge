@@ -60,6 +60,17 @@ test("returns Twitch streamer authorization status", async () => {
       displayName: "Streamer",
       expiresAt: "2026-08-01T00:00:00.000Z",
       scopes: ["openid", "user:read:chat"]
+    }),
+    getSessionStatus: () => ({
+      health: "healthy_idle",
+      connected: true,
+      subscribed: true,
+      sessionId: "session-1",
+      startedAt: "2026-08-01T00:00:00.000Z",
+      lastMessageAt: null,
+      lastChatAt: null,
+      reconnectAttempt: 0,
+      lastError: null
     })
   });
 
@@ -71,6 +82,7 @@ test("returns Twitch streamer authorization status", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.json().authorization.connected, true);
+  assert.equal(response.json().session.subscribed, true);
   assert.equal(response.headers["cache-control"], "no-store");
   await app.close();
 });
@@ -113,6 +125,7 @@ async function createApp(
     createAuthorizationUrl: (state) =>
       new URL(`https://twitch.test/oauth?state=${state}`),
     getStatus: async () => ({ connected: false }),
+    getSessionStatus: () => null,
     disconnect: async () => false,
     ...overrides
   });

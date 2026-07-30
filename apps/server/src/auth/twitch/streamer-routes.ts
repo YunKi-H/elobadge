@@ -24,12 +24,15 @@ import {
   issueTwitchOAuthState,
   type PendingTwitchOAuth
 } from "./oauth-state.js";
+import { twitchSessionService } from "../../twitch/session-service.js";
+import type { TwitchSessionStatus } from "../../twitch/session.js";
 
 export interface TwitchStreamerRouteDependencies {
   authenticate: preHandlerAsyncHookHandler;
   issueState(value: PendingTwitchOAuth): string;
   createAuthorizationUrl(state: string): URL;
   getStatus(uid: string): Promise<TwitchStreamerAuthorizationStatus>;
+  getSessionStatus(uid: string): TwitchSessionStatus | null;
   disconnect(uid: string): Promise<boolean>;
 }
 
@@ -73,6 +76,9 @@ export async function registerTwitchStreamerRoutes(
           ok: true,
           authorization: await dependencies.getStatus(
             getRequiredFirebaseUser(request).uid
+          ),
+          session: dependencies.getSessionStatus(
+            getRequiredFirebaseUser(request).uid
           )
         })
   );
@@ -109,12 +115,14 @@ function defaultDependencies(): TwitchStreamerRouteDependencies {
         TWITCH_STREAMER_SCOPES
       ),
     getStatus: getTwitchStreamerAuthorizationStatus,
+    getSessionStatus: (uid) => twitchSessionService.getStatus(uid),
     disconnect: async (uid) => {
       const tokens = await loadTwitchStreamerTokens(uid);
       if (!tokens) {
         return false;
       }
 
+      await twitchSessionService.stop(uid, false);
       try {
         await getClient().revokeToken(tokens.accessToken);
       } catch (error) {

@@ -125,12 +125,19 @@ export interface ChatOverlayEvent {
   emojis: ChzzkEmoji[];
   authorKind: ChatAuthorKind;
   sentAt: string;
-  source?: {
-    provider: "chzzk";
-    channelId: string;
-    senderChannelId: string;
-    messageTime: number;
-  };
+  source?:
+    | {
+        provider: "chzzk";
+        channelId: string;
+        senderChannelId: string;
+        messageTime: number;
+      }
+    | {
+        provider: "twitch";
+        broadcasterUserId: string;
+        chatterUserId: string;
+        messageId: string;
+      };
 }
 
 export interface OverlayAppearance {

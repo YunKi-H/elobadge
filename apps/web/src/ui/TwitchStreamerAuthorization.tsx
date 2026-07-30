@@ -60,6 +60,26 @@ export function TwitchStreamerAuthorization() {
     []
   );
 
+  useEffect(() => {
+    if (
+      state.status !== "ready" ||
+      !state.authorization.connected ||
+      state.authorization.session?.subscribed
+    ) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      void getTwitchStreamerAuthorization()
+        .then((authorization) =>
+          setState({ status: "ready", authorization })
+        )
+        .catch(() => undefined);
+    }, 3_000);
+
+    return () => window.clearInterval(timer);
+  }, [state]);
+
   const connect = async () => {
     setWorking(true);
     setFeedback(null);
@@ -110,7 +130,9 @@ export function TwitchStreamerAuthorization() {
             <h2 className="font-semibold text-white">Twitch 채팅</h2>
             <p className="truncate text-sm text-slate-400">
               {state.status === "ready" && state.authorization.connected
-                ? state.authorization.displayName
+                ? `${state.authorization.displayName} · ${sessionLabel(
+                    state.authorization
+                  )}`
                 : "연결된 스트리머 계정 없음"}
             </p>
           </div>
@@ -223,4 +245,25 @@ function errorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
     : "Twitch 채팅 권한 요청을 처리하지 못했습니다.";
+}
+
+function sessionLabel(authorization: Authorization): string {
+  const session = authorization.session;
+  if (!session) {
+    return "수집 시작 대기";
+  }
+  if (session.subscribed) {
+    return "채팅 수집 중";
+  }
+  if (session.health === "reconnecting") {
+    return "재연결 중";
+  }
+  if (
+    session.health === "subscription_failed" ||
+    session.health === "connection_failed" ||
+    session.health === "authorization_revoked"
+  ) {
+    return "수집 연결 확인 필요";
+  }
+  return "연결 중";
 }

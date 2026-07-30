@@ -75,9 +75,12 @@ export function overlayNicknameColor(
     return appearance.nicknameRoleColors[message.authorKind];
   }
 
-  const identity = (
-    message.source?.senderChannelId ?? message.nickname
-  ).normalize("NFKC");
+  const sourceIdentity = message.source
+    ? message.source.provider === "chzzk"
+      ? message.source.senderChannelId
+      : message.source.chatterUserId
+    : null;
+  const identity = (sourceIdentity ?? message.nickname).normalize("NFKC");
   let hash = 2_166_136_261;
 
   for (let index = 0; index < identity.length; index += 1) {

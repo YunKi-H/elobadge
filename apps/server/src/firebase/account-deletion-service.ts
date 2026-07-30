@@ -13,9 +13,17 @@ import {
   type DeletedUserData
 } from "./account-deletion.js";
 import { revokeOverlayConnections } from "../realtime/overlay-access-events.js";
+import {
+  createTwitchClient,
+  getTwitchAuthConfig,
+  TwitchClientError
+} from "../auth/twitch/client.js";
+import { twitchSessionService } from "../twitch/session-service.js";
+import { loadTwitchStreamerTokens } from "./twitch-tokens.js";
 
 interface AccountDeletionDependencies {
   stopSession(uid: string): Promise<boolean>;
+  disconnectTwitch(uid: string): Promise<void>;
   loadTokens: typeof loadChzzkStreamerTokens;
   revokeToken: typeof revokeChzzkToken;
   deleteFirestoreData(
@@ -29,6 +37,25 @@ interface AccountDeletionDependencies {
 
 const defaultDependencies: AccountDeletionDependencies = {
   stopSession: (uid) => chzzkSessionService.stop(uid),
+  disconnectTwitch: async (uid) => {
+    await twitchSessionService.stop(uid, false);
+    const tokens = await loadTwitchStreamerTokens(uid);
+    if (!tokens) {
+      return;
+    }
+    try {
+      await createTwitchClient(getTwitchAuthConfig()).revokeToken(
+        tokens.accessToken
+      );
+    } catch (error) {
+      if (
+        !(error instanceof TwitchClientError) ||
+        (error.statusCode !== 400 && error.statusCode !== 401)
+      ) {
+        throw error;
+      }
+    }
+  },
   loadTokens: loadChzzkStreamerTokens,
   revokeToken: revokeChzzkToken,
   deleteFirestoreData: deleteUserFirestoreData,
@@ -55,6 +82,14 @@ export class AccountDeletionService {
     }
 
     await this.dependencies.stopSession(uid);
+    try {
+      await this.dependencies.disconnectTwitch(uid);
+    } catch (error) {
+      logger.warn(
+        { err: error },
+        "Twitch disconnection failed during account deletion"
+      );
+    }
     await this.revokeStoredChzzkToken(uid, chzzkConfig, logger);
 
     const deleted = await this.dependencies.deleteFirestoreData(

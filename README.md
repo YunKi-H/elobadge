@@ -230,8 +230,11 @@ The streamer page starts an Authorization Code Flow with the
 OAuth state identifies whether the callback is an identity link or streamer
 chat authorization. Streamer access and refresh tokens are encrypted with
 `TWITCH_TOKEN_ENCRYPTION_KEY` and stored in `twitchTokens`. This grant is
-reserved for the Twitch EventSub WebSocket chat collector; connecting the
-authorization does not start chat collection yet. Generate a key with:
+used by the Twitch EventSub WebSocket chat collector. Connecting the
+authorization starts collection immediately, and enabled sessions are restored
+after a server restart. Twitch and Chzzk messages are published to the same
+streamer overlay. Access tokens are refreshed automatically before expiration.
+Generate a key with:
 
 ```bash
 openssl rand -base64 32

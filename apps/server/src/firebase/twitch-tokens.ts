@@ -27,6 +27,11 @@ export interface TwitchStreamerAuthorizationStatus {
   scopes?: string[];
 }
 
+export interface RestorableTwitchStreamerAuthorization {
+  uid: string;
+  platformUserId: string;
+}
+
 export async function saveTwitchStreamerAuthorization(
   uid: string,
   user: TwitchUser,
@@ -68,11 +73,96 @@ export async function saveTwitchStreamerAuthorization(
         displayName: user.displayName,
         encryptionVersion: 1,
         status: "active",
+        chatSessionEnabled: true,
         ...(tokenSnapshot.exists ? {} : { createdAt: now }),
         updatedAt: now
       },
       { merge: true }
     );
+  });
+}
+
+export async function saveRefreshedTwitchStreamerTokens(
+  uid: string,
+  token: TwitchAccessToken
+): Promise<void> {
+  assertRequiredTwitchStreamerScopes(token.scopes);
+
+  const cipher = getTwitchTokenCipher();
+  await getFirestoreDb()
+    .collection("twitchTokens")
+    .doc(uid)
+    .set(
+      {
+        encryptedAccessToken: cipher.encrypt(
+          token.accessToken,
+          encryptionContext(uid, "access")
+        ),
+        encryptedRefreshToken: cipher.encrypt(
+          token.refreshToken,
+          encryptionContext(uid, "refresh")
+        ),
+        tokenType: token.tokenType,
+        expiresAt: Timestamp.fromMillis(Date.now() + token.expiresIn * 1_000),
+        scopes: token.scopes,
+        encryptionVersion: 1,
+        status: "active",
+        updatedAt: FieldValue.serverTimestamp()
+      },
+      { merge: true }
+    );
+}
+
+export async function markTwitchStreamerReauthenticationRequired(
+  uid: string
+): Promise<void> {
+  await getFirestoreDb()
+    .collection("twitchTokens")
+    .doc(uid)
+    .set(
+      {
+        status: "reauth_required",
+        chatSessionEnabled: false,
+        updatedAt: FieldValue.serverTimestamp()
+      },
+      { merge: true }
+    );
+}
+
+export async function setTwitchChatSessionEnabled(
+  uid: string,
+  enabled: boolean
+): Promise<void> {
+  await getFirestoreDb()
+    .collection("twitchTokens")
+    .doc(uid)
+    .set(
+      {
+        chatSessionEnabled: enabled,
+        updatedAt: FieldValue.serverTimestamp()
+      },
+      { merge: true }
+    );
+}
+
+export async function listRestorableTwitchStreamerAuthorizations(): Promise<
+  RestorableTwitchStreamerAuthorization[]
+> {
+  const snapshot = await getFirestoreDb()
+    .collection("twitchTokens")
+    .where("status", "==", "active")
+    .get();
+
+  return snapshot.docs.flatMap((document) => {
+    const data = document.data();
+    if (
+      data.chatSessionEnabled === false ||
+      typeof data.platformUserId !== "string"
+    ) {
+      return [];
+    }
+
+    return [{ uid: document.id, platformUserId: data.platformUserId }];
   });
 }
 

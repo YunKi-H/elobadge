@@ -11,7 +11,8 @@ const config: TwitchAuthConfig = {
   clientSecret: "client-secret",
   redirectUri: "https://elobadge.test/api/auth/twitch/callback",
   identityBaseUrl: "https://id.twitch.test",
-  apiBaseUrl: "https://api.twitch.test"
+  apiBaseUrl: "https://api.twitch.test",
+  eventSubWebSocketUrl: "wss://eventsub.twitch.test/ws"
 };
 
 test("creates a Twitch authorization code URL with the minimum identity scope", () => {
@@ -104,6 +105,52 @@ test("refreshes a Twitch authorization token", async () => {
     new URLSearchParams(requestBody).get("refresh_token"),
     "old-refresh-token"
   );
+});
+
+test("creates a channel chat EventSub WebSocket subscription", async () => {
+  let requestUrl = "";
+  let requestInit: RequestInit | undefined;
+  const client = createTwitchClient(config, async (input, init) => {
+    requestUrl = String(input);
+    requestInit = init;
+    return jsonResponse({
+      data: [{
+        id: "subscription-1",
+        status: "enabled",
+        type: "channel.chat.message",
+        version: "1"
+      }]
+    });
+  });
+
+  const subscription = await client.createChatMessageSubscription(
+    "access-token",
+    "broadcaster-1",
+    "session-1"
+  );
+
+  assert.equal(
+    requestUrl,
+    "https://api.twitch.test/helix/eventsub/subscriptions"
+  );
+  assert.deepEqual(requestInit?.headers, {
+    Authorization: "Bearer access-token",
+    "Client-Id": "client-id",
+    "Content-Type": "application/json"
+  });
+  assert.deepEqual(JSON.parse(String(requestInit?.body)), {
+    type: "channel.chat.message",
+    version: "1",
+    condition: {
+      broadcaster_user_id: "broadcaster-1",
+      user_id: "broadcaster-1"
+    },
+    transport: {
+      method: "websocket",
+      session_id: "session-1"
+    }
+  });
+  assert.equal(subscription.id, "subscription-1");
 });
 
 test("revokes a temporary Twitch access token", async () => {

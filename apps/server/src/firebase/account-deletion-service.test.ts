@@ -30,6 +30,9 @@ test("account deletion removes every local resource after revoking Chzzk", async
       operations.push("stop-session");
       return true;
     },
+    disconnectTwitch: async () => {
+      operations.push("disconnect-twitch");
+    },
     loadTokens: async () => tokens,
     revokeToken: async (_config, token, hint) => {
       operations.push(`revoke:${token}:${hint}`);
@@ -53,6 +56,7 @@ test("account deletion removes every local resource after revoking Chzzk", async
 
   assert.deepEqual(operations, [
     "stop-session",
+    "disconnect-twitch",
     "revoke:refresh-token:refresh_token",
     "delete-firestore",
     "close-overlay:first",
@@ -116,6 +120,7 @@ function createService(
 ) {
   return new AccountDeletionService({
     stopSession: async () => true,
+    disconnectTwitch: async () => {},
     loadTokens: async () => tokens,
     revokeToken: async () => {},
     deleteFirestoreData: async () => ({ overlayTokens: [] }),

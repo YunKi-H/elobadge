@@ -143,6 +143,22 @@ export interface TwitchStreamerAuthorization {
   displayName?: string;
   expiresAt?: string;
   scopes?: string[];
+  session?: TwitchChatSession | null;
+}
+
+export interface TwitchChatSession {
+  health:
+    | "connecting"
+    | "healthy_idle"
+    | "healthy_active"
+    | "reconnecting"
+    | "subscription_failed"
+    | "connection_failed"
+    | "authorization_revoked";
+  connected: boolean;
+  subscribed: boolean;
+  lastChatAt: string | null;
+  lastError: string | null;
 }
 
 export async function getPlatformAccounts(): Promise<PlatformAccount[]> {
@@ -202,6 +218,10 @@ export async function getTwitchStreamerAuthorization(): Promise<TwitchStreamerAu
     body && typeof body === "object"
       ? (body as { authorization?: unknown }).authorization
       : null;
+  const session =
+    body && typeof body === "object"
+      ? (body as { session?: unknown }).session
+      : null;
 
   if (
     !response.ok ||
@@ -214,7 +234,20 @@ export async function getTwitchStreamerAuthorization(): Promise<TwitchStreamerAu
     );
   }
 
-  return authorization as TwitchStreamerAuthorization;
+  return {
+    ...(authorization as TwitchStreamerAuthorization),
+    session: isTwitchChatSession(session) ? session : null
+  };
+}
+
+function isTwitchChatSession(value: unknown): value is TwitchChatSession {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof (value as { health?: unknown }).health === "string" &&
+      typeof (value as { connected?: unknown }).connected === "boolean" &&
+      typeof (value as { subscribed?: unknown }).subscribed === "boolean"
+  );
 }
 
 export async function startTwitchStreamerAuthorization(): Promise<string> {

@@ -128,6 +128,9 @@ test("stores Twitch streamer tokens through the shared callback", async () => {
     saveStreamerAuthorization: async () => {
       operations.push("save-streamer");
     },
+    startStreamerSession: async () => {
+      operations.push("start-session");
+    },
     revokeToken: async () => {
       operations.push("revoke");
     }
@@ -141,7 +144,12 @@ test("stores Twitch streamer tokens through the shared callback", async () => {
     response.headers.location,
     "https://elobadge.test/streamer?twitchChat=connected"
   );
-  assert.deepEqual(operations, ["exchange", "profile", "save-streamer"]);
+  assert.deepEqual(operations, [
+    "exchange",
+    "profile",
+    "save-streamer",
+    "start-session"
+  ]);
   await app.close();
 });
 
@@ -217,6 +225,7 @@ async function createApp(
     getCurrentUser: async () => twitchUser,
     saveAccount: async () => undefined,
     saveStreamerAuthorization: async () => undefined,
+    startStreamerSession: async () => undefined,
     disconnectAccount: async () => 0,
     revokeToken: async () => undefined,
     webAppUrl: () => "https://elobadge.test",
