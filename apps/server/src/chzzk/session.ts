@@ -105,6 +105,15 @@ export interface ChzzkSessionStatus {
   lastError: string | null;
 }
 
+export interface ChzzkSessionSummary {
+  total: number;
+  connected: number;
+  subscribed: number;
+  healthy: number;
+  unhealthy: number;
+  byHealth: Record<ChzzkSessionHealth, number>;
+}
+
 interface ManagedChzzkSession {
   start(
     config: ChzzkAuthConfig,
@@ -721,6 +730,38 @@ export class ChzzkSessionManager {
 
   getActiveSessionCount(): number {
     return this.sessions.size;
+  }
+
+  getSummary(): ChzzkSessionSummary {
+    const byHealth: Record<ChzzkSessionHealth, number> = {
+      connecting: 0,
+      healthy_idle: 0,
+      healthy_active: 0,
+      reconnecting: 0,
+      subscription_failed: 0,
+      connection_failed: 0,
+      unknown: 0
+    };
+    let connected = 0;
+    let subscribed = 0;
+
+    for (const session of this.sessions.values()) {
+      const status = session.getStatus();
+      byHealth[status.health] += 1;
+      connected += Number(status.connected);
+      subscribed += Number(status.subscribed);
+    }
+
+    const healthy = byHealth.healthy_idle + byHealth.healthy_active;
+
+    return {
+      total: this.sessions.size,
+      connected,
+      subscribed,
+      healthy,
+      unhealthy: this.sessions.size - healthy,
+      byHealth
+    };
   }
 }
 

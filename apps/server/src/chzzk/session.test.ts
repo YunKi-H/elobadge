@@ -119,6 +119,43 @@ test("a failed start removes only the failed streamer's session", async () => {
   assert.equal(manager.getActiveSessionCount(), 1);
 });
 
+test("session summary aggregates health without exposing streamer identifiers", async () => {
+  const healthByUid = new Map<string, ChzzkSessionStatus["health"]>([
+    ["streamer-a", "healthy_active"],
+    ["streamer-b", "reconnecting"]
+  ]);
+  const manager = new ChzzkSessionManager((uid) => {
+    const session = new FakeSession();
+    session.getStatus = () => ({
+      ...status(),
+      health: healthByUid.get(uid) ?? "unknown",
+      connected: uid === "streamer-a",
+      subscribed: uid === "streamer-a"
+    });
+    return session;
+  });
+
+  await manager.start("streamer-a", config, "token-a", logger);
+  await manager.start("streamer-b", config, "token-b", logger);
+
+  assert.deepEqual(manager.getSummary(), {
+    total: 2,
+    connected: 1,
+    subscribed: 1,
+    healthy: 1,
+    unhealthy: 1,
+    byHealth: {
+      connecting: 0,
+      healthy_idle: 0,
+      healthy_active: 1,
+      reconnecting: 1,
+      subscription_failed: 0,
+      connection_failed: 0,
+      unknown: 0
+    }
+  });
+});
+
 function status(): ChzzkSessionStatus {
   return {
     health: "healthy_idle",
