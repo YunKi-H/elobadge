@@ -41,6 +41,12 @@ import {
   rotateStreamerOverlayAccess,
   updateStreamerOverlayAppearance
 } from "../overlays.js";
+import {
+  getPlatformAccount,
+  PlatformAccountConflictError,
+  toPlatformAccountDocumentId,
+  upsertPlatformAccount
+} from "../platform-accounts.js";
 
 const projectId = "demo-elobadge-emulator";
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
@@ -181,6 +187,37 @@ test("one Chess.com account cannot be linked to two Chzzk users", async () => {
   await assert.rejects(
     saveUnverifiedChessComAccount("chzzk:second", player),
     (error: unknown) => error instanceof ChessAccountConflictError
+  );
+});
+
+test("platform account ownership is stable while profile data can update", async () => {
+  const platformUserId = "viewer/channel";
+
+  await upsertPlatformAccount("chzzk:viewer", {
+    platform: "chzzk",
+    platformUserId,
+    displayName: "Before"
+  });
+  await upsertPlatformAccount("chzzk:viewer", {
+    platform: "chzzk",
+    platformUserId,
+    displayName: "After"
+  });
+
+  assert.deepEqual(await getPlatformAccount("chzzk", platformUserId), {
+    userId: "chzzk:viewer",
+    platform: "chzzk",
+    platformUserId,
+    displayName: "After"
+  });
+
+  await assert.rejects(
+    upsertPlatformAccount("chzzk:another-viewer", {
+      platform: "chzzk",
+      platformUserId,
+      displayName: "Conflict"
+    }),
+    (error: unknown) => error instanceof PlatformAccountConflictError
   );
 });
 
@@ -503,6 +540,12 @@ test("account deletion removes user-owned Firestore data", async () => {
   const accountId = "chesscom:delete-player";
   const accountRef = db.collection("chessAccounts").doc(accountId);
   const lichessAccountRef = db.collection("chessAccounts").doc("lichess:delete-player");
+  const chzzkPlatformAccountRef = db
+    .collection("platformAccounts")
+    .doc(toPlatformAccountDocumentId("chzzk", channelId));
+  const twitchPlatformAccountRef = db
+    .collection("platformAccounts")
+    .doc(toPlatformAccountDocumentId("twitch", "123456789"));
   const ownedDocuments = [
     db.collection("users").doc(uid),
     db.collection("chzzkAccounts").doc(channelId),
@@ -519,7 +562,9 @@ test("account deletion removes user-owned Firestore data", async () => {
     lichessAccountRef.collection("ratings").doc("bullet"),
     lichessAccountRef.collection("ratings").doc("blitz"),
     lichessAccountRef.collection("ratings").doc("rapid"),
-    lichessAccountRef.collection("ratings").doc("classical")
+    lichessAccountRef.collection("ratings").doc("classical"),
+    chzzkPlatformAccountRef,
+    twitchPlatformAccountRef
   ];
 
   await Promise.all([
@@ -541,6 +586,8 @@ test("account deletion removes user-owned Firestore data", async () => {
     ownedDocuments[13]!.set({ value: 1400 }),
     ownedDocuments[14]!.set({ value: 1500 }),
     ownedDocuments[15]!.set({ value: 1600 }),
+    ownedDocuments[16]!.set({ userId: uid, platform: "chzzk" }),
+    ownedDocuments[17]!.set({ userId: uid, platform: "twitch" }),
     db.collection("overlays").doc("another-overlay").set({
       streamerUid: "chzzk:another-channel",
       active: true

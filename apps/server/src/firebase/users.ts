@@ -1,5 +1,6 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { getFirebaseAuth, getFirestoreDb } from "./admin.js";
+import { upsertPlatformAccountInTransaction } from "./platform-accounts.js";
 
 export interface ChzzkUserIdentity {
   channelId: string;
@@ -28,6 +29,12 @@ export async function upsertChzzkUser(identity: ChzzkUserIdentity): Promise<stri
     if (linkedUid && linkedUid !== uid) {
       throw new Error("This Chzzk account is already linked to another user");
     }
+
+    await upsertPlatformAccountInTransaction(transaction, db, uid, {
+      platform: "chzzk",
+      platformUserId: identity.channelId,
+      displayName: identity.channelName
+    });
 
     const now = FieldValue.serverTimestamp();
 

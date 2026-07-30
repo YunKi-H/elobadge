@@ -17,14 +17,17 @@ export async function deleteUserFirestoreData(
 
   const db = getFirestoreDb();
   const userRef = db.collection("users").doc(uid);
-  const [userSnapshot, overlaysSnapshot] = await Promise.all([
-    userRef.get(),
-    db.collection("overlays").where("streamerUid", "==", uid).get()
-  ]);
+  const [userSnapshot, overlaysSnapshot, platformAccountsSnapshot] =
+    await Promise.all([
+      userRef.get(),
+      db.collection("overlays").where("streamerUid", "==", uid).get(),
+      db.collection("platformAccounts").where("userId", "==", uid).get()
+    ]);
   const chessAccountIds = userSnapshot.data()?.chessAccountIds;
-  const dependentRefs: DocumentReference[] = overlaysSnapshot.docs.map(
-    (document) => document.ref
-  );
+  const dependentRefs: DocumentReference[] = [
+    ...overlaysSnapshot.docs.map((document) => document.ref),
+    ...platformAccountsSnapshot.docs.map((document) => document.ref)
+  ];
 
   const chessComAccountId = chessAccountIds?.chesscom;
   if (typeof chessComAccountId === "string") {

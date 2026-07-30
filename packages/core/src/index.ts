@@ -1,5 +1,10 @@
 export type ChessProvider = "lichess" | "chesscom";
 
+export const STREAMING_PLATFORM_VALUES = ["chzzk", "twitch"] as const;
+
+export type StreamingPlatform =
+  (typeof STREAMING_PLATFORM_VALUES)[number];
+
 export type ChzzkLoginMode = "streamer" | "viewer";
 
 export type NicknameColorMode = "fixed" | "by_user" | "by_role";
