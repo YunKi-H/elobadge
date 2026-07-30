@@ -30,6 +30,7 @@ export interface TwitchAuthConfig {
 
 export interface TwitchAccessToken {
   accessToken: string;
+  refreshToken: string;
   expiresIn: number;
   scopes: string[];
   tokenType: string;
@@ -60,13 +61,14 @@ export class TwitchClientError extends Error {
 
 export function createTwitchAuthorizationUrl(
   config: TwitchAuthConfig,
-  state: string
+  state: string,
+  scopes: readonly string[] = ["openid"]
 ): URL {
   const url = new URL("/oauth2/authorize", config.identityBaseUrl);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", config.clientId);
   url.searchParams.set("redirect_uri", config.redirectUri);
-  url.searchParams.set("scope", "openid");
+  url.searchParams.set("scope", scopes.join(" "));
   url.searchParams.set("state", state);
   return url;
 }
@@ -136,6 +138,43 @@ export function createTwitchClient(
 
       return {
         accessToken: result.data.access_token,
+        refreshToken: result.data.refresh_token,
+        expiresIn: result.data.expires_in,
+        scopes: result.data.scope,
+        tokenType: result.data.token_type
+      };
+    },
+
+    async refreshAccessToken(refreshToken: string): Promise<TwitchAccessToken> {
+      const result = tokenSchema.safeParse(
+        await requestJson(
+          new URL("/oauth2/token", config.identityBaseUrl),
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams({
+              client_id: config.clientId,
+              client_secret: config.clientSecret,
+              grant_type: "refresh_token",
+              refresh_token: refreshToken
+            })
+          },
+          "oauth_failed"
+        )
+      );
+
+      if (!result.success) {
+        throw new TwitchClientError(
+          "invalid_response",
+          "Twitch returned an invalid refreshed token response"
+        );
+      }
+
+      return {
+        accessToken: result.data.access_token,
+        refreshToken: result.data.refresh_token,
         expiresIn: result.data.expires_in,
         scopes: result.data.scope,
         tokenType: result.data.token_type

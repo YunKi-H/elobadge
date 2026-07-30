@@ -41,9 +41,11 @@ test("Twitch disconnection requires Firebase authentication", async () => {
 
 test("starts Twitch OAuth with state bound to the Firebase user", async () => {
   let pendingUid = "";
+  let pendingPurpose = "";
   const app = await createApp({
     issueState: (value) => {
       pendingUid = value.uid;
+      pendingPurpose = value.purpose;
       return "state";
     }
   });
@@ -55,6 +57,7 @@ test("starts Twitch OAuth with state bound to the Firebase user", async () => {
 
   assert.equal(response.statusCode, 200);
   assert.equal(pendingUid, "chzzk:viewer");
+  assert.equal(pendingPurpose, "identity");
   assert.equal(
     response.json().authorizationUrl,
     "https://twitch.test/oauth?state=state"
@@ -65,11 +68,12 @@ test("starts Twitch OAuth with state bound to the Firebase user", async () => {
 test("connects a Twitch identity and revokes its temporary token", async () => {
   const operations: string[] = [];
   const app = await createApp({
-    consumeState: () => ({ uid: "chzzk:viewer" }),
+    consumeState: () => ({ uid: "chzzk:viewer", purpose: "identity" }),
     exchangeCode: async () => {
       operations.push("exchange");
       return {
         accessToken: "access-token",
+        refreshToken: "refresh-token",
         expiresIn: 14_400,
         scopes: ["openid"],
         tokenType: "bearer"
@@ -100,10 +104,51 @@ test("connects a Twitch identity and revokes its temporary token", async () => {
   await app.close();
 });
 
+test("stores Twitch streamer tokens through the shared callback", async () => {
+  const operations: string[] = [];
+  const app = await createApp({
+    consumeState: () => ({
+      uid: "chzzk:viewer",
+      purpose: "streamer_chat"
+    }),
+    exchangeCode: async () => {
+      operations.push("exchange");
+      return {
+        accessToken: "access-token",
+        refreshToken: "refresh-token",
+        expiresIn: 14_400,
+        scopes: ["openid", "user:read:chat"],
+        tokenType: "bearer"
+      };
+    },
+    getCurrentUser: async () => {
+      operations.push("profile");
+      return twitchUser;
+    },
+    saveStreamerAuthorization: async () => {
+      operations.push("save-streamer");
+    },
+    revokeToken: async () => {
+      operations.push("revoke");
+    }
+  });
+  const response = await app.inject({
+    method: "GET",
+    url: "/api/auth/twitch/callback?code=code&state=state"
+  });
+
+  assert.equal(
+    response.headers.location,
+    "https://elobadge.test/streamer?twitchChat=connected"
+  );
+  assert.deepEqual(operations, ["exchange", "profile", "save-streamer"]);
+  await app.close();
+});
+
 test("redirects a Twitch account ownership conflict without losing cleanup", async () => {
   const operations: string[] = [];
   const app = await createApp({
-    consumeState: () => ({ uid: "chzzk:viewer" }),
+    consumeState: () => ({ uid: "chzzk:viewer", purpose: "identity" }),
     saveAccount: async () => {
       throw new PlatformAccountConflictError();
     },
@@ -164,12 +209,14 @@ async function createApp(
       new URL(`https://twitch.test/oauth?state=${state}`),
     exchangeCode: async () => ({
       accessToken: "access-token",
+      refreshToken: "refresh-token",
       expiresIn: 14_400,
       scopes: ["openid"],
       tokenType: "bearer"
     }),
     getCurrentUser: async () => twitchUser,
     saveAccount: async () => undefined,
+    saveStreamerAuthorization: async () => undefined,
     disconnectAccount: async () => 0,
     revokeToken: async () => undefined,
     webAppUrl: () => "https://elobadge.test",

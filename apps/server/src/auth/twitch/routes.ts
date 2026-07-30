@@ -8,7 +8,6 @@ import {
   getRequiredFirebaseUser,
   requireFirebaseUser
 } from "../firebase.js";
-import { OneTimeStore } from "../one-time-store.js";
 import { getWebAppUrl } from "../../config/web.js";
 import {
   deleteUserPlatformAccounts,
@@ -16,9 +15,21 @@ import {
   upsertPlatformAccount
 } from "../../firebase/platform-accounts.js";
 import {
+  deleteTwitchStreamerTokens,
+  loadTwitchStreamerTokens,
+  saveTwitchStreamerAuthorization
+} from "../../firebase/twitch-tokens.js";
+import {
+  consumeTwitchOAuthState,
+  getTwitchOAuthPurposeHint,
+  issueTwitchOAuthState,
+  type PendingTwitchOAuth
+} from "./oauth-state.js";
+import {
   createTwitchAuthorizationUrl,
   createTwitchClient,
   getTwitchAuthConfig,
+  TwitchClientError,
   type TwitchAccessToken,
   type TwitchClient,
   type TwitchUser
@@ -30,21 +41,19 @@ const callbackQuerySchema = z.object({
   error: z.string().min(1).optional()
 });
 
-interface PendingTwitchConnection {
-  uid: string;
-}
-
-const pendingConnections =
-  new OneTimeStore<PendingTwitchConnection>(10 * 60 * 1_000);
-
 export interface TwitchRouteDependencies {
   authenticate: preHandlerAsyncHookHandler;
-  issueState(value: PendingTwitchConnection): string;
-  consumeState(state: string): PendingTwitchConnection | null;
+  issueState(value: PendingTwitchOAuth): string;
+  consumeState(state: string): PendingTwitchOAuth | null;
   createAuthorizationUrl(state: string): URL;
   exchangeCode(code: string): Promise<TwitchAccessToken>;
   getCurrentUser(accessToken: string): Promise<TwitchUser>;
   saveAccount(uid: string, user: TwitchUser): Promise<void>;
+  saveStreamerAuthorization(
+    uid: string,
+    user: TwitchUser,
+    token: TwitchAccessToken
+  ): Promise<void>;
   disconnectAccount(uid: string): Promise<number>;
   revokeToken(accessToken: string): Promise<void>;
   webAppUrl(): string;
@@ -64,7 +73,8 @@ export async function registerTwitchRoutes(
     },
     async (request) => {
       const state = dependencies.issueState({
-        uid: getRequiredFirebaseUser(request).uid
+        uid: getRequiredFirebaseUser(request).uid,
+        purpose: "identity"
       });
 
       return {
@@ -89,13 +99,19 @@ export async function registerTwitchRoutes(
 
       const pending = dependencies.consumeState(result.data.state);
       if (!pending) {
-        return redirectToViewer(reply, dependencies.webAppUrl(), "expired");
+        return redirectForPurpose(
+          reply,
+          dependencies.webAppUrl(),
+          getTwitchOAuthPurposeHint(result.data.state) ?? "identity",
+          "expired"
+        );
       }
 
       if (result.data.error || !result.data.code) {
-        return redirectToViewer(
+        return redirectForPurpose(
           reply,
           dependencies.webAppUrl(),
+          pending.purpose,
           result.data.error === "access_denied" ? "denied" : "error"
         );
       }
@@ -106,18 +122,32 @@ export async function registerTwitchRoutes(
         const token = await dependencies.exchangeCode(result.data.code);
         accessToken = token.accessToken;
         const twitchUser = await dependencies.getCurrentUser(accessToken);
-        await dependencies.saveAccount(pending.uid, twitchUser);
+        if (pending.purpose === "streamer_chat") {
+          await dependencies.saveStreamerAuthorization(
+            pending.uid,
+            twitchUser,
+            token
+          );
+        } else {
+          await dependencies.saveAccount(pending.uid, twitchUser);
+        }
+        const streamerAuthorization = pending.purpose === "streamer_chat";
 
         request.log.info(
           {
             uid: pending.uid,
-            twitchUserId: twitchUser.id
+            twitchUserId: twitchUser.id,
+            purpose: pending.purpose
           },
-          "Twitch account connected"
+          streamerAuthorization
+            ? "Twitch streamer authorization connected"
+            : "Twitch account connected"
         );
-        return redirectToViewer(
+        accessToken = streamerAuthorization ? null : accessToken;
+        return redirectForPurpose(
           reply,
           dependencies.webAppUrl(),
+          pending.purpose,
           "connected"
         );
       } catch (error) {
@@ -129,9 +159,10 @@ export async function registerTwitchRoutes(
           { err: error, uid: pending.uid },
           "Twitch account connection failed"
         );
-        return redirectToViewer(
+        return redirectForPurpose(
           reply,
           dependencies.webAppUrl(),
+          pending.purpose,
           redirectResult
         );
       } finally {
@@ -177,8 +208,8 @@ function defaultDependencies(): TwitchRouteDependencies {
 
   return {
     authenticate: requireFirebaseUser,
-    issueState: (value) => pendingConnections.issue(value),
-    consumeState: (state) => pendingConnections.consume(state),
+    issueState: issueTwitchOAuthState,
+    consumeState: consumeTwitchOAuthState,
     createAuthorizationUrl: (state) =>
       createTwitchAuthorizationUrl(getTwitchAuthConfig(), state),
     exchangeCode: (code) => getClient().exchangeCode(code),
@@ -190,8 +221,27 @@ function defaultDependencies(): TwitchRouteDependencies {
         platformUserId: user.id,
         displayName: user.displayName
       }),
-    disconnectAccount: (uid) =>
-      deleteUserPlatformAccounts(uid, "twitch"),
+    saveStreamerAuthorization: saveTwitchStreamerAuthorization,
+    disconnectAccount: async (uid) => {
+      const tokens = await loadTwitchStreamerTokens(uid);
+
+      if (tokens) {
+        try {
+          await getClient().revokeToken(tokens.accessToken);
+        } catch (error) {
+          if (
+            !(error instanceof TwitchClientError) ||
+            (error.statusCode !== 400 && error.statusCode !== 401)
+          ) {
+            throw error;
+          }
+        }
+
+        await deleteTwitchStreamerTokens(uid);
+      }
+
+      return deleteUserPlatformAccounts(uid, "twitch");
+    },
     revokeToken: (accessToken) => getClient().revokeToken(accessToken),
     webAppUrl: getWebAppUrl
   };
@@ -205,4 +255,19 @@ function redirectToViewer(
   const url = new URL("/viewer", webAppUrl);
   url.searchParams.set("twitch", result);
   return reply.redirect(url.toString());
+}
+
+function redirectForPurpose(
+  reply: FastifyReply,
+  webAppUrl: string,
+  purpose: PendingTwitchOAuth["purpose"],
+  result: string
+) {
+  if (purpose === "streamer_chat") {
+    const url = new URL("/streamer", webAppUrl);
+    url.searchParams.set("twitchChat", result);
+    return reply.redirect(url.toString());
+  }
+
+  return redirectToViewer(reply, webAppUrl, result);
 }

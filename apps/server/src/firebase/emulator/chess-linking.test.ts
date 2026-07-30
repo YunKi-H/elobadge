@@ -50,6 +50,12 @@ import {
   upsertPlatformAccount
 } from "../platform-accounts.js";
 import { migrateChzzkPlatformAccounts } from "../platform-account-migration.js";
+import {
+  deleteTwitchStreamerTokens,
+  getTwitchStreamerAuthorizationStatus,
+  loadTwitchStreamerTokens,
+  saveTwitchStreamerAuthorization
+} from "../twitch-tokens.js";
 
 const projectId = "demo-elobadge-emulator";
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
@@ -59,6 +65,7 @@ if (!emulatorHost) {
 }
 
 process.env.FIREBASE_PROJECT_ID = projectId;
+process.env.TWITCH_TOKEN_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString("base64");
 delete process.env.FIREBASE_CLIENT_EMAIL;
 delete process.env.FIREBASE_PRIVATE_KEY;
 delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
@@ -224,12 +231,6 @@ test("platform account ownership is stable while profile data can update", async
     0
   );
   assert.equal(await getPlatformAccount("chzzk", platformUserId) !== null, true);
-  assert.equal(
-    await deleteUserPlatformAccounts("chzzk:viewer", "chzzk"),
-    1
-  );
-  assert.equal(await getPlatformAccount("chzzk", platformUserId), null);
-
   await assert.rejects(
     upsertPlatformAccount("chzzk:another-viewer", {
       platform: "chzzk",
@@ -237,6 +238,21 @@ test("platform account ownership is stable while profile data can update", async
       displayName: "Conflict"
     }),
     (error: unknown) => error instanceof PlatformAccountConflictError
+  );
+
+  assert.equal(
+    await deleteUserPlatformAccounts("chzzk:viewer", "chzzk"),
+    1
+  );
+  assert.equal(await getPlatformAccount("chzzk", platformUserId), null);
+  await upsertPlatformAccount("chzzk:another-viewer", {
+    platform: "chzzk",
+    platformUserId,
+    displayName: "New owner"
+  });
+  assert.equal(
+    (await getPlatformAccount("chzzk", platformUserId))?.userId,
+    "chzzk:another-viewer"
   );
 });
 
@@ -654,6 +670,7 @@ test("account deletion removes user-owned Firestore data", async () => {
   const twitchPlatformAccountRef = db
     .collection("platformAccounts")
     .doc(toPlatformAccountDocumentId("twitch", "123456789"));
+  const twitchTokenRef = db.collection("twitchTokens").doc(uid);
   const ownedDocuments = [
     db.collection("users").doc(uid),
     db.collection("chzzkAccounts").doc(channelId),
@@ -672,7 +689,8 @@ test("account deletion removes user-owned Firestore data", async () => {
     lichessAccountRef.collection("ratings").doc("rapid"),
     lichessAccountRef.collection("ratings").doc("classical"),
     chzzkPlatformAccountRef,
-    twitchPlatformAccountRef
+    twitchPlatformAccountRef,
+    twitchTokenRef
   ];
 
   await Promise.all([
@@ -696,6 +714,7 @@ test("account deletion removes user-owned Firestore data", async () => {
     ownedDocuments[15]!.set({ value: 1600 }),
     ownedDocuments[16]!.set({ userId: uid, platform: "chzzk" }),
     ownedDocuments[17]!.set({ userId: uid, platform: "twitch" }),
+    twitchTokenRef.set({ encryptedAccessToken: "twitch-secret" }),
     db.collection("overlays").doc("another-overlay").set({
       streamerUid: "chzzk:another-channel",
       active: true
@@ -715,6 +734,55 @@ test("account deletion removes user-owned Firestore data", async () => {
     (await db.collection("overlays").doc("another-overlay").get()).exists,
     true
   );
+});
+
+test("Twitch streamer authorization encrypts tokens and exposes safe status", async () => {
+  const uid = "chzzk:twitch-streamer";
+  const db = getFirestoreDb();
+
+  await saveTwitchStreamerAuthorization(
+    uid,
+    {
+      id: "123456789",
+      login: "streamer",
+      displayName: "Streamer"
+    },
+    {
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+      expiresIn: 14_400,
+      scopes: ["openid", "user:read:chat"],
+      tokenType: "bearer"
+    }
+  );
+
+  const raw = (
+    await db.collection("twitchTokens").doc(uid).get()
+  ).data();
+  assert.notEqual(raw?.encryptedAccessToken, "access-token");
+  assert.notEqual(raw?.encryptedRefreshToken, "refresh-token");
+  assert.equal(raw?.accessToken, undefined);
+  assert.equal(raw?.refreshToken, undefined);
+
+  const stored = await loadTwitchStreamerTokens(uid);
+  assert.equal(stored?.accessToken, "access-token");
+  assert.equal(stored?.refreshToken, "refresh-token");
+  assert.deepEqual(await getTwitchStreamerAuthorizationStatus(uid), {
+    connected: true,
+    platformUserId: "123456789",
+    displayName: "Streamer",
+    expiresAt: stored?.expiresAt.toISOString(),
+    scopes: ["openid", "user:read:chat"]
+  });
+  assert.equal(
+    (await getPlatformAccount("twitch", "123456789"))?.userId,
+    uid
+  );
+
+  await deleteTwitchStreamerTokens(uid);
+  assert.deepEqual(await getTwitchStreamerAuthorizationStatus(uid), {
+    connected: false
+  });
 });
 
 test("overlay cleanup preserves the streamer's current disabled URL", async () => {

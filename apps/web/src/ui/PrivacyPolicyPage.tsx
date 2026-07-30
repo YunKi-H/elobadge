@@ -41,6 +41,11 @@ export function PrivacyPolicyPage() {
               "Twitch OAuth 및 Helix API"
             ],
             [
+              "Twitch 스트리머 연결",
+              "Twitch OAuth 접근·갱신 토큰, 권한 범위, 만료 시각",
+              "스트리머가 Twitch 채팅 권한 연결 시 수집"
+            ],
+            [
               "Chess.com 연동",
               "사용자명, 플레이어 ID, 프로필 URL·이미지·상태, Bullet·Blitz·Rapid 레이팅, 인증 및 갱신 상태",
               "사용자 입력 및 Chess.com 공개 API"
@@ -75,8 +80,11 @@ export function PrivacyPolicyPage() {
         <p className="mt-4">
           시청자의 치지직 OAuth 토큰과 채팅 메시지 원문은 서버 데이터베이스에
           저장하지 않습니다. 스트리머의 치지직 OAuth 토큰은 채팅 세션 유지와
-          자동 갱신을 위해 암호화하여 저장합니다. Lichess 및 Twitch OAuth
-          토큰은 계정 확인 직후 폐기하며 저장하지 않습니다.
+          자동 갱신을 위해 암호화하여 저장합니다. 일반 Twitch 계정 연결에
+          사용한 OAuth 토큰은 계정 확인 직후 폐기합니다. Twitch 스트리머가
+          채팅 권한을 연결한 경우 접근·갱신 토큰은 세션 유지와 자동 갱신을
+          위해 암호화하여 저장합니다. Lichess OAuth 토큰은 계정 확인 직후
+          폐기하며 저장하지 않습니다.
         </p>
       </PolicySection>
 
@@ -86,7 +94,8 @@ export function PrivacyPolicyPage() {
           rows={[
             ["계정 및 치지직 연결 정보", "EloBadge 계정 삭제 시까지"],
             ["Twitch 계정 연결 정보", "Twitch 연동 해제 또는 계정 삭제 시까지"],
-            ["스트리머 OAuth 토큰", "치지직 연결 해제 또는 계정 삭제 시까지"],
+            ["치지직 스트리머 OAuth 토큰", "치지직 연결 해제 또는 계정 삭제 시까지"],
+            ["Twitch 스트리머 OAuth 토큰", "Twitch 채팅 권한 해제·연동 해제 또는 계정 삭제 시까지"],
             ["Chess.com 계정·레이팅", "Chess.com 연동 해제 또는 계정 삭제 시까지"],
             ["Chess.com 인증 도전 정보", "인증 완료·연동 해제 시까지 또는 만료 후 정기 정리 시까지"],
             ["Lichess 계정·레이팅", "Lichess 연동 해제 또는 계정 삭제 시까지"],
@@ -138,8 +147,8 @@ export function PrivacyPolicyPage() {
             ],
             [
               "Twitch Interactive, Inc.",
-              "Twitch 계정 식별 및 연결: OAuth 코드·임시 토큰, 숫자 사용자 ID, 로그인명과 표시 이름",
-              "미국 등 Twitch의 처리 시설. 사용자가 연동할 때 HTTPS API로 전송되며 임시 토큰은 확인 직후 폐기"
+              "Twitch 계정 식별 및 채팅 권한 연결: OAuth 코드·토큰, 숫자 사용자 ID, 로그인명과 표시 이름",
+              "미국 등 Twitch의 처리 시설. 사용자가 연동할 때 HTTPS API로 전송되며 계정 식별용 임시 토큰은 확인 직후 폐기하고 스트리머 채팅 토큰은 암호화하여 보관"
             ],
             [
               "Google Fonts 및 jsDelivr",

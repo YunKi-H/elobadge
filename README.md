@@ -216,14 +216,26 @@ client secret from the application management screen. Configure the server:
 TWITCH_CLIENT_ID=<application client ID>
 TWITCH_CLIENT_SECRET=<application client secret>
 TWITCH_REDIRECT_URI=https://elobadge.com/api/auth/twitch/callback
+TWITCH_TOKEN_ENCRYPTION_KEY=<base64-encoded 32-byte key>
 ```
 
 The account-link flow uses Twitch's server-side Authorization Code Flow with
 the minimal `openid` scope. Fastify exchanges the callback code, loads the
 current user through `GET /helix/users`, stores only the numeric Twitch user ID
 and display name in `platformAccounts`, and immediately revokes the temporary
-access token. Twitch chat collection will use a separate streamer
-authorization flow with its own chat scopes and encrypted persistent tokens.
+access token.
+
+The streamer page starts an Authorization Code Flow with the
+`openid user:read:chat` scopes through the same callback URL. The one-time
+OAuth state identifies whether the callback is an identity link or streamer
+chat authorization. Streamer access and refresh tokens are encrypted with
+`TWITCH_TOKEN_ENCRYPTION_KEY` and stored in `twitchTokens`. This grant is
+reserved for the Twitch EventSub WebSocket chat collector; connecting the
+authorization does not start chat collection yet. Generate a key with:
+
+```bash
+openssl rand -base64 32
+```
 
 ## Chess.com Rating Link
 

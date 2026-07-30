@@ -137,6 +137,14 @@ export interface PlatformAccount {
   displayName: string;
 }
 
+export interface TwitchStreamerAuthorization {
+  connected: boolean;
+  platformUserId?: string;
+  displayName?: string;
+  expiresAt?: string;
+  scopes?: string[];
+}
+
 export async function getPlatformAccounts(): Promise<PlatformAccount[]> {
   const response = await authenticatedFetch("/api/platform-accounts");
   const body: unknown = await response.json().catch(() => null);
@@ -182,6 +190,73 @@ export async function disconnectTwitchAccount(): Promise<void> {
     typeof (body as { disconnected?: unknown }).disconnected !== "number"
   ) {
     throw new Error(apiError(body, "Twitch 연결을 해제하지 못했습니다."));
+  }
+}
+
+export async function getTwitchStreamerAuthorization(): Promise<TwitchStreamerAuthorization> {
+  const response = await authenticatedFetch(
+    "/api/twitch/streamer-authorization"
+  );
+  const body: unknown = await response.json().catch(() => null);
+  const authorization =
+    body && typeof body === "object"
+      ? (body as { authorization?: unknown }).authorization
+      : null;
+
+  if (
+    !response.ok ||
+    !authorization ||
+    typeof authorization !== "object" ||
+    typeof (authorization as { connected?: unknown }).connected !== "boolean"
+  ) {
+    throw new Error(
+      apiError(body, "Twitch 채팅 권한 정보를 불러오지 못했습니다.")
+    );
+  }
+
+  return authorization as TwitchStreamerAuthorization;
+}
+
+export async function startTwitchStreamerAuthorization(): Promise<string> {
+  const response = await authenticatedFetch(
+    "/api/auth/twitch/streamer/start",
+    { method: "POST" }
+  );
+  const body: unknown = await response.json().catch(() => null);
+
+  if (
+    !response.ok ||
+    !body ||
+    typeof body !== "object" ||
+    (body as { ok?: unknown }).ok !== true ||
+    typeof (body as { authorizationUrl?: unknown }).authorizationUrl !==
+      "string"
+  ) {
+    throw new Error(
+      apiError(body, "Twitch 채팅 권한 연결을 시작하지 못했습니다.")
+    );
+  }
+
+  return (body as { authorizationUrl: string }).authorizationUrl;
+}
+
+export async function disconnectTwitchStreamerAuthorization(): Promise<void> {
+  const response = await authenticatedFetch(
+    "/api/twitch/streamer-authorization",
+    { method: "DELETE" }
+  );
+  const body: unknown = await response.json().catch(() => null);
+
+  if (
+    !response.ok ||
+    !body ||
+    typeof body !== "object" ||
+    (body as { ok?: unknown }).ok !== true ||
+    typeof (body as { disconnected?: unknown }).disconnected !== "boolean"
+  ) {
+    throw new Error(
+      apiError(body, "Twitch 채팅 권한을 해제하지 못했습니다.")
+    );
   }
 }
 

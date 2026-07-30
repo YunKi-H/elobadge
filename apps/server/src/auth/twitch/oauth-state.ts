@@ -1,0 +1,53 @@
+import { OneTimeStore } from "../one-time-store.js";
+
+export type TwitchOAuthPurpose = "identity" | "streamer_chat";
+
+export interface PendingTwitchOAuth {
+  uid: string;
+  purpose: TwitchOAuthPurpose;
+}
+
+const pendingAuthorizations =
+  new OneTimeStore<PendingTwitchOAuth>(10 * 60 * 1_000);
+
+export function issueTwitchOAuthState(value: PendingTwitchOAuth): string {
+  return `${purposePrefix(value.purpose)}.${pendingAuthorizations.issue(value)}`;
+}
+
+export function consumeTwitchOAuthState(
+  state: string
+): PendingTwitchOAuth | null {
+  const separator = state.indexOf(".");
+  if (separator < 1) {
+    return null;
+  }
+
+  const purpose = purposeFromPrefix(state.slice(0, separator));
+  if (!purpose) {
+    return null;
+  }
+
+  const pending = pendingAuthorizations.consume(state.slice(separator + 1));
+  return pending?.purpose === purpose ? pending : null;
+}
+
+export function getTwitchOAuthPurposeHint(
+  state: string
+): TwitchOAuthPurpose | null {
+  const separator = state.indexOf(".");
+  return separator < 1 ? null : purposeFromPrefix(state.slice(0, separator));
+}
+
+function purposePrefix(purpose: TwitchOAuthPurpose): string {
+  return purpose === "streamer_chat" ? "streamer" : "identity";
+}
+
+function purposeFromPrefix(prefix: string): TwitchOAuthPurpose | null {
+  if (prefix === "streamer") {
+    return "streamer_chat";
+  }
+  if (prefix === "identity") {
+    return "identity";
+  }
+  return null;
+}

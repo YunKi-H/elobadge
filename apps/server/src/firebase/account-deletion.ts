@@ -80,6 +80,7 @@ export async function deleteUserFirestoreData(
   finalBatch.delete(db.collection("chzzkAccounts").doc(chzzkChannelId));
   finalBatch.delete(db.collection("streamers").doc(uid));
   finalBatch.delete(db.collection("chzzkTokens").doc(uid));
+  finalBatch.delete(db.collection("twitchTokens").doc(uid));
   await finalBatch.commit();
 
   return {

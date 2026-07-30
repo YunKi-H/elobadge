@@ -11,11 +11,14 @@ export interface TokenCipher {
   decrypt(encoded: string, context: string): string;
 }
 
-export function createAesGcmTokenCipher(encodedKey: string): TokenCipher {
+export function createAesGcmTokenCipher(
+  encodedKey: string,
+  keyName = "Token encryption key"
+): TokenCipher {
   const key = Buffer.from(encodedKey, "base64");
 
   if (key.length !== KEY_LENGTH) {
-    throw new Error("CHZZK_TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key");
+    throw new Error(`${keyName} must be a base64-encoded 32-byte key`);
   }
 
   return {
@@ -82,5 +85,15 @@ export function getChzzkTokenCipher(): TokenCipher {
     throw new Error("Missing CHZZK_TOKEN_ENCRYPTION_KEY");
   }
 
-  return createAesGcmTokenCipher(encodedKey);
+  return createAesGcmTokenCipher(encodedKey, "CHZZK_TOKEN_ENCRYPTION_KEY");
+}
+
+export function getTwitchTokenCipher(): TokenCipher {
+  const encodedKey = process.env.TWITCH_TOKEN_ENCRYPTION_KEY;
+
+  if (!encodedKey) {
+    throw new Error("Missing TWITCH_TOKEN_ENCRYPTION_KEY");
+  }
+
+  return createAesGcmTokenCipher(encodedKey, "TWITCH_TOKEN_ENCRYPTION_KEY");
 }

@@ -27,6 +27,17 @@ test("creates a Twitch authorization code URL with the minimum identity scope", 
   ].join(""));
 });
 
+test("creates a Twitch streamer authorization URL with chat read scope", () => {
+  const url = createTwitchAuthorizationUrl(
+    config,
+    "streamer-state",
+    ["openid", "user:read:chat"]
+  );
+
+  assert.equal(url.searchParams.get("scope"), "openid user:read:chat");
+  assert.equal(url.searchParams.get("state"), "streamer-state");
+});
+
 test("exchanges a Twitch code and loads the current user", async () => {
   const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
   const client = createTwitchClient(config, async (input, init) => {
@@ -56,6 +67,7 @@ test("exchanges a Twitch code and loads the current user", async () => {
   const user = await client.getCurrentUser(token.accessToken);
 
   assert.equal(token.accessToken, "access-token");
+  assert.equal(token.refreshToken, "refresh-token");
   assert.deepEqual(token.scopes, ["openid"]);
   assert.deepEqual(user, {
     id: "123456789",
@@ -69,6 +81,29 @@ test("exchanges a Twitch code and loads the current user", async () => {
     Authorization: "Bearer access-token",
     "Client-Id": "client-id"
   });
+});
+
+test("refreshes a Twitch authorization token", async () => {
+  let requestBody = "";
+  const client = createTwitchClient(config, async (_input, init) => {
+    requestBody = String(init?.body);
+    return jsonResponse({
+      access_token: "new-access-token",
+      refresh_token: "new-refresh-token",
+      expires_in: 14_400,
+      scope: ["openid", "user:read:chat"],
+      token_type: "bearer"
+    });
+  });
+
+  const token = await client.refreshAccessToken("old-refresh-token");
+
+  assert.equal(token.accessToken, "new-access-token");
+  assert.equal(token.refreshToken, "new-refresh-token");
+  assert.equal(
+    new URLSearchParams(requestBody).get("refresh_token"),
+    "old-refresh-token"
+  );
 });
 
 test("revokes a temporary Twitch access token", async () => {
