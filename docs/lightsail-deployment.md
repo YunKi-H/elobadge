@@ -198,10 +198,68 @@ docker compose up -d app
 
 Change the value back to `latest` only after the failing release is fixed.
 
-## 8. Minimum Operations Checklist
+## 8. Configure Lightsail Monitoring
 
-- Enable Lightsail instance metric alarms and an external `/health` monitor.
+Lightsail alarms are regional. In the Lightsail console, open **Account >
+Profile & contacts**, add an email notification contact in the same AWS Region
+as the instance, and confirm the subscription email before creating alarms.
+Lightsail currently supports one email notification contact per Region.
+
+Open the production instance, select **Metrics**, and create these alarms:
+
+| Metric | Condition | Evaluation | Purpose |
+| --- | --- | --- | --- |
+| Status check failures | `>= 1` | 1 of 1 data points | Detect an instance or AWS host failure |
+| CPU utilization | `>= 70%` | 3 of 3 data points | Detect sustained CPU saturation |
+| Remaining CPU burst capacity percentage | `<= 20%` | 3 of 3 data points | Detect approaching CPU throttling |
+
+Enable email notifications for both `ALARM` and `OK` state changes. Treat
+missing CPU and burst data as missing rather than breaching. A status-check
+alarm is the highest-priority alert because it can indicate that the instance
+itself is unreachable.
+
+Do not add fixed network traffic alarms yet. Observe at least one normal
+broadcast week first, then use that traffic as the baseline. Normal SSE traffic
+grows with the number of open overlays, so a threshold chosen before observing
+production usage is likely to produce false alarms.
+
+When a CPU or burst alarm fires, inspect the host before restarting it:
+
+```sh
+cd /opt/elobadge/repository/deploy
+docker stats --no-stream
+docker compose ps
+docker compose logs --since=30m app caddy
+sudo journalctl -t elobadge-app \
+  --since "30 minutes ago" --no-pager
+```
+
+The application writes an `Operational health summary` 30 seconds after startup
+and every five minutes. It contains aggregate Chzzk session health and Node.js
+memory usage without streamer identifiers or chat content:
+
+```sh
+sudo journalctl -t elobadge-app \
+  --grep "Operational health summary" \
+  --since "30 minutes ago" --no-pager
+```
+
+An `info` summary means all managed Chzzk sessions are healthy. A `warn` summary
+means at least one session is connecting, reconnecting, failed, or unknown.
+Chat inactivity alone is classified as healthy idle and does not generate a
+warning.
+
+If CPU remains high, compare the value against the instance plan's sustainable
+CPU baseline. If burst capacity continues falling during normal traffic, reduce
+background work or move to a larger Lightsail plan using an instance snapshot.
+Restarting the application may clear a one-off process fault but does not solve
+an under-sized instance.
+
+## 9. Minimum Operations Checklist
+
+- Verify the three Lightsail instance alarms and email notifications.
 - Configure AWS and Firebase budget alerts; alerts do not automatically cap cost.
+- Review `Operational health summary` logs after every deployment.
 - Confirm the verification cleanup service is scheduled in the application log.
 - Confirm the inactive overlay cleanup service is scheduled in the application log.
 - Confirm containers use journald and the 14-day host retention policy is installed.
