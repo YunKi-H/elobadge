@@ -43,6 +43,7 @@ import {
 } from "../overlays.js";
 import {
   getPlatformAccount,
+  listUserPlatformAccounts,
   PlatformAccountConflictError,
   toPlatformAccountDocumentId,
   upsertPlatformAccount
@@ -211,6 +212,12 @@ test("platform account ownership is stable while profile data can update", async
     platformUserId,
     displayName: "After"
   });
+  assert.deepEqual(await listUserPlatformAccounts("chzzk:viewer"), [{
+    userId: "chzzk:viewer",
+    platform: "chzzk",
+    platformUserId,
+    displayName: "After"
+  }]);
 
   await assert.rejects(
     upsertPlatformAccount("chzzk:another-viewer", {

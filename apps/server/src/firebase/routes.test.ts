@@ -53,3 +53,17 @@ test("account deletion requires Firebase authentication", async () => {
   assert.equal(response.statusCode, 401);
   await app.close();
 });
+
+test("platform account listing requires Firebase authentication", async () => {
+  const app = Fastify();
+  await registerFirebaseAuthentication(app);
+  await registerFirebaseRoutes(app);
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/api/platform-accounts"
+  });
+
+  assert.equal(response.statusCode, 401);
+  await app.close();
+});

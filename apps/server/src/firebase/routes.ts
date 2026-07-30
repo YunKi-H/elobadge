@@ -9,6 +9,7 @@ import {
 } from "../auth/firebase.js";
 import { getChzzkAuthConfig } from "../auth/chzzk/client.js";
 import { accountDeletionService } from "./account-deletion-service.js";
+import { listUserPlatformAccounts } from "./platform-accounts.js";
 
 const loginExchangeBodySchema = z.object({
   code: z.string().min(1)
@@ -55,6 +56,32 @@ export async function registerFirebaseRoutes(app: FastifyInstance) {
         .send({
           ok: true,
           user: getRequiredFirebaseUser(request)
+        });
+    }
+  );
+
+  app.get(
+    "/api/platform-accounts",
+    {
+      preHandler: requireFirebaseUser,
+      config: {
+        rateLimit: { max: 30, timeWindow: "1 minute" }
+      }
+    },
+    async (request, reply) => {
+      const accounts = await listUserPlatformAccounts(
+        getRequiredFirebaseUser(request).uid
+      );
+
+      return reply
+        .header("Cache-Control", "no-store")
+        .send({
+          ok: true,
+          accounts: accounts.map(({ platform, platformUserId, displayName }) => ({
+            platform,
+            platformUserId,
+            displayName
+          }))
         });
     }
   );

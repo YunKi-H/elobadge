@@ -94,6 +94,41 @@ export async function getPlatformAccount(
   };
 }
 
+export async function listUserPlatformAccounts(
+  userId: string
+): Promise<StoredPlatformAccount[]> {
+  const snapshot = await getFirestoreDb()
+    .collection("platformAccounts")
+    .where("userId", "==", userId)
+    .get();
+
+  return snapshot.docs
+    .flatMap((document) => {
+      const data = document.data();
+
+      if (
+        data.platform !== "chzzk" &&
+        data.platform !== "twitch"
+      ) {
+        return [];
+      }
+      if (
+        typeof data.platformUserId !== "string" ||
+        typeof data.displayName !== "string"
+      ) {
+        return [];
+      }
+
+      return [{
+        userId,
+        platform: data.platform,
+        platformUserId: data.platformUserId,
+        displayName: data.displayName
+      }];
+    })
+    .sort(comparePlatformAccounts);
+}
+
 export function toPlatformAccountDocumentId(
   platform: StreamingPlatform,
   platformUserId: string
@@ -103,4 +138,15 @@ export function toPlatformAccountDocumentId(
   }
 
   return `${platform}:${encodeURIComponent(platformUserId)}`;
+}
+
+function comparePlatformAccounts(
+  left: StoredPlatformAccount,
+  right: StoredPlatformAccount
+): number {
+  const platformOrder = { chzzk: 0, twitch: 1 } as const;
+  return (
+    platformOrder[left.platform] - platformOrder[right.platform] ||
+    left.platformUserId.localeCompare(right.platformUserId)
+  );
 }

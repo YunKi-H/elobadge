@@ -2,7 +2,8 @@ import {
   isOverlayFontFamily,
   type ChessBadges,
   type ChessProvider,
-  type OverlayAppearance
+  type OverlayAppearance,
+  type StreamingPlatform
 } from "@elobadge/core";
 import { getFirebaseClientAuth } from "../firebase/client";
 
@@ -128,6 +129,23 @@ export interface LichessAccount {
 export interface ChessBadgePreference {
   badges: ChessBadges;
   preferredProvider: ChessProvider | null;
+}
+
+export interface PlatformAccount {
+  platform: StreamingPlatform;
+  platformUserId: string;
+  displayName: string;
+}
+
+export async function getPlatformAccounts(): Promise<PlatformAccount[]> {
+  const response = await authenticatedFetch("/api/platform-accounts");
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok || !isPlatformAccountsResponse(body)) {
+    throw new Error(apiError(body, "방송 플랫폼 연결 정보를 불러오지 못했습니다."));
+  }
+
+  return body.accounts;
 }
 
 export async function getChessBadgePreference(): Promise<ChessBadgePreference> {
@@ -432,6 +450,34 @@ function isCurrentUserResponse(
     response.ok === true &&
     Boolean(response.user) &&
     typeof response.user?.uid === "string"
+  );
+}
+
+function isPlatformAccountsResponse(
+  value: unknown
+): value is { ok: true; accounts: PlatformAccount[] } {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const response = value as { ok?: unknown; accounts?: unknown };
+
+  return (
+    response.ok === true &&
+    Array.isArray(response.accounts) &&
+    response.accounts.every((account: unknown) => {
+      if (!account || typeof account !== "object") {
+        return false;
+      }
+
+      const candidate = account as Partial<PlatformAccount>;
+      return (
+        (candidate.platform === "chzzk" ||
+          candidate.platform === "twitch") &&
+        typeof candidate.platformUserId === "string" &&
+        typeof candidate.displayName === "string"
+      );
+    })
   );
 }
 
