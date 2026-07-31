@@ -676,10 +676,16 @@ test("rating refresh queries isolate providers and limit results by due time", a
   ]);
 });
 
-test("verification cleanup deletes only expired challenges", async () => {
+test("verification cleanup deletes expired challenges and unverified accounts", async () => {
   const db = getFirestoreDb();
   const now = new Date("2026-07-20T00:00:00.000Z");
   const challenges = db.collection("chessVerificationChallenges");
+  const expiredUid = "chzzk:expired-verification";
+  const expiredAccountId = "chesscom:expired-verification";
+  const expiredAccount = db.collection("chessAccounts").doc(expiredAccountId);
+  const activeAccount = db.collection("chessAccounts").doc("chesscom:active-verification");
+  const verifiedAccount = db.collection("chessAccounts").doc("chesscom:verified-account");
+  const legacyAccount = db.collection("chessAccounts").doc("chesscom:legacy-unverified");
 
   await Promise.all([
     challenges.doc("expired").set({
@@ -688,13 +694,62 @@ test("verification cleanup deletes only expired challenges", async () => {
     challenges.doc("active").set({
       expiresAt: Timestamp.fromMillis(now.getTime() + 1)
     }),
-    challenges.doc("legacy-without-expiry").set({ createdAt: Timestamp.now() })
+    challenges.doc("legacy-without-expiry").set({ createdAt: Timestamp.now() }),
+    db.collection("users").doc(expiredUid).set({
+      chessAccountIds: { chesscom: expiredAccountId },
+      chessBadges: {},
+      preferredChessProvider: null
+    }),
+    expiredAccount.set({
+      uid: expiredUid,
+      provider: "chesscom",
+      verifiedAt: null,
+      verificationExpiresAt: Timestamp.fromMillis(now.getTime() - 1),
+      updatedAt: Timestamp.fromMillis(now.getTime() - 1)
+    }),
+    expiredAccount.collection("ratings").doc("rapid").set({ value: 1200 }),
+    activeAccount.set({
+      uid: "chzzk:active-verification",
+      provider: "chesscom",
+      verifiedAt: null,
+      verificationExpiresAt: Timestamp.fromMillis(now.getTime() + 1),
+      updatedAt: Timestamp.fromMillis(now.getTime() - 1)
+    }),
+    verifiedAccount.set({
+      uid: "chzzk:verified-account",
+      provider: "chesscom",
+      verifiedAt: Timestamp.fromMillis(now.getTime() - 1),
+      verificationExpiresAt: Timestamp.fromMillis(now.getTime() - 1),
+      updatedAt: Timestamp.fromMillis(now.getTime() - 1)
+    }),
+    legacyAccount.set({
+      uid: null,
+      provider: "chesscom",
+      verifiedAt: null,
+      updatedAt: Timestamp.fromMillis(
+        now.getTime() - 48 * 60 * 60 * 1_000 - 1
+      )
+    })
   ]);
 
-  assert.equal(await deleteExpiredChessVerificationChallenges(now), 1);
+  assert.equal(await deleteExpiredChessVerificationChallenges(now), 3);
   assert.equal((await challenges.doc("expired").get()).exists, false);
   assert.equal((await challenges.doc("active").get()).exists, true);
   assert.equal((await challenges.doc("legacy-without-expiry").get()).exists, true);
+  assert.equal((await expiredAccount.get()).exists, false);
+  assert.equal(
+    (await expiredAccount.collection("ratings").doc("rapid").get()).exists,
+    false
+  );
+  assert.equal(
+    (await db.collection("users").doc(expiredUid).get()).get(
+      "chessAccountIds.chesscom"
+    ),
+    undefined
+  );
+  assert.equal((await activeAccount.get()).exists, true);
+  assert.equal((await verifiedAccount.get()).exists, true);
+  assert.equal((await legacyAccount.get()).exists, false);
 });
 
 test("account deletion removes user-owned Firestore data", async () => {

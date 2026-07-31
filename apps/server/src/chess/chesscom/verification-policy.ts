@@ -1,0 +1,1 @@
+export const CHESS_COM_VERIFICATION_LIFETIME_MS = 48 * 60 * 60 * 1000;

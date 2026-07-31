@@ -3,12 +3,12 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getFirestoreDb } from "./admin.js";
 import { getHighestChessComRating } from "../chess/rating-selection.js";
 import { getNextChessComRefreshAt } from "../chess/chesscom/rating-refresh-policy.js";
+import { CHESS_COM_VERIFICATION_LIFETIME_MS } from "../chess/chesscom/verification-policy.js";
 import {
   parseUserChessBadgeState,
   selectPreferredChessProvider
 } from "./chess-badges.js";
 
-const CHALLENGE_LIFETIME_MS = 48 * 60 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 10;
 
 export type ChessVerificationErrorCode =
@@ -44,7 +44,9 @@ export async function createChessComLocationChallenge(
   const db = getFirestoreDb();
   const userRef = db.collection("users").doc(uid);
   const code = `elobadge-${randomBytes(10).toString("base64url")}`;
-  const expiresAt = new Date(Date.now() + CHALLENGE_LIFETIME_MS);
+  const expiresAt = new Date(
+    Date.now() + CHESS_COM_VERIFICATION_LIFETIME_MS
+  );
 
   await db.runTransaction(async (transaction) => {
     const userSnapshot = await transaction.get(userRef);
@@ -75,6 +77,10 @@ export async function createChessComLocationChallenge(
       failedAttempts: 0,
       expiresAt: Timestamp.fromDate(expiresAt),
       createdAt: FieldValue.serverTimestamp()
+    });
+    transaction.update(accountRef, {
+      verificationExpiresAt: Timestamp.fromDate(expiresAt),
+      updatedAt: FieldValue.serverTimestamp()
     });
   });
 
@@ -219,6 +225,7 @@ export async function completeChessComLocationVerification(
       ),
       ratingRefreshStatus: "idle",
       ratingRefreshFailureCount: 0,
+      verificationExpiresAt: FieldValue.delete(),
       updatedAt: now
     });
     transaction.set(

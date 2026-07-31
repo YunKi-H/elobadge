@@ -73,13 +73,13 @@ export class ChessComVerificationCleanupService {
       if (deleted > 0) {
         logger.info(
           { deleted },
-          "Expired Chess.com verification challenges deleted"
+          "Expired Chess.com verification data deleted"
         );
       }
     } catch (error) {
       logger.error(
         { err: error },
-        "Chess.com verification challenge cleanup failed"
+        "Chess.com verification data cleanup failed"
       );
     } finally {
       this.cleanupRunning = false;

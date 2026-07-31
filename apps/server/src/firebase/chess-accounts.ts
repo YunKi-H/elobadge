@@ -6,6 +6,7 @@ import {
   CHESS_COM_MANUAL_REFRESH_COOLDOWN_MS,
   getNextChessComRefreshAt
 } from "../chess/chesscom/rating-refresh-policy.js";
+import { CHESS_COM_VERIFICATION_LIFETIME_MS } from "../chess/chesscom/verification-policy.js";
 import {
   parseUserChessBadgeState,
   selectPreferredChessProvider
@@ -104,6 +105,9 @@ export async function saveUnverifiedChessComAccount(
   const manualRefreshAvailableAt = new Date(
     fetchedAt.getTime() + CHESS_COM_MANUAL_REFRESH_COOLDOWN_MS
   );
+  const verificationExpiresAt = new Date(
+    fetchedAt.getTime() + CHESS_COM_VERIFICATION_LIFETIME_MS
+  );
 
   const savedState = await db.runTransaction(async (transaction) => {
     const [accountSnapshot, userSnapshot] = await Promise.all([
@@ -167,6 +171,9 @@ export async function saveUnverifiedChessComAccount(
         nextRatingRefreshAt: verified
           ? Timestamp.fromDate(getNextChessComRefreshAt(fetchedAt))
           : FieldValue.delete(),
+        verificationExpiresAt: verified
+          ? FieldValue.delete()
+          : Timestamp.fromDate(verificationExpiresAt),
         ratingRefreshStatus: "idle",
         ratingRefreshFailureCount: 0,
         lastRatingRefreshError: FieldValue.delete(),
