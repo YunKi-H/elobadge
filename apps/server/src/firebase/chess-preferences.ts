@@ -13,7 +13,7 @@ import { getHighestRating } from "../chess/rating-selection.js";
 import { getFirestoreDb } from "./admin.js";
 import {
   getUserChessBadgeState,
-  getUserChessBadgeStateInTransaction,
+  parseUserChessBadgeState,
   type ChessBadgeState
 } from "./chess-badges.js";
 
@@ -42,11 +42,7 @@ async function reconcileLinkedChessBadges(
       throw new ChessBadgePreferenceError("identity_mismatch");
     }
 
-    const state = await getUserChessBadgeStateInTransaction(
-      transaction,
-      uid,
-      userSnapshot
-    );
+    const state = parseUserChessBadgeState(userSnapshot.data());
     const accountIds = userSnapshot.data()?.chessAccountIds;
     const linkedBadges = await Promise.all(
       (["chesscom", "lichess"] as const).map(async (provider) => {
@@ -98,11 +94,7 @@ export async function updateChessBadgePreference(
       throw new ChessBadgePreferenceError("identity_mismatch");
     }
 
-    const state = await getUserChessBadgeStateInTransaction(
-      transaction,
-      uid,
-      snapshot
-    );
+    const state = parseUserChessBadgeState(snapshot.data());
     const badge = state.badges[provider];
 
     if (!badge) {

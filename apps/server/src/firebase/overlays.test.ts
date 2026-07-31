@@ -29,8 +29,8 @@ test("overlay appearance accepts a complete valid document", () => {
       backgroundVisible: false,
       backgroundColor: "#abcdef",
       backgroundOpacity: 35,
-      chzzkBadgesVisible: false,
-      chzzkBadgeVisibility: {
+      platformBadgesVisible: false,
+      platformBadgeVisibility: {
         role: false,
         subscription: true,
         donation: false,
@@ -105,7 +105,7 @@ test("overlay appearance accepts a complete valid document", () => {
   );
 });
 
-test("overlay appearance reads platform-neutral badge fields first", () => {
+test("overlay appearance ignores legacy badge fields", () => {
   const storedTheme = {
     ...toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE),
     platformBadgesVisible: false,
@@ -137,6 +137,15 @@ test("overlay appearance reads platform-neutral badge fields first", () => {
       unknown: false
     }
   });
+
+  assert.equal(
+    parseOverlayAppearance({
+      ...DEFAULT_OVERLAY_APPEARANCE,
+      platformBadgesVisible: undefined,
+      platformBadgeVisibility: undefined
+    }),
+    null
+  );
 });
 
 test("stored overlay themes use only platform-neutral badge fields", () => {
@@ -155,15 +164,15 @@ test("overlay appearance rejects incomplete and invalid documents", () => {
   assert.equal(parseOverlayAppearance({}), null);
   assert.equal(
     parseOverlayAppearance({
-      ...DEFAULT_OVERLAY_APPEARANCE,
+      ...toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE),
       fontFamily: "remote-font"
     }),
     null
   );
   assert.equal(
     parseOverlayAppearance({
-      ...DEFAULT_OVERLAY_APPEARANCE,
-      chzzkBadgeVisibility: { donation: false }
+      ...toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE),
+      platformBadgeVisibility: { donation: false }
     }),
     null
   );
@@ -173,7 +182,7 @@ test("overlay appearance accepts every supported font preset", () => {
   for (const fontFamily of OVERLAY_FONT_FAMILY_VALUES) {
     assert.equal(
       parseOverlayAppearance({
-        ...DEFAULT_OVERLAY_APPEARANCE,
+        ...toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE),
         fontFamily
       })?.fontFamily,
       fontFamily

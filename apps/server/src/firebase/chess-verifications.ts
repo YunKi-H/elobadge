@@ -4,7 +4,7 @@ import { getFirestoreDb } from "./admin.js";
 import { getHighestChessComRating } from "../chess/rating-selection.js";
 import { getNextChessComRefreshAt } from "../chess/chesscom/rating-refresh-policy.js";
 import {
-  getUserChessBadgeStateInTransaction,
+  parseUserChessBadgeState,
   selectPreferredChessProvider
 } from "./chess-badges.js";
 
@@ -175,11 +175,7 @@ export async function completeChessComLocationVerification(
     const ratingSnapshots = await Promise.all(
       ratingRefs.map((ratingRef) => transaction.get(ratingRef))
     );
-    const currentState = await getUserChessBadgeStateInTransaction(
-      transaction,
-      uid,
-      userSnapshot
-    );
+    const currentState = parseUserChessBadgeState(userSnapshot.data());
     const highestRating = getHighestChessComRating(
       ratingSnapshots.flatMap((snapshot) => {
         const rating = snapshot.data();

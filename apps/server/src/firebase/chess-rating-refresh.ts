@@ -10,7 +10,7 @@ import {
 import { getFirestoreDb } from "./admin.js";
 import { listDueRatingRefreshAccountIds } from "./rating-refresh-queries.js";
 import {
-  getUserChessBadgeStateInTransaction,
+  parseUserChessBadgeState,
   selectPreferredChessProvider
 } from "./chess-badges.js";
 
@@ -136,11 +136,7 @@ export async function completeChessComRatingRefresh(
           provisional: false
         }
       : null;
-    const currentState = await getUserChessBadgeStateInTransaction(
-      transaction,
-      claim.uid,
-      userSnapshot
-    );
+    const currentState = parseUserChessBadgeState(userSnapshot.data());
     const badges = { ...currentState.badges };
     if (chessComBadge) {
       badges.chesscom = chessComBadge;

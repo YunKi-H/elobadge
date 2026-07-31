@@ -168,10 +168,8 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
   }
 
   const appearance = value as Record<string, unknown>;
-  const platformBadgesVisible =
-    appearance.platformBadgesVisible ?? appearance.chzzkBadgesVisible;
   const platformBadgeVisibility = parsePlatformBadgeVisibility(
-    appearance.platformBadgeVisibility ?? appearance.chzzkBadgeVisibility
+    appearance.platformBadgeVisibility
   );
   const nicknameRoleColors = parseRoleColors(
     appearance.nicknameRoleColors,
@@ -193,7 +191,7 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
     !Number.isInteger(appearance.backgroundOpacity) ||
     appearance.backgroundOpacity < 0 ||
     appearance.backgroundOpacity > 100 ||
-    typeof platformBadgesVisible !== "boolean" ||
+    typeof appearance.platformBadgesVisible !== "boolean" ||
     !platformBadgeVisibility ||
     !isRatingProviderPolicy(appearance.ratingProviderPolicy) ||
     typeof appearance.nicknameVisible !== "boolean" ||
@@ -220,7 +218,7 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
     backgroundVisible: appearance.backgroundVisible,
     backgroundColor: appearance.backgroundColor.toUpperCase(),
     backgroundOpacity: appearance.backgroundOpacity,
-    chzzkBadgesVisible: platformBadgesVisible,
+    chzzkBadgesVisible: appearance.platformBadgesVisible,
     chzzkBadgeVisibility: platformBadgeVisibility,
     ratingProviderPolicy: appearance.ratingProviderPolicy,
     nicknameVisible: appearance.nicknameVisible,
@@ -358,27 +356,27 @@ async function createOrRotateOverlayAccess(
       const existingToken = streamer.data()?.overlayToken;
       let appearance = { ...DEFAULT_OVERLAY_APPEARANCE };
 
-      if (!rotate && typeof existingToken === "string") {
-        const existingRef = db.collection("overlays").doc(existingToken);
-        const existing = await transaction.get(existingRef);
-
-        if (existing.exists && existing.data()?.streamerUid === streamerUid) {
-          appearance = requireStoredOverlayAppearance(existing.data()?.theme);
-          transaction.set(
-            existingRef,
-            { active: true, updatedAt: FieldValue.serverTimestamp() },
-            { merge: true }
-          );
-          return { publicToken: existingToken, active: true, appearance };
-        }
-      }
-
       if (typeof existingToken === "string") {
         const existingRef = db.collection("overlays").doc(existingToken);
         const existing = await transaction.get(existingRef);
 
         if (existing.exists && existing.data()?.streamerUid === streamerUid) {
-          appearance = requireStoredOverlayAppearance(existing.data()?.theme);
+          const storedAppearance = parseOverlayAppearance(existing.data()?.theme);
+          if (!rotate && storedAppearance) {
+            transaction.set(
+              existingRef,
+              { active: true, updatedAt: FieldValue.serverTimestamp() },
+              { merge: true }
+            );
+            return {
+              publicToken: existingToken,
+              active: true,
+              appearance: storedAppearance
+            };
+          }
+          if (storedAppearance) {
+            appearance = storedAppearance;
+          }
           transaction.delete(existingRef);
         }
       }
@@ -406,12 +404,4 @@ async function createOrRotateOverlayAccess(
   }
 
   throw new Error("Could not allocate a unique overlay token");
-}
-
-function requireStoredOverlayAppearance(value: unknown): OverlayAppearance {
-  const appearance = parseOverlayAppearance(value);
-  if (!appearance) {
-    throw new Error("Stored overlay appearance is invalid");
-  }
-  return appearance;
 }

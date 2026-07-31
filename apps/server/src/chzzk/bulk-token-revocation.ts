@@ -53,7 +53,7 @@ export async function revokeAllChzzkStreamerTokens(
     failures: []
   };
 
-  // Keep requests sequential so a one-off migration does not burst the Chzzk API.
+  // Keep requests sequential so this maintenance operation does not burst the Chzzk API.
   for (const uid of uids) {
     try {
       const tokens = await dependencies.loadTokens(uid);

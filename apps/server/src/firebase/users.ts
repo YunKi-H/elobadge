@@ -63,7 +63,7 @@ export async function upsertChzzkUser(identity: ChzzkUserIdentity): Promise<stri
         displayName: identity.channelName,
         ...(chzzkAccountSnapshot.exists
           ? {}
-          : { badges: {}, createdAt: now }),
+          : { createdAt: now }),
         updatedAt: now
       },
       { merge: true }

@@ -4,7 +4,7 @@ import { getHighestRating } from "../chess/rating-selection.js";
 import { getNextLichessRefreshAt } from "../chess/lichess/rating-refresh-policy.js";
 import { getFirestoreDb } from "./admin.js";
 import {
-  getUserChessBadgeStateInTransaction,
+  parseUserChessBadgeState,
   selectPreferredChessProvider
 } from "./chess-badges.js";
 
@@ -48,11 +48,7 @@ export async function saveVerifiedLichessAccount(
       throw new LichessAccountConflictError();
     }
     const previousAccountId = userSnapshot.data()?.chessAccountIds?.lichess;
-    const currentState = await getUserChessBadgeStateInTransaction(
-      transaction,
-      uid,
-      userSnapshot
-    );
+    const currentState = parseUserChessBadgeState(userSnapshot.data());
     const lichessBadge = highest ? toBadge(highest) : null;
     const badges = { ...currentState.badges };
     if (lichessBadge) {
@@ -207,11 +203,7 @@ export async function disconnectLichessAccount(
       return false;
     }
 
-    const currentState = await getUserChessBadgeStateInTransaction(
-      transaction,
-      uid,
-      userSnapshot
-    );
+    const currentState = parseUserChessBadgeState(userSnapshot.data());
     const remainingBadges = { ...currentState.badges };
     delete remainingBadges.lichess;
     const preferredProvider = selectPreferredChessProvider(

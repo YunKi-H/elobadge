@@ -114,73 +114,22 @@ export async function getUserChessBadgeState(
 ): Promise<ChessBadgeState> {
   const db = getFirestoreDb();
   const userSnapshot = await db.collection("users").doc(uid).get();
-  const userData = userSnapshot.data();
-
-  if (hasUserChessBadgeState(userData)) {
-    return parseUserChessBadgeState(userData);
-  }
-
-  if (uid.startsWith("chzzk:")) {
-    const legacySnapshot = await db
-      .collection("chzzkAccounts")
-      .doc(uid.slice("chzzk:".length))
-      .get();
-    return parseChzzkChessBadgeState(legacySnapshot.data());
-  }
-
-  return { badges: {}, preferredProvider: null };
-}
-
-export async function getUserChessBadgeStateInTransaction(
-  transaction: FirebaseFirestore.Transaction,
-  uid: string,
-  userSnapshot: FirebaseFirestore.DocumentSnapshot
-): Promise<ChessBadgeState> {
-  const userData = userSnapshot.data();
-  if (hasUserChessBadgeState(userData)) {
-    return parseUserChessBadgeState(userData);
-  }
-
-  if (uid.startsWith("chzzk:")) {
-    const legacySnapshot = await transaction.get(
-      getFirestoreDb()
-        .collection("chzzkAccounts")
-        .doc(uid.slice("chzzk:".length))
-    );
-    return parseChzzkChessBadgeState(legacySnapshot.data());
-  }
-
-  return { badges: {}, preferredProvider: null };
+  return parseUserChessBadgeState(userSnapshot.data());
 }
 
 export async function getChzzkChessBadgeState(
   chzzkChannelId: string
 ): Promise<ChzzkChessBadgeState> {
   const account = await getPlatformAccount("chzzk", chzzkChannelId);
-  if (account) {
-    return getUserChessBadgeState(account.userId);
-  }
-
-  const snapshot = await getFirestoreDb()
-    .collection("chzzkAccounts")
-    .doc(chzzkChannelId)
-    .get();
-  const legacyUid = snapshot.data()?.uid;
-  return typeof legacyUid === "string"
-    ? getUserChessBadgeState(legacyUid)
-    : parseChzzkChessBadgeState(snapshot.data());
+  return account
+    ? getUserChessBadgeState(account.userId)
+    : { badges: {}, preferredProvider: null };
 }
 
 export function parseUserChessBadgeState(
   data: FirebaseFirestore.DocumentData | undefined
 ): ChessBadgeState {
   return parseChessBadgeState(data?.chessBadges, data?.preferredChessProvider);
-}
-
-export function parseChzzkChessBadgeState(
-  data: FirebaseFirestore.DocumentData | undefined
-): ChzzkChessBadgeState {
-  return parseChessBadgeState(data?.badges, data?.preferredChessProvider);
 }
 
 function parseChessBadgeState(
@@ -211,16 +160,6 @@ function parseChessBadgeState(
   );
 
   return { badges, preferredProvider };
-}
-
-function hasUserChessBadgeState(
-  data: FirebaseFirestore.DocumentData | undefined
-): boolean {
-  return Boolean(
-    data &&
-      (Object.hasOwn(data, "chessBadges") ||
-        Object.hasOwn(data, "preferredChessProvider"))
-  );
 }
 
 export function selectPreferredChessProvider(

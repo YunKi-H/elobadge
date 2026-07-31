@@ -10,7 +10,7 @@ import {
 import { getFirestoreDb } from "./admin.js";
 import { listDueRatingRefreshAccountIds } from "./rating-refresh-queries.js";
 import {
-  getUserChessBadgeStateInTransaction,
+  parseUserChessBadgeState,
   selectPreferredChessProvider
 } from "./chess-badges.js";
 
@@ -114,11 +114,7 @@ export async function completeLichessRatingRefresh(
     }
 
     const highest = getHighestRating(player.ratings);
-    const currentState = await getUserChessBadgeStateInTransaction(
-      transaction,
-      claim.uid,
-      userSnapshot
-    );
+    const currentState = parseUserChessBadgeState(userSnapshot.data());
     const ratings = new Map(player.ratings.map((rating) => [rating.speed, rating]));
     for (const speed of SUPPORTED_SPEEDS) {
       const ref = accountRef.collection("ratings").doc(speed);

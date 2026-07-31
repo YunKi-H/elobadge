@@ -7,7 +7,7 @@ import {
   getNextChessComRefreshAt
 } from "../chess/chesscom/rating-refresh-policy.js";
 import {
-  getUserChessBadgeStateInTransaction,
+  parseUserChessBadgeState,
   selectPreferredChessProvider
 } from "./chess-badges.js";
 
@@ -66,11 +66,7 @@ export async function disconnectChessComAccount(
     }
 
     const now = FieldValue.serverTimestamp();
-    const currentState = await getUserChessBadgeStateInTransaction(
-      transaction,
-      uid,
-      userSnapshot
-    );
+    const currentState = parseUserChessBadgeState(userSnapshot.data());
     const remainingBadges = { ...currentState.badges };
     delete remainingBadges.chesscom;
     const preferredProvider = selectPreferredChessProvider(
@@ -130,11 +126,7 @@ export async function saveUnverifiedChessComAccount(
       : undefined;
     const selectedSpeed = selectedRating?.speed ?? null;
     const now = FieldValue.serverTimestamp();
-    const currentState = await getUserChessBadgeStateInTransaction(
-      transaction,
-      uid,
-      userSnapshot
-    );
+    const currentState = parseUserChessBadgeState(userSnapshot.data());
 
     if (typeof previousAccountId === "string" && previousAccountId !== accountId) {
       const previousAccountRef = db.collection("chessAccounts").doc(previousAccountId);

@@ -175,69 +175,7 @@ pnpm chzzk:revoke-all --execute --confirm-project=<FIREBASE_PROJECT_ID>
 
 The command calls Chzzk token revocation sequentially and deletes a local token
 only after remote revocation succeeds. Failed documents remain available for a
-later retry. Streamers authorize again through the normal streamer login flow;
-the dashboard does not show a separate migration status.
-
-Before enabling additional streaming platforms, backfill the common
-`platformAccounts` collection from the existing Chzzk identities. The command
-is idempotent and runs as a dry run unless the current Firebase project is
-explicitly confirmed.
-
-```bash
-pnpm platform-accounts:migrate
-pnpm platform-accounts:migrate --execute --confirm-project=<FIREBASE_PROJECT_ID>
-```
-
-For a built production container, run the compiled script directly:
-
-```bash
-docker compose exec -T app \
-  node apps/server/dist/scripts/migrate-platform-accounts.js
-docker compose exec -T app \
-  node apps/server/dist/scripts/migrate-platform-accounts.js \
-  --execute --confirm-project=<FIREBASE_PROJECT_ID>
-```
-
-After deploying the version that reads chess badges from `users/{uid}`, copy
-the legacy `chzzkAccounts.badges` state into the EloBadge user documents. The
-command is idempotent, defaults to a dry run, and does not delete the legacy
-fields so the previous server version remains a viable rollback.
-
-```bash
-pnpm chess-badges:migrate
-pnpm chess-badges:migrate --execute --confirm-project=<FIREBASE_PROJECT_ID>
-```
-
-For a built production container:
-
-```bash
-docker compose exec -T app \
-  node apps/server/dist/scripts/migrate-chess-badges-to-users.js
-docker compose exec -T app \
-  node apps/server/dist/scripts/migrate-chess-badges-to-users.js \
-  --execute --confirm-project=<FIREBASE_PROJECT_ID>
-```
-
-After deploying the version that reads platform-neutral overlay badge fields,
-backfill existing `overlays.theme` documents. The migration copies
-`chzzkBadgesVisible` and `chzzkBadgeVisibility` into
-`platformBadgesVisible` and `platformBadgeVisibility`. It intentionally keeps
-the old fields so the previous server version remains a viable rollback.
-
-```bash
-pnpm overlay-themes:migrate
-pnpm overlay-themes:migrate --execute --confirm-project=<FIREBASE_PROJECT_ID>
-```
-
-For a built production container:
-
-```bash
-docker compose exec -T app \
-  node apps/server/dist/scripts/migrate-overlay-theme-fields.js
-docker compose exec -T app \
-  node apps/server/dist/scripts/migrate-overlay-theme-fields.js \
-  --execute --confirm-project=<FIREBASE_PROJECT_ID>
-```
+later retry. Streamers authorize again through the normal streamer login flow.
 
 ## Twitch Account Link
 
