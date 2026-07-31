@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import {
-  CheckCircle2,
+  ChevronRight,
   LoaderCircle,
   Radio,
-  Tv,
-  Unlink
+  Tv
 } from "lucide-react";
 import {
   disconnectTwitchAccount,
@@ -258,18 +257,11 @@ export function PlatformAccountSettings({
   }
 
   return (
-    <section className="border-t border-white/10 py-8">
-      <div>
-        <h2 className="text-xl font-semibold text-white">
-          연결된 방송 플랫폼
-        </h2>
-        <p className="mt-1 text-sm text-slate-400">
-          EloBadge에 연결된 방송 플랫폼 계정을 관리합니다.
-        </p>
-      </div>
+    <section className="max-w-2xl border-t border-white/10 py-8">
+      <h2 className="text-sm font-medium text-slate-400">방송 플랫폼</h2>
 
       {state.status === "loading" ? (
-        <div className="mt-5 text-sm text-slate-300">
+        <div className="mt-3 text-sm text-slate-300">
           <LoaderCircle
             className="mr-2 inline animate-spin"
             aria-hidden="true"
@@ -280,12 +272,12 @@ export function PlatformAccountSettings({
       ) : null}
 
       {state.status === "error" ? (
-        <p className="mt-5 text-sm text-red-300">{state.message}</p>
+        <p className="mt-3 text-sm text-red-300">{state.message}</p>
       ) : null}
 
       {feedback ? (
         <p
-          className={`mt-5 text-sm ${
+          className={`mt-3 text-sm ${
             feedback.tone === "success"
               ? "text-emerald-300"
               : "text-red-300"
@@ -296,8 +288,8 @@ export function PlatformAccountSettings({
       ) : null}
 
       {state.status === "ready" ? (
-        <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
-          <ChzzkPlatformRow
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <ChzzkPlatformToggle
             accounts={state.accounts.filter(
               (account) => account.platform === "chzzk"
             )}
@@ -309,7 +301,7 @@ export function PlatformAccountSettings({
             disconnecting={disconnectingChzzk}
             onDisconnect={() => void disconnectChzzk()}
           />
-          <TwitchPlatformRow
+          <TwitchPlatformToggle
             accounts={state.accounts.filter(
               (account) => account.platform === "twitch"
             )}
@@ -329,7 +321,7 @@ export function PlatformAccountSettings({
   );
 }
 
-function ChzzkPlatformRow({
+function ChzzkPlatformToggle({
   accounts,
   authorization,
   streamer,
@@ -347,6 +339,7 @@ function ChzzkPlatformRow({
   const account = accounts[0];
   const connected = Boolean(account);
   const authorized = streamer && authorization?.connected === true;
+  const active = streamer ? authorized : connected;
   const canDisconnect = !streamer || hasAlternativeLogin || authorized;
   const authorizationOnly = streamer && !hasAlternativeLogin;
   const detail = account
@@ -354,69 +347,57 @@ function ChzzkPlatformRow({
       ? `${account.displayName} · 채팅 권한 필요`
       : account.displayName
     : "연결된 계정 없음";
+  const status = active
+    ? "연결됨"
+    : connected && streamer
+      ? "권한 필요"
+      : "미연결";
+  const actionTitle = active
+    ? canDisconnect
+      ? authorizationOnly
+        ? "치지직 채팅 수집 권한 해제"
+        : "치지직 연결 해제"
+      : "다른 로그인 계정을 연결한 후 해제할 수 있습니다."
+    : connected && streamer
+      ? "치지직 채팅 수집 권한 연결"
+      : "치지직 계정 연결 정보가 없습니다.";
 
   return (
-    <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 py-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <Radio className="text-emerald-300" aria-hidden="true" size={20} />
-        <div className="min-w-0">
-          <p className="font-medium text-white">치지직</p>
-          <p className="truncate text-sm text-slate-400">{detail}</p>
-        </div>
-      </div>
-
-      {connected ? (
-        <div className="flex items-center gap-3">
-          <span
-            className={`inline-flex items-center gap-1.5 text-sm font-medium ${
-              !streamer || authorized
-                ? "text-emerald-300"
-                : "text-amber-300"
-            }`}
-          >
-            <CheckCircle2 aria-hidden="true" size={16} />
-            {!streamer || authorized ? "연결됨" : "권한 필요"}
-          </span>
-          {streamer && !authorized ? (
-            <a
-              href="/api/auth/chzzk/start?mode=streamer"
-              className="inline-flex h-9 items-center rounded-md bg-emerald-500 px-3 text-sm font-medium text-slate-950 transition hover:bg-emerald-400"
-            >
-              채팅 권한 연결
-            </a>
-          ) : null}
-          {canDisconnect ? (
-            <button
-              type="button"
-              disabled={disconnecting}
-              onClick={onDisconnect}
-              title={
-                authorizationOnly
-                  ? "치지직 채팅 수집 권한 해제"
-                  : "치지직 연결 해제"
-              }
-              className="inline-flex size-9 items-center justify-center rounded-md text-slate-400 transition hover:bg-red-500/10 hover:text-red-200 disabled:opacity-50"
-            >
-              {disconnecting ? (
-                <LoaderCircle
-                  className="animate-spin"
-                  aria-hidden="true"
-                  size={16}
-                />
-              ) : (
-                <Unlink aria-hidden="true" size={16} />
-              )}
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <span className="text-sm text-slate-500">연결 정보 없음</span>
-      )}
-    </div>
+    <PlatformConnectionToggle
+      icon={<Radio aria-hidden="true" size={20} />}
+      iconClassName="text-emerald-300"
+      name="치지직"
+      detail={detail}
+      status={status}
+      actionLabel={
+        active
+          ? authorizationOnly
+            ? "권한 해제"
+            : "연결 해제"
+          : connected && streamer
+            ? "권한 연결"
+            : "연결"
+      }
+      tone={active ? "connected" : connected ? "attention" : "disconnected"}
+      accent="chzzk"
+      checked={active}
+      loading={disconnecting}
+      disabled={
+        disconnecting ||
+        (active ? !canDisconnect : !(connected && streamer))
+      }
+      href={
+        !active && connected && streamer
+          ? "/api/auth/chzzk/start?mode=streamer"
+          : undefined
+      }
+      title={actionTitle}
+      onToggle={active ? onDisconnect : undefined}
+    />
   );
 }
 
-function TwitchPlatformRow({
+function TwitchPlatformToggle({
   accounts,
   authorization,
   streamer,
@@ -438,6 +419,7 @@ function TwitchPlatformRow({
   const account = accounts[0];
   const authorized = streamer && authorization?.connected === true;
   const connected = Boolean(account) || authorized;
+  const active = streamer ? authorized : connected;
   const displayName = authorization?.displayName ?? account?.displayName;
   const sessionDetail = authorized
     ? twitchSessionDetail(authorization)
@@ -452,94 +434,173 @@ function TwitchPlatformRow({
       : displayName
     : "연결된 계정 없음";
   const status = authorized
-    ? twitchSessionStatus(authorization)
-    : connected
-      ? streamer
-        ? { label: "권한 필요", className: "text-amber-300" }
-        : { label: "연결됨", className: "text-emerald-300" }
-      : null;
+    ? twitchSessionStatus(authorization).label
+    : connected && streamer
+      ? "권한 필요"
+      : connected
+        ? "연결됨"
+        : "미연결";
   const canDisconnect = hasAlternativeLogin || authorized;
   const authorizationOnly = streamer && !hasAlternativeLogin;
+  const actionTitle = active
+    ? canDisconnect
+      ? authorizationOnly
+        ? "Twitch 채팅 수집 권한 해제"
+        : "Twitch 연결 해제"
+      : "다른 로그인 계정을 연결한 후 해제할 수 있습니다."
+    : streamer
+      ? "Twitch 채팅 수집 권한 연결"
+      : "Twitch 계정 연결";
 
   return (
-    <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 py-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <Tv className="text-violet-300" aria-hidden="true" size={20} />
-        <div className="min-w-0">
-          <p className="font-medium text-white">Twitch</p>
-          <p className="truncate text-sm text-slate-400">{detail}</p>
-        </div>
-      </div>
+    <PlatformConnectionToggle
+      icon={<Tv aria-hidden="true" size={20} />}
+      iconClassName="text-violet-300"
+      name="Twitch"
+      detail={detail}
+      status={status}
+      actionLabel={
+        active
+          ? authorizationOnly
+            ? "권한 해제"
+            : "연결 해제"
+          : streamer
+            ? "권한 연결"
+            : "연결"
+      }
+      tone={active ? "connected" : connected ? "attention" : "disconnected"}
+      accent="twitch"
+      checked={active}
+      loading={connecting || disconnecting}
+      disabled={
+        connecting ||
+        disconnecting ||
+        (active && !canDisconnect)
+      }
+      title={actionTitle}
+      onToggle={active ? onDisconnect : onConnect}
+    />
+  );
+}
 
-      {connected ? (
-        <div className="flex items-center gap-3">
-          {status ? (
+function PlatformConnectionToggle({
+  icon,
+  iconClassName,
+  name,
+  detail,
+  status,
+  actionLabel,
+  tone,
+  accent,
+  checked,
+  loading,
+  disabled,
+  href,
+  title,
+  onToggle
+}: {
+  icon: React.ReactNode;
+  iconClassName: string;
+  name: string;
+  detail: string;
+  status: string;
+  actionLabel: string;
+  tone: "connected" | "attention" | "disconnected";
+  accent: "chzzk" | "twitch";
+  checked: boolean;
+  loading: boolean;
+  disabled: boolean;
+  href?: string;
+  title: string;
+  onToggle?: () => void;
+}) {
+  const controlClassName = `group flex min-h-14 min-w-0 items-center justify-between gap-3 rounded-md border px-3 py-2 text-left transition ${
+    checked
+      ? accent === "chzzk"
+        ? "border-emerald-300/45 bg-emerald-400/15 hover:border-emerald-200/70 hover:bg-emerald-400/20"
+        : "border-violet-300/45 bg-violet-400/15 hover:border-violet-200/70 hover:bg-violet-400/20"
+      : tone === "attention"
+        ? "border-amber-300/40 bg-amber-400/10 hover:border-amber-200/65 hover:bg-amber-400/15"
+        : "border-white/10 bg-white/[0.025] hover:border-white/20 hover:bg-white/[0.05]"
+  } ${disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"}`;
+  const statusClassName =
+    tone === "connected"
+      ? "text-emerald-300"
+      : tone === "attention"
+        ? "text-amber-300"
+        : "text-slate-500";
+
+  const content = (
+    <>
+      <span className="flex min-w-0 items-center gap-3">
+        <span className={`shrink-0 ${iconClassName}`}>{icon}</span>
+        <span className="min-w-0">
+          <span className="block font-medium text-white">{name}</span>
+          <span className="block truncate text-xs text-slate-400">
+            {detail}
+          </span>
+        </span>
+      </span>
+
+      <span
+        className={`flex shrink-0 items-center gap-1 text-sm font-medium ${statusClassName}`}
+      >
+        {loading ? (
+          <LoaderCircle
+            className="animate-spin"
+            aria-hidden="true"
+            size={16}
+          />
+        ) : (
+          <>
             <span
-              className={`inline-flex items-center gap-1.5 text-sm font-medium ${status.className}`}
-            >
-              <CheckCircle2 aria-hidden="true" size={16} />
-              {status.label}
-            </span>
-          ) : null}
-          {!authorized && streamer ? (
-            <button
-              type="button"
-              disabled={connecting}
-              onClick={onConnect}
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-violet-500 px-3 text-sm font-medium text-white transition hover:bg-violet-400 disabled:cursor-wait disabled:opacity-60"
-            >
-              {connecting ? (
-                <LoaderCircle
-                  className="animate-spin"
-                  aria-hidden="true"
-                  size={16}
-                />
-              ) : null}
-              {connecting ? "연결 중" : "채팅 권한 연결"}
-            </button>
-          ) : null}
-          {canDisconnect ? (
-            <button
-              type="button"
-              disabled={disconnecting}
-              onClick={onDisconnect}
-              title={
-                authorizationOnly
-                  ? "Twitch 채팅 수집 권한 해제"
-                  : "Twitch 연결 해제"
+              className={
+                checked && !disabled
+                  ? "group-hover:hidden"
+                  : undefined
               }
-              className="inline-flex size-9 items-center justify-center rounded-md text-slate-400 transition hover:bg-red-500/10 hover:text-red-200 disabled:opacity-50"
             >
-              {disconnecting ? (
-                <LoaderCircle
-                  className="animate-spin"
-                  aria-hidden="true"
-                  size={16}
-                />
-              ) : (
-                <Unlink aria-hidden="true" size={16} />
-              )}
-            </button>
-          ) : null}
-        </div>
+              {checked || disabled ? status : actionLabel}
+            </span>
+            {checked && !disabled ? (
+              <span className="hidden text-red-200 group-hover:inline">
+                {actionLabel}
+              </span>
+            ) : null}
+            {!checked && !disabled ? (
+              <ChevronRight aria-hidden="true" size={17} />
+            ) : null}
+          </>
+        )}
+      </span>
+    </>
+  );
+
+  return (
+    <>
+      {href && !disabled ? (
+        <a
+          href={href}
+          aria-label={`${name} ${title}`}
+          title={title}
+          className={controlClassName}
+        >
+          {content}
+        </a>
       ) : (
         <button
           type="button"
-          disabled={connecting}
-          onClick={onConnect}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-800 px-3 text-sm font-medium text-white ring-1 ring-white/10 transition hover:bg-slate-700 disabled:cursor-wait disabled:opacity-60"
+          aria-pressed={checked}
+          aria-label={`${name} ${title}`}
+          disabled={disabled}
+          onClick={onToggle}
+          title={title}
+          className={controlClassName}
         >
-          {connecting ? (
-            <LoaderCircle
-              className="animate-spin"
-              aria-hidden="true"
-              size={16}
-            />
-          ) : null}
-          {connecting ? "연결 중" : "Twitch 연결"}
+          {content}
         </button>
       )}
-    </div>
+    </>
   );
 }
 
