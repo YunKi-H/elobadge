@@ -57,6 +57,10 @@ import {
   loadTwitchStreamerTokens,
   saveTwitchStreamerAuthorization
 } from "../twitch-tokens.js";
+import {
+  registerChzzkStreamer,
+  upsertChzzkUserRecord
+} from "../users.js";
 
 const projectId = "demo-elobadge-emulator";
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
@@ -306,6 +310,52 @@ test("Chzzk disconnect preserves EloBadge user data and other platforms", async 
   assert.equal(
     (await db.collection("streamers").doc(uid).get()).get("chzzkChannelId"),
     undefined
+  );
+});
+
+test("Chzzk login reuses the EloBadge UID linked from a Twitch-first account", async () => {
+  const db = getFirestoreDb();
+  const uid = "twitch:linked-viewer";
+  const channelId = "linked-chzzk-viewer";
+
+  await Promise.all([
+    db.collection("users").doc(uid).set({
+      displayName: "Twitch Viewer"
+    }),
+    upsertPlatformAccount(uid, {
+      platform: "twitch",
+      platformUserId: "linked-viewer",
+      displayName: "Twitch Viewer"
+    })
+  ]);
+  await upsertPlatformAccount(uid, {
+    platform: "chzzk",
+    platformUserId: channelId,
+    displayName: "Chzzk Viewer"
+  });
+
+  const resolvedUid = await upsertChzzkUserRecord({
+    channelId,
+    channelName: "Updated Chzzk Viewer"
+  });
+
+  assert.equal(resolvedUid, uid);
+  assert.equal(
+    (await getPlatformAccount("chzzk", channelId))?.userId,
+    uid
+  );
+  assert.equal(
+    (await getPlatformAccount("twitch", "linked-viewer"))?.userId,
+    uid
+  );
+
+  await registerChzzkStreamer(uid, {
+    channelId,
+    channelName: "Updated Chzzk Viewer"
+  });
+  assert.equal(
+    (await db.collection("streamers").doc(uid).get()).data()?.chzzkChannelId,
+    channelId
   );
 });
 

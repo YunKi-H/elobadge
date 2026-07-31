@@ -8,7 +8,6 @@ import {
 import { AccountDeletionService } from "./account-deletion-service.js";
 
 const uid = "chzzk:channel-id";
-const channelId = "channel-id";
 const config: ChzzkAuthConfig = {
   clientId: "client-id",
   clientSecret: "client-secret",
@@ -52,7 +51,7 @@ test("account deletion removes every local resource after revoking Chzzk", async
     }
   });
 
-  await service.deleteAccount(uid, channelId, config, createLogger());
+  await service.deleteAccount(uid, config, createLogger());
 
   assert.deepEqual(operations, [
     "stop-session",
@@ -78,7 +77,7 @@ test("account deletion falls back to the Chzzk access token", async () => {
     }
   });
 
-  await service.deleteAccount(uid, channelId, config, createLogger());
+  await service.deleteAccount(uid, config, createLogger());
 
   assert.deepEqual(revoked, [
     "refresh-token:refresh_token",
@@ -105,7 +104,6 @@ test("remote token failure does not block personal data deletion", async () => {
 
   await service.deleteAccount(
     uid,
-    channelId,
     config,
     createLogger(warningLogs)
   );
@@ -115,7 +113,7 @@ test("remote token failure does not block personal data deletion", async () => {
   assert.equal(warningLogs.length, 1);
 });
 
-test("Twitch-only account deletion skips Chzzk token work", async () => {
+test("Twitch-only account deletion skips Chzzk token revocation", async () => {
   const operations: string[] = [];
   const service = createService({
     stopSession: async () => {
@@ -127,7 +125,7 @@ test("Twitch-only account deletion skips Chzzk token work", async () => {
     },
     loadTokens: async () => {
       operations.push("load-chzzk-token");
-      return tokens;
+      return null;
     },
     deleteFirestoreData: async () => {
       operations.push("delete-firestore");
@@ -143,7 +141,6 @@ test("Twitch-only account deletion skips Chzzk token work", async () => {
 
   await service.deleteAccount(
     "twitch:123456789",
-    null,
     config,
     createLogger()
   );
@@ -151,6 +148,7 @@ test("Twitch-only account deletion skips Chzzk token work", async () => {
   assert.deepEqual(operations, [
     "stop-chzzk-session",
     "disconnect-twitch",
+    "load-chzzk-token",
     "delete-firestore",
     "invalidate-badge",
     "delete-auth"

@@ -21,8 +21,24 @@ export interface ChzzkStreamerSessionIntent {
 }
 
 export async function upsertChzzkUser(identity: ChzzkUserIdentity): Promise<string> {
-  const uid = toFirebaseUid(identity.channelId);
+  const uid = await upsertChzzkUserRecord(identity);
+  await upsertFirebaseAuthUser(uid, identity.channelName);
+  return uid;
+}
+
+export async function upsertChzzkUserRecord(
+  identity: ChzzkUserIdentity
+): Promise<string> {
   const db = getFirestoreDb();
+  const accountRef = db
+    .collection("platformAccounts")
+    .doc(toPlatformAccountDocumentId("chzzk", identity.channelId));
+  const accountSnapshot = await accountRef.get();
+  const linkedUserId = accountSnapshot.data()?.userId;
+  const uid =
+    typeof linkedUserId === "string" && linkedUserId
+      ? linkedUserId
+      : toFirebaseUid(identity.channelId);
   const userRef = db.collection("users").doc(uid);
 
   await db.runTransaction(async (transaction) => {
@@ -46,8 +62,6 @@ export async function upsertChzzkUser(identity: ChzzkUserIdentity): Promise<stri
       { merge: true }
     );
   });
-
-  await upsertFirebaseAuthUser(uid, identity.channelName);
 
   return uid;
 }
@@ -96,14 +110,17 @@ export async function registerChzzkStreamer(
   uid: string,
   identity: ChzzkUserIdentity
 ): Promise<void> {
-  if (uid !== toFirebaseUid(identity.channelId)) {
-    throw new Error("Firebase user does not match the Chzzk identity");
-  }
-
   const db = getFirestoreDb();
   const streamerRef = db.collection("streamers").doc(uid);
+  const accountRef = db
+    .collection("platformAccounts")
+    .doc(toPlatformAccountDocumentId("chzzk", identity.channelId));
 
   await db.runTransaction(async (transaction) => {
+    const accountSnapshot = await transaction.get(accountRef);
+    if (accountSnapshot.data()?.userId !== uid) {
+      throw new Error("EloBadge user does not own the Chzzk identity");
+    }
     const streamerSnapshot = await transaction.get(streamerRef);
     const now = FieldValue.serverTimestamp();
 

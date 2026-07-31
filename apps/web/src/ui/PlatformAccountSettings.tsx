@@ -13,6 +13,7 @@ import {
   getChzzkStreamerAuthorization,
   getPlatformAccounts,
   getTwitchStreamerAuthorization,
+  startChzzkConnection,
   startTwitchConnection,
   startTwitchStreamerAuthorization,
   type ChzzkStreamerAuthorization,
@@ -38,6 +39,7 @@ export function PlatformAccountSettings({
   streamer?: boolean;
 } = {}) {
   const [state, setState] = useState<State>({ status: "loading" });
+  const [connectingChzzk, setConnectingChzzk] = useState(false);
   const [disconnectingChzzk, setDisconnectingChzzk] = useState(false);
   const [connectingTwitch, setConnectingTwitch] = useState(false);
   const [disconnectingTwitch, setDisconnectingTwitch] = useState(false);
@@ -64,19 +66,24 @@ export function PlatformAccountSettings({
       ])
         .then(([accounts, chzzkAuthorization, twitchAuthorization]) => {
           const resultKey = streamer ? "twitchChat" : "twitch";
-          const result = new URLSearchParams(window.location.search)
-            .get(resultKey);
+          const searchParams = new URLSearchParams(window.location.search);
+          const result = searchParams.get(resultKey);
+          const chzzkResult = searchParams.get("chzzk");
           setState({
             status: "ready",
             accounts,
             chzzkAuthorization,
             twitchAuthorization
           });
-          setFeedback(twitchFeedback(result, streamer));
+          setFeedback(
+            chzzkFeedback(chzzkResult, streamer) ??
+              twitchFeedback(result, streamer)
+          );
 
-          if (result) {
+          if (result || chzzkResult) {
             const url = new URL(window.location.href);
             url.searchParams.delete(resultKey);
+            url.searchParams.delete("chzzk");
             window.history.replaceState({}, "", url);
           }
         })
@@ -176,6 +183,21 @@ export function PlatformAccountSettings({
 
     return () => window.clearInterval(timer);
   }, [state, streamer]);
+
+  const connectChzzk = async () => {
+    setConnectingChzzk(true);
+    setFeedback(null);
+
+    try {
+      window.location.assign(await startChzzkConnection(streamer));
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        message: errorMessage(error)
+      });
+      setConnectingChzzk(false);
+    }
+  };
 
   const connectTwitch = async () => {
     setConnectingTwitch(true);
@@ -298,7 +320,9 @@ export function PlatformAccountSettings({
             hasAlternativeLogin={state.accounts.some(
               (account) => account.platform === "twitch"
             )}
+            connecting={connectingChzzk}
             disconnecting={disconnectingChzzk}
+            onConnect={() => void connectChzzk()}
             onDisconnect={() => void disconnectChzzk()}
           />
           <TwitchPlatformToggle
@@ -326,14 +350,18 @@ function ChzzkPlatformToggle({
   authorization,
   streamer,
   hasAlternativeLogin,
+  connecting,
   disconnecting,
+  onConnect,
   onDisconnect
 }: {
   accounts: PlatformAccount[];
   authorization: ChzzkStreamerAuthorization | null;
   streamer: boolean;
   hasAlternativeLogin: boolean;
+  connecting: boolean;
   disconnecting: boolean;
+  onConnect: () => void;
   onDisconnect: () => void;
 }) {
   const account = accounts[0];
@@ -360,7 +388,7 @@ function ChzzkPlatformToggle({
       : "다른 로그인 계정을 연결한 후 해제할 수 있습니다."
     : connected && streamer
       ? "치지직 채팅 수집 권한 연결"
-      : "치지직 계정 연결 정보가 없습니다.";
+      : "치지직 계정 연결";
 
   return (
     <PlatformConnectionToggle
@@ -381,18 +409,14 @@ function ChzzkPlatformToggle({
       tone={active ? "connected" : connected ? "attention" : "disconnected"}
       accent="chzzk"
       checked={active}
-      loading={disconnecting}
+      loading={connecting || disconnecting}
       disabled={
+        connecting ||
         disconnecting ||
-        (active ? !canDisconnect : !(connected && streamer))
-      }
-      href={
-        !active && connected && streamer
-          ? "/api/auth/chzzk/start?mode=streamer"
-          : undefined
+        (active && !canDisconnect)
       }
       title={actionTitle}
-      onToggle={active ? onDisconnect : undefined}
+      onToggle={active ? onDisconnect : onConnect}
     />
   );
 }
@@ -634,6 +658,35 @@ function twitchFeedback(
         message: streamer
           ? "Twitch 연결 또는 채팅 권한 설정을 완료하지 못했습니다."
           : "Twitch 계정을 연결하지 못했습니다. 다시 시도해 주세요."
+      };
+    default:
+      return null;
+  }
+}
+
+function chzzkFeedback(
+  result: string | null,
+  streamer: boolean
+): { tone: "success" | "error"; message: string } | null {
+  switch (result) {
+    case "connected":
+      return {
+        tone: "success",
+        message: streamer
+          ? "치지직 연결과 채팅 수집 권한 설정을 완료했습니다."
+          : "치지직 계정이 연결되었습니다."
+      };
+    case "conflict":
+      return {
+        tone: "error",
+        message: "이미 다른 EloBadge 사용자가 연결한 치지직 계정입니다."
+      };
+    case "error":
+      return {
+        tone: "error",
+        message: streamer
+          ? "치지직 연결 또는 채팅 권한 설정을 완료하지 못했습니다."
+          : "치지직 계정을 연결하지 못했습니다. 다시 시도해 주세요."
       };
     default:
       return null;

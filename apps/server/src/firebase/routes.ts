@@ -99,7 +99,6 @@ export async function registerFirebaseRoutes(app: FastifyInstance) {
 
       await accountDeletionService.deleteAccount(
         user.uid,
-        user.chzzkChannelId,
         getChzzkAuthConfig(),
         request.log
       );

@@ -221,6 +221,30 @@ export async function startTwitchConnection(): Promise<string> {
   return (body as { authorizationUrl: string }).authorizationUrl;
 }
 
+export async function startChzzkConnection(
+  streamer: boolean
+): Promise<string> {
+  const response = await authenticatedFetch("/api/auth/chzzk/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: streamer ? "streamer" : "viewer" })
+  });
+  const body: unknown = await response.json().catch(() => null);
+
+  if (
+    !response.ok ||
+    !body ||
+    typeof body !== "object" ||
+    (body as { ok?: unknown }).ok !== true ||
+    typeof (body as { authorizationUrl?: unknown }).authorizationUrl !==
+      "string"
+  ) {
+    throw new Error(apiError(body, "치지직 연결을 시작하지 못했습니다."));
+  }
+
+  return (body as { authorizationUrl: string }).authorizationUrl;
+}
+
 export async function disconnectTwitchAccount(): Promise<void> {
   const response = await authenticatedFetch("/api/platform-accounts/twitch", {
     method: "DELETE"

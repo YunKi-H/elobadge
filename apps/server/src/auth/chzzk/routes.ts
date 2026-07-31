@@ -1,12 +1,17 @@
-import type { FastifyInstance } from "fastify";
-import type { ChzzkLoginMode } from "@elobadge/core";
+import type {
+  FastifyInstance,
+  FastifyReply,
+  preHandlerAsyncHookHandler
+} from "fastify";
+import type { LoginMode } from "@elobadge/core";
 import { z } from "zod";
 import {
   ChzzkTokenRequestError,
   createChzzkAuthorizationUrl,
   exchangeChzzkAuthorizationCode,
   getChzzkCurrentUser,
-  getChzzkAuthConfig
+  getChzzkAuthConfig,
+  revokeChzzkToken
 } from "./client.js";
 import { chzzkSessionService } from "../../chzzk/session-service.js";
 import { chzzkConnectionService } from "../../chzzk/connection-service.js";
@@ -22,6 +27,10 @@ import {
   registerChzzkStreamer,
   upsertChzzkUser
 } from "../../firebase/users.js";
+import {
+  PlatformAccountConflictError,
+  upsertPlatformAccount
+} from "../../firebase/platform-accounts.js";
 import { OneTimeStore } from "../one-time-store.js";
 import { getRequiredFirebaseUser, requireFirebaseUser } from "../firebase.js";
 import { platformUserCache } from "../../chess/platform-user-cache.js";
@@ -34,13 +43,35 @@ const callbackQuerySchema = z.object({
 const startQuerySchema = z.object({
   mode: z.enum(["streamer", "viewer"])
 });
+const connectionStartBodySchema = z.object({
+  mode: z.enum(["streamer", "viewer"])
+});
 const disconnectBodySchema = z.object({
   disconnectAccount: z.boolean().default(false)
 });
 
-const pendingStates = new OneTimeStore<{ mode: ChzzkLoginMode }>(10 * 60 * 1_000);
+export type PendingChzzkOAuth =
+  | { purpose: "login"; mode: LoginMode }
+  | { purpose: "identity" | "streamer_chat"; uid: string };
 
-export async function registerChzzkAuthRoutes(app: FastifyInstance) {
+const pendingStates = new OneTimeStore<PendingChzzkOAuth>(10 * 60 * 1_000);
+
+export interface ChzzkRouteDependencies {
+  authenticate: preHandlerAsyncHookHandler;
+  issueState(value: PendingChzzkOAuth): string;
+  consumeState(state: string): PendingChzzkOAuth | null;
+}
+
+const defaultDependencies: ChzzkRouteDependencies = {
+  authenticate: requireFirebaseUser,
+  issueState: (value) => pendingStates.issue(value),
+  consumeState: (state) => pendingStates.consume(state)
+};
+
+export async function registerChzzkAuthRoutes(
+  app: FastifyInstance,
+  dependencies: ChzzkRouteDependencies = defaultDependencies
+) {
   app.get("/api/auth/chzzk/start", {
     config: {
       rateLimit: { max: 10, timeWindow: "1 minute" }
@@ -56,10 +87,46 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
     }
 
     const config = getChzzkAuthConfig();
-    const state = pendingStates.issue({ mode: result.data.mode });
+    const state = dependencies.issueState({
+      purpose: "login",
+      mode: result.data.mode
+    });
 
     return reply.redirect(createChzzkAuthorizationUrl(config, state).toString());
   });
+
+  app.post(
+    "/api/auth/chzzk/start",
+    {
+      preHandler: dependencies.authenticate,
+      config: {
+        rateLimit: { max: 10, timeWindow: "10 minutes" }
+      }
+    },
+    async (request, reply) => {
+      const result = connectionStartBodySchema.safeParse(request.body);
+      if (!result.success) {
+        return reply.code(400).send({
+          error: "A valid Chzzk connection mode is required",
+          modes: ["streamer", "viewer"]
+        });
+      }
+
+      const state = dependencies.issueState({
+        purpose:
+          result.data.mode === "streamer" ? "streamer_chat" : "identity",
+        uid: getRequiredFirebaseUser(request).uid
+      });
+
+      return {
+        ok: true,
+        authorizationUrl: createChzzkAuthorizationUrl(
+          getChzzkAuthConfig(),
+          state
+        ).toString()
+      };
+    }
+  );
 
   app.get("/api/auth/chzzk/callback", {
     config: {
@@ -76,7 +143,7 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
 
     const { code, state } = result.data;
 
-    const pendingLogin = pendingStates.consume(state);
+    const pendingLogin = dependencies.consumeState(state);
 
     if (!pendingLogin) {
       return reply.code(400).send({
@@ -85,66 +152,154 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
     }
 
     const config = getChzzkAuthConfig();
-    const token = await exchangeChzzkAuthorizationCode(config, code, state);
-    const chzzkUser = await getChzzkCurrentUser(config, token.accessToken);
-    const firebaseUid = await upsertChzzkUser(chzzkUser);
-    platformUserCache.invalidate("chzzk", chzzkUser.channelId);
+    let temporaryRefreshToken: string | null = null;
 
-    if (pendingLogin.mode === "streamer") {
-      await registerChzzkStreamer(firebaseUid, chzzkUser);
-      await saveChzzkStreamerTokens(firebaseUid, token);
-    }
-
-    const customToken = await getFirebaseAuth().createCustomToken(firebaseUid, {
-      provider: "chzzk",
-      chzzkChannelId: chzzkUser.channelId
-    });
-
-    if (pendingLogin.mode === "streamer") {
-      try {
-        await chzzkSessionService.startAfterLogin(
-          firebaseUid,
-          config,
-          token.accessToken,
-          request.log
-        );
-      } catch (error) {
-        request.log.error({ err: error }, "Chzzk chat session did not start after login");
+    try {
+      const token = await exchangeChzzkAuthorizationCode(config, code, state);
+      if (pendingLogin.purpose !== "login") {
+        temporaryRefreshToken = token.refreshToken;
       }
-    }
+      const chzzkUser = await getChzzkCurrentUser(config, token.accessToken);
 
-    // Viewer credentials are used only for identity lookup and are never persisted.
+      if (pendingLogin.purpose === "login") {
+        const firebaseUid = await upsertChzzkUser(chzzkUser);
+        platformUserCache.invalidate("chzzk", chzzkUser.channelId);
 
-    const loginCode = issueFirebaseLoginCode({
-      customToken,
-      mode: pendingLogin.mode,
-      user: {
-        uid: firebaseUid,
-        provider: "chzzk",
+        if (pendingLogin.mode === "streamer") {
+          await registerChzzkStreamer(firebaseUid, chzzkUser);
+          await saveChzzkStreamerTokens(firebaseUid, token);
+          try {
+            await chzzkSessionService.startAfterLogin(
+              firebaseUid,
+              config,
+              token.accessToken,
+              request.log
+            );
+          } catch (error) {
+            request.log.error(
+              { err: error },
+              "Chzzk chat session did not start after login"
+            );
+          }
+        }
+
+        const customToken = await getFirebaseAuth().createCustomToken(
+          firebaseUid,
+          {
+            provider: "chzzk",
+            chzzkChannelId: chzzkUser.channelId
+          }
+        );
+        const loginCode = issueFirebaseLoginCode({
+          customToken,
+          mode: pendingLogin.mode,
+          user: {
+            uid: firebaseUid,
+            provider: "chzzk",
+            platformUserId: chzzkUser.channelId,
+            displayName: chzzkUser.channelName
+          }
+        });
+
+        request.log.info(
+          {
+            tokenType: token.tokenType,
+            expiresIn: token.expiresIn,
+            scope: token.scope,
+            mode: pendingLogin.mode
+          },
+          "Chzzk OAuth token exchange succeeded"
+        );
+
+        const callbackUrl = new URL("/auth/chzzk/callback", getWebAppUrl());
+        callbackUrl.searchParams.set("code", loginCode);
+        return reply.redirect(callbackUrl.toString());
+      }
+
+      await upsertPlatformAccount(pendingLogin.uid, {
+        platform: "chzzk",
         platformUserId: chzzkUser.channelId,
         displayName: chzzkUser.channelName
+      });
+      platformUserCache.invalidate("chzzk", chzzkUser.channelId);
+
+      if (pendingLogin.purpose === "streamer_chat") {
+        await registerChzzkStreamer(pendingLogin.uid, chzzkUser);
+        await saveChzzkStreamerTokens(pendingLogin.uid, token);
+        temporaryRefreshToken = null;
+        try {
+          await chzzkSessionService.startAfterLogin(
+            pendingLogin.uid,
+            config,
+            token.accessToken,
+            request.log
+          );
+        } catch (error) {
+          request.log.error(
+            { err: error, uid: pendingLogin.uid },
+            "Chzzk chat session did not start after authorization"
+          );
+        }
       }
-    });
 
-    request.log.info(
-      {
-        tokenType: token.tokenType,
-        expiresIn: token.expiresIn,
-        scope: token.scope,
-        mode: pendingLogin.mode
-      },
-      "Chzzk OAuth token exchange succeeded"
-    );
+      request.log.info(
+        {
+          uid: pendingLogin.uid,
+          chzzkChannelId: chzzkUser.channelId,
+          purpose: pendingLogin.purpose
+        },
+        pendingLogin.purpose === "streamer_chat"
+          ? "Chzzk streamer authorization connected"
+          : "Chzzk account connected"
+      );
 
-    const callbackUrl = new URL("/auth/chzzk/callback", getWebAppUrl());
-    callbackUrl.searchParams.set("code", loginCode);
+      return redirectForConnection(
+        reply,
+        pendingLogin.purpose,
+        "connected"
+      );
+    } catch (error) {
+      request.log.warn(
+        {
+          err: error,
+          uid: "uid" in pendingLogin ? pendingLogin.uid : undefined
+        },
+        "Chzzk account connection failed"
+      );
 
-    return reply.redirect(callbackUrl.toString());
+      if (pendingLogin.purpose === "login") {
+        throw error;
+      }
+
+      return redirectForConnection(
+        reply,
+        pendingLogin.purpose,
+        error instanceof PlatformAccountConflictError ? "conflict" : "error"
+      );
+    } finally {
+      if (temporaryRefreshToken) {
+        try {
+          await revokeChzzkToken(
+            config,
+            temporaryRefreshToken,
+            "refresh_token"
+          );
+        } catch (error) {
+          request.log.warn(
+            {
+              err: error,
+              uid: "uid" in pendingLogin ? pendingLogin.uid : undefined
+            },
+            "Temporary Chzzk token revocation failed"
+          );
+        }
+      }
+    }
   });
 
   app.get(
     "/api/chzzk/streamer-authorization",
-    { preHandler: requireFirebaseUser },
+    { preHandler: dependencies.authenticate },
     async (request, reply) => {
       const user = getRequiredFirebaseUser(request);
       const intent = await getChzzkStreamerSessionIntent(user.uid);
@@ -164,7 +319,7 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
 
   app.get(
     "/api/chzzk/session/status",
-    { preHandler: requireFirebaseUser },
+    { preHandler: dependencies.authenticate },
     async (request) => {
       const user = getRequiredFirebaseUser(request);
 
@@ -177,7 +332,7 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
 
   app.post(
     "/api/chzzk/session/stop",
-    { preHandler: requireFirebaseUser },
+    { preHandler: dependencies.authenticate },
     async (request) => {
       const user = getRequiredFirebaseUser(request);
       const stopped = await chzzkSessionService.stop(user.uid);
@@ -193,7 +348,7 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
   app.delete(
     "/api/chzzk/connection",
     {
-      preHandler: requireFirebaseUser,
+      preHandler: dependencies.authenticate,
       config: {
         rateLimit: { max: 5, timeWindow: "1 minute" }
       }
@@ -241,4 +396,17 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
       }
     }
   );
+}
+
+function redirectForConnection(
+  reply: FastifyReply,
+  purpose: "identity" | "streamer_chat",
+  result: string
+) {
+  const url = new URL(
+    purpose === "streamer_chat" ? "/streamer" : "/viewer",
+    getWebAppUrl()
+  );
+  url.searchParams.set("chzzk", result);
+  return reply.redirect(url.toString());
 }
