@@ -262,6 +262,7 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
       Connection: "keep-alive",
       "X-Accel-Buffering": "no"
     });
+    reply.raw.write("retry: 3000\n\n");
 
     const send = (event: ChatOverlayEvent) => {
       reply.raw.write(`event: chat\n`);

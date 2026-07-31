@@ -19,6 +19,10 @@ import { PlatformBadges } from "./PlatformBadges";
 import { ChatMessageContent } from "./ChatMessageContent";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
+const HEARTBEAT_TIMEOUT_MS = 45_000;
+const CONNECTION_CHECK_INTERVAL_MS = 5_000;
+const MAX_RECONNECT_DELAY_MS = 15_000;
+
 export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
   const [appearance, setAppearance] = useState<OverlayAppearance>({
     ...DEFAULT_OVERLAY_APPEARANCE
@@ -29,33 +33,126 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
 
   useEffect(() => {
     document.body.classList.add("broadcast-overlay-page");
-    const events = new EventSource(`/events/overlay/${publicToken}`);
+    let events: EventSource | null = null;
+    let reconnectTimer: number | null = null;
+    let reconnectAttempt = 0;
+    let lastEventAt = Date.now();
+    let disposed = false;
+    let revoked = false;
 
-    events.addEventListener("chat", (event) => {
-      const message = parseChatOverlayEvent(event.data);
-
-      if (!message) {
+    function connect() {
+      if (disposed || revoked) {
         return;
       }
-      addMessage(message);
-    });
 
-    events.addEventListener("appearance", (event) => {
-      const nextAppearance = parseOverlayAppearanceEvent(event.data);
+      const nextEvents = new EventSource(`/events/overlay/${publicToken}`);
+      events = nextEvents;
+      lastEventAt = Date.now();
 
-      if (nextAppearance) {
-        setAppearance(nextAppearance);
+      nextEvents.addEventListener("open", () => {
+        if (events !== nextEvents) {
+          return;
+        }
+
+        lastEventAt = Date.now();
+        reconnectAttempt = 0;
+      });
+
+      nextEvents.addEventListener("heartbeat", () => {
+        if (events === nextEvents) {
+          lastEventAt = Date.now();
+        }
+      });
+
+      nextEvents.addEventListener("chat", (event) => {
+        if (events !== nextEvents) {
+          return;
+        }
+
+        lastEventAt = Date.now();
+        const message = parseChatOverlayEvent(event.data);
+
+        if (message) {
+          addMessage(message);
+        }
+      });
+
+      nextEvents.addEventListener("appearance", (event) => {
+        if (events !== nextEvents) {
+          return;
+        }
+
+        lastEventAt = Date.now();
+        const nextAppearance = parseOverlayAppearanceEvent(event.data);
+
+        if (nextAppearance) {
+          setAppearance(nextAppearance);
+        }
+      });
+
+      nextEvents.addEventListener("revoked", () => {
+        if (events !== nextEvents) {
+          return;
+        }
+
+        revoked = true;
+        nextEvents.close();
+        events = null;
+        clearReconnectTimer();
+        clearMessages();
+      });
+
+      nextEvents.addEventListener("error", () => {
+        if (events === nextEvents) {
+          scheduleReconnect();
+        }
+      });
+    }
+
+    function scheduleReconnect() {
+      if (disposed || revoked || reconnectTimer !== null) {
+        return;
       }
-    });
 
-    events.addEventListener("revoked", () => {
-      events.close();
-      clearMessages();
-    });
+      events?.close();
+      events = null;
+
+      const delay = Math.min(
+        1_000 * 2 ** reconnectAttempt,
+        MAX_RECONNECT_DELAY_MS
+      );
+      reconnectAttempt += 1;
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, delay);
+    }
+
+    function clearReconnectTimer() {
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+    }
+
+    connect();
+
+    const connectionWatchdog = window.setInterval(() => {
+      if (
+        events &&
+        Date.now() - lastEventAt >= HEARTBEAT_TIMEOUT_MS
+      ) {
+        scheduleReconnect();
+      }
+    }, CONNECTION_CHECK_INTERVAL_MS);
 
     return () => {
+      disposed = true;
       document.body.classList.remove("broadcast-overlay-page");
-      events.close();
+      window.clearInterval(connectionWatchdog);
+      clearReconnectTimer();
+      events?.close();
+      events = null;
     };
   }, [addMessage, clearMessages, publicToken]);
 
