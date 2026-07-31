@@ -154,6 +154,58 @@ export async function deleteUserPlatformAccounts(
   return ownedAccounts.length;
 }
 
+export async function disconnectChzzkPlatformAccount(
+  userId: string
+): Promise<number> {
+  const db = getFirestoreDb();
+  const accountsQuery = db
+    .collection("platformAccounts")
+    .where("userId", "==", userId);
+
+  return db.runTransaction(async (transaction) => {
+    const accountsSnapshot = await transaction.get(accountsQuery);
+    const chzzkAccounts = accountsSnapshot.docs.filter(
+      (document) => document.data().platform === "chzzk"
+    );
+    if (chzzkAccounts.length === 0) {
+      return 0;
+    }
+    const legacySnapshots = await Promise.all(
+      chzzkAccounts.map((account) => {
+        const platformUserId = account.data().platformUserId;
+        return typeof platformUserId === "string"
+          ? transaction.get(
+              db.collection("chzzkAccounts").doc(platformUserId)
+            )
+          : Promise.resolve(null);
+      })
+    );
+    const streamerRef = db.collection("streamers").doc(userId);
+    const streamerSnapshot = await transaction.get(streamerRef);
+
+    for (const account of chzzkAccounts) {
+      transaction.delete(account.ref);
+    }
+    for (const snapshot of legacySnapshots) {
+      if (snapshot?.data()?.uid === userId) {
+        transaction.delete(snapshot.ref);
+      }
+    }
+    if (streamerSnapshot.exists) {
+      transaction.update(streamerRef, {
+        chzzkChannelId: FieldValue.delete(),
+        chatSessionEnabled: false,
+        tokenStatus: FieldValue.delete(),
+        tokenErrorAt: FieldValue.delete(),
+        disconnectedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+      });
+    }
+
+    return chzzkAccounts.length;
+  });
+}
+
 export function toPlatformAccountDocumentId(
   platform: StreamingPlatform,
   platformUserId: string

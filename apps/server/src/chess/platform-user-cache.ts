@@ -62,6 +62,15 @@ export class PlatformUserCache {
     return cached && cached.expiresAt > Date.now() ? cached.uid : null;
   }
 
+  invalidate(
+    platform: StreamingPlatform,
+    platformUserId: string
+  ): void {
+    const key = `${platform}:${platformUserId}`;
+    this.entries.delete(key);
+    this.pending.delete(key);
+  }
+
   clear(): void {
     this.entries.clear();
     this.pending.clear();

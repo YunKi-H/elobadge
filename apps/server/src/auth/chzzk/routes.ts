@@ -33,6 +33,9 @@ const callbackQuerySchema = z.object({
 const startQuerySchema = z.object({
   mode: z.enum(["streamer", "viewer"])
 });
+const disconnectBodySchema = z.object({
+  disconnectAccount: z.boolean().default(false)
+});
 
 const pendingStates = new OneTimeStore<{ mode: ChzzkLoginMode }>(10 * 60 * 1_000);
 
@@ -195,11 +198,18 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const user = getRequiredFirebaseUser(request);
+      const body = disconnectBodySchema.safeParse(request.body ?? {});
+      if (!body.success) {
+        return reply.code(400).send({
+          error: "치지직 연결 해제 요청이 올바르지 않습니다."
+        });
+      }
 
       try {
         const result = await chzzkConnectionService.disconnect(
           user.uid,
-          getChzzkAuthConfig()
+          getChzzkAuthConfig(),
+          body.data.disconnectAccount
         );
 
         return { ok: true, ...result };

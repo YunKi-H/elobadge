@@ -45,6 +45,7 @@ import {
 } from "../overlays.js";
 import { migrateOverlayThemeBadgeFields } from "../overlay-theme-migration.js";
 import {
+  disconnectChzzkPlatformAccount,
   deleteUserPlatformAccounts,
   getPlatformAccount,
   listUserPlatformAccounts,
@@ -257,6 +258,85 @@ test("platform account ownership is stable while profile data can update", async
   assert.equal(
     (await getPlatformAccount("chzzk", platformUserId))?.userId,
     "chzzk:another-viewer"
+  );
+});
+
+test("Chzzk disconnect preserves EloBadge user data and other platforms", async () => {
+  const db = getFirestoreDb();
+  const uid = "chzzk:disconnect-viewer";
+  const channelId = "disconnect-viewer";
+  const badge = {
+    provider: "chesscom",
+    speed: "rapid",
+    value: 1810,
+    provisional: false
+  } as const;
+
+  await Promise.all([
+    db.collection("users").doc(uid).set({
+      chessBadges: { chesscom: badge },
+      preferredChessProvider: "chesscom"
+    }),
+    db.collection("chzzkAccounts").doc(channelId).set({ uid }),
+    db.collection("streamers").doc(uid).set({
+      chzzkChannelId: channelId,
+      chatSessionEnabled: false
+    }),
+    upsertPlatformAccount(uid, {
+      platform: "chzzk",
+      platformUserId: channelId,
+      displayName: "Chzzk Viewer"
+    })
+  ]);
+
+  await upsertPlatformAccount(uid, {
+    platform: "twitch",
+    platformUserId: "twitch-viewer",
+    displayName: "Twitch Viewer"
+  });
+  assert.equal(await disconnectChzzkPlatformAccount(uid), 1);
+  assert.equal(await getPlatformAccount("chzzk", channelId), null);
+  assert.equal(
+    (await getPlatformAccount("twitch", "twitch-viewer"))?.userId,
+    uid
+  );
+  assert.equal(
+    (await db.collection("chzzkAccounts").doc(channelId).get()).exists,
+    false
+  );
+  assert.deepEqual(
+    (await db.collection("users").doc(uid).get()).get("chessBadges"),
+    { chesscom: badge }
+  );
+  assert.equal(
+    (await db.collection("streamers").doc(uid).get()).get("chzzkChannelId"),
+    undefined
+  );
+});
+
+test("last Chzzk identity can be removed without deleting the EloBadge user", async () => {
+  const db = getFirestoreDb();
+  const uid = "chzzk:last-chzzk-viewer";
+  const channelId = "last-chzzk-viewer";
+
+  await Promise.all([
+    db.collection("users").doc(uid).set({
+      chessBadges: {},
+      preferredChessProvider: null
+    }),
+    db.collection("chzzkAccounts").doc(channelId).set({ uid }),
+    upsertPlatformAccount(uid, {
+      platform: "chzzk",
+      platformUserId: channelId,
+      displayName: "Last Chzzk Viewer"
+    })
+  ]);
+
+  assert.equal(await disconnectChzzkPlatformAccount(uid), 1);
+  assert.equal(await getPlatformAccount("chzzk", channelId), null);
+  assert.equal(
+    (await db.collection("users").doc(uid).get()).exists,
+    true
   );
 });
 

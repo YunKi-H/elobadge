@@ -393,9 +393,16 @@ export async function disconnectLichessAccount(): Promise<void> {
   }
 }
 
-export async function disconnectChzzkConnection(): Promise<boolean> {
+export async function disconnectChzzkConnection(
+  disconnectAccount: boolean
+): Promise<{
+  revoked: boolean;
+  disconnected: number;
+}> {
   const response = await authenticatedFetch("/api/chzzk/connection", {
-    method: "DELETE"
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ disconnectAccount })
   });
   const body: unknown = await response.json().catch(() => null);
 
@@ -404,12 +411,13 @@ export async function disconnectChzzkConnection(): Promise<boolean> {
     !body ||
     typeof body !== "object" ||
     (body as { ok?: unknown }).ok !== true ||
-    typeof (body as { revoked?: unknown }).revoked !== "boolean"
+    typeof (body as { revoked?: unknown }).revoked !== "boolean" ||
+    typeof (body as { disconnected?: unknown }).disconnected !== "number"
   ) {
     throw new Error(apiError(body, "치지직 연결을 해제하지 못했습니다."));
   }
 
-  return (body as { revoked: boolean }).revoked;
+  return body as { revoked: boolean; disconnected: number };
 }
 
 export async function deleteEloBadgeAccount(): Promise<void> {

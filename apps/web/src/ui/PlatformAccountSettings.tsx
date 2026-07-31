@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import {
   CheckCircle2,
   LoaderCircle,
@@ -90,9 +90,15 @@ export function PlatformAccountSettings({
     }), [streamer]);
 
   const disconnectChzzk = async () => {
+    const hasAlternativeLogin =
+      state.status === "ready" &&
+      state.accounts.some((account) => account.platform === "twitch");
+    const authorizationOnly = streamer && !hasAlternativeLogin;
     if (
       !window.confirm(
-        "치지직 채팅 연결을 해제할까요? EloBadge 로그인과 다른 플랫폼 연결은 유지됩니다."
+        authorizationOnly
+          ? "치지직 채팅 수집 권한을 해제할까요? 치지직 로그인 계정 연결은 유지됩니다."
+          : "치지직 계정 연결과 채팅 수집 권한을 모두 해제할까요?"
       )
     ) {
       return;
@@ -102,22 +108,38 @@ export function PlatformAccountSettings({
     setFeedback(null);
 
     try {
-      await disconnectChzzkConnection();
-      setState((current) =>
-        current.status === "ready"
-          ? {
-              ...current,
-              chzzkAuthorization: {
+      const result = await disconnectChzzkConnection(!authorizationOnly);
+      const shouldSignOut =
+        result.disconnected > 0 && !hasAlternativeLogin;
+      setState((current) => {
+        if (current.status !== "ready") {
+          return current;
+        }
+        return {
+          ...current,
+          accounts: result.disconnected > 0
+            ? current.accounts.filter(
+                (account) => account.platform !== "chzzk"
+              )
+            : current.accounts,
+          chzzkAuthorization: streamer
+            ? {
                 connected: false,
                 tokenStatus: "reauth_required"
               }
-            }
-          : current
-      );
+            : null
+        };
+      });
       setFeedback({
         tone: "success",
-        message: "치지직 채팅 연결을 해제했습니다."
+        message: result.disconnected > 0
+          ? "치지직 연결을 해제했습니다."
+          : "치지직 채팅 수집 권한을 해제했습니다."
       });
+      if (shouldSignOut) {
+        await signOut(getFirebaseClientAuth()).catch(() => undefined);
+        window.location.assign("/");
+      }
     } catch (error) {
       setFeedback({
         tone: "error",
@@ -281,6 +303,9 @@ export function PlatformAccountSettings({
             )}
             authorization={state.chzzkAuthorization}
             streamer={streamer}
+            hasAlternativeLogin={state.accounts.some(
+              (account) => account.platform === "twitch"
+            )}
             disconnecting={disconnectingChzzk}
             onDisconnect={() => void disconnectChzzk()}
           />
@@ -308,18 +333,22 @@ function ChzzkPlatformRow({
   accounts,
   authorization,
   streamer,
+  hasAlternativeLogin,
   disconnecting,
   onDisconnect
 }: {
   accounts: PlatformAccount[];
   authorization: ChzzkStreamerAuthorization | null;
   streamer: boolean;
+  hasAlternativeLogin: boolean;
   disconnecting: boolean;
   onDisconnect: () => void;
 }) {
   const account = accounts[0];
   const connected = Boolean(account);
   const authorized = streamer && authorization?.connected === true;
+  const canDisconnect = !streamer || hasAlternativeLogin || authorized;
+  const authorizationOnly = streamer && !hasAlternativeLogin;
   const detail = account
     ? streamer && !authorized
       ? `${account.displayName} · 채팅 권한 필요`
@@ -356,12 +385,16 @@ function ChzzkPlatformRow({
               채팅 권한 연결
             </a>
           ) : null}
-          {streamer && authorized ? (
+          {canDisconnect ? (
             <button
               type="button"
               disabled={disconnecting}
               onClick={onDisconnect}
-              title="치지직 채팅 연결 해제"
+              title={
+                authorizationOnly
+                  ? "치지직 채팅 수집 권한 해제"
+                  : "치지직 연결 해제"
+              }
               className="inline-flex size-9 items-center justify-center rounded-md text-slate-400 transition hover:bg-red-500/10 hover:text-red-200 disabled:opacity-50"
             >
               {disconnecting ? (

@@ -29,11 +29,15 @@ test("disconnect revokes remotely before deleting stored tokens", async () => {
     },
     deleteTokens: async () => {
       operations.push("delete");
-    }
+    },
+    listAccounts: async () => [chzzkAccount],
+    disconnectPlatformAccount: async () => 0,
+    invalidatePlatformAccount: () => {}
   });
 
   assert.deepEqual(await service.disconnect("chzzk:user", config), {
-    revoked: true
+    revoked: true,
+    disconnected: 0
   });
   assert.deepEqual(operations, [
     "stop",
@@ -62,7 +66,10 @@ test("disconnect preserves stored tokens when remote revocation fails", async ()
     },
     deleteTokens: async () => {
       operations.push("delete");
-    }
+    },
+    listAccounts: async () => [chzzkAccount],
+    disconnectPlatformAccount: async () => 0,
+    invalidatePlatformAccount: () => {}
   });
 
   await assert.rejects(service.disconnect("chzzk:user", config));
@@ -85,15 +92,19 @@ test("disconnect stops the session when stored tokens cannot be loaded", async (
     },
     deleteTokens: async () => {
       operations.push("delete");
-    }
+    },
+    listAccounts: async () => [chzzkAccount],
+    disconnectPlatformAccount: async () => 0,
+    invalidatePlatformAccount: () => {}
   });
 
   await assert.rejects(service.disconnect("chzzk:user", config));
   assert.deepEqual(operations, ["load", "stop"]);
 });
 
-test("disconnect is idempotent when no stored token exists", async () => {
+test("viewer disconnect can remove the last Chzzk login identity", async () => {
   let stopped = false;
+  const operations: string[] = [];
   const service = new ChzzkConnectionService({
     loadTokens: async () => null,
     stopSession: async () => {
@@ -101,11 +112,66 @@ test("disconnect is idempotent when no stored token exists", async () => {
       return false;
     },
     revokeToken: async () => {},
-    deleteTokens: async () => {}
+    deleteTokens: async () => {},
+    listAccounts: async () => [chzzkAccount],
+    disconnectPlatformAccount: async () => {
+      operations.push("disconnect-platform");
+      return 1;
+    },
+    invalidatePlatformAccount: (platformUserId) => {
+      operations.push(`invalidate:${platformUserId}`);
+    }
   });
 
-  assert.deepEqual(await service.disconnect("chzzk:user", config), {
-    revoked: false
+  assert.deepEqual(await service.disconnect("chzzk:user", config, true), {
+    revoked: false,
+    disconnected: 1
   });
   assert.equal(stopped, false);
+  assert.deepEqual(operations, [
+    "disconnect-platform",
+    "invalidate:chzzk-user"
+  ]);
 });
+
+test("viewer disconnect removes Chzzk identity when another platform exists", async () => {
+  const operations: string[] = [];
+  const service = new ChzzkConnectionService({
+    loadTokens: async () => null,
+    stopSession: async () => false,
+    revokeToken: async () => {},
+    deleteTokens: async () => {},
+    listAccounts: async () => [
+      chzzkAccount,
+      {
+        userId: "chzzk:user",
+        platform: "twitch",
+        platformUserId: "twitch-user",
+        displayName: "Twitch User"
+      }
+    ],
+    disconnectPlatformAccount: async () => {
+      operations.push("disconnect-platform");
+      return 1;
+    },
+    invalidatePlatformAccount: (platformUserId) => {
+      operations.push(`invalidate:${platformUserId}`);
+    }
+  });
+
+  assert.deepEqual(await service.disconnect("chzzk:user", config, true), {
+    revoked: false,
+    disconnected: 1
+  });
+  assert.deepEqual(operations, [
+    "disconnect-platform",
+    "invalidate:chzzk-user"
+  ]);
+});
+
+const chzzkAccount = {
+  userId: "chzzk:user",
+  platform: "chzzk" as const,
+  platformUserId: "chzzk-user",
+  displayName: "Chzzk User"
+};
