@@ -1,27 +1,17 @@
 import type { LoginMode } from "@elobadge/core";
-import { onAuthStateChanged } from "firebase/auth";
 import { Radio, Tv, UserRound } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getFirebaseClientAuth } from "../firebase/client";
+import { useFirebaseAuthStatus } from "./useFirebaseAuthStatus";
 
 interface LoginOptionsProps {
   mode: LoginMode;
 }
 
 export function LoginOptions({ mode }: LoginOptionsProps) {
-  const [signedOut, setSignedOut] = useState<boolean | null>(null);
+  const authStatus = useFirebaseAuthStatus();
   const role = mode === "streamer" ? "스트리머" : "시청자";
   const Icon = mode === "streamer" ? Radio : UserRound;
 
-  useEffect(
-    () =>
-      onAuthStateChanged(getFirebaseClientAuth(), (user) => {
-        setSignedOut(!user);
-      }),
-    []
-  );
-
-  if (signedOut !== true) {
+  if (authStatus !== "signed_out") {
     return null;
   }
 
@@ -35,10 +25,6 @@ export function LoginOptions({ mode }: LoginOptionsProps) {
         />
         <div>
           <h2 className="font-semibold text-white">{role} 로그인</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-400">
-            처음 이용하는 경우에도 방송 플랫폼 계정 하나를 선택해 EloBadge
-            계정을 만들 수 있습니다.
-          </p>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">

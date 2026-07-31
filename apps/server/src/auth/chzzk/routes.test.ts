@@ -62,6 +62,20 @@ test("Chzzk connection disconnect requires Firebase authentication", async () =>
   await app.close();
 });
 
+test("Chzzk streamer authorization status requires Firebase authentication", async () => {
+  const app = Fastify();
+  await registerChzzkAuthRoutes(app);
+
+  const response = await app.inject({
+    method: "GET",
+    url: "/api/chzzk/streamer-authorization"
+  });
+
+  assert.equal(response.statusCode, 401);
+  assert.deepEqual(response.json(), { error: "Authentication required" });
+  await app.close();
+});
+
 function restoreEnv(name: string, value: string | undefined) {
   if (value === undefined) {
     delete process.env[name];

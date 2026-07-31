@@ -161,6 +161,35 @@ export interface TwitchChatSession {
   lastError: string | null;
 }
 
+export interface ChzzkStreamerAuthorization {
+  connected: boolean;
+  tokenStatus: "active" | "reauth_required" | null;
+}
+
+export async function getChzzkStreamerAuthorization(): Promise<ChzzkStreamerAuthorization> {
+  const response = await authenticatedFetch(
+    "/api/chzzk/streamer-authorization"
+  );
+  const body: unknown = await response.json().catch(() => null);
+  const authorization =
+    body && typeof body === "object"
+      ? (body as { authorization?: unknown }).authorization
+      : null;
+
+  if (
+    !response.ok ||
+    !authorization ||
+    typeof authorization !== "object" ||
+    typeof (authorization as { connected?: unknown }).connected !== "boolean"
+  ) {
+    throw new Error(
+      apiError(body, "치지직 채팅 권한 정보를 불러오지 못했습니다.")
+    );
+  }
+
+  return authorization as ChzzkStreamerAuthorization;
+}
+
 export async function getPlatformAccounts(): Promise<PlatformAccount[]> {
   const response = await authenticatedFetch("/api/platform-accounts");
   const body: unknown = await response.json().catch(() => null);

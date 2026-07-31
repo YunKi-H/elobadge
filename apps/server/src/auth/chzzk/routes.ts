@@ -18,6 +18,7 @@ import {
 } from "../../firebase/chzzk-tokens.js";
 import { issueFirebaseLoginCode } from "../../firebase/login-exchange.js";
 import {
+  getChzzkStreamerSessionIntent,
   registerChzzkStreamer,
   upsertChzzkUser
 } from "../../firebase/users.js";
@@ -135,6 +136,26 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
 
     return reply.redirect(callbackUrl.toString());
   });
+
+  app.get(
+    "/api/chzzk/streamer-authorization",
+    { preHandler: requireFirebaseUser },
+    async (request, reply) => {
+      const user = getRequiredFirebaseUser(request);
+      const intent = await getChzzkStreamerSessionIntent(user.uid);
+
+      return reply
+        .header("Cache-Control", "no-store")
+        .send({
+          ok: true,
+          authorization: {
+            connected: intent.tokenStatus === "active",
+            tokenStatus: intent.tokenStatus
+          },
+          session: chzzkSessionService.getStatus(user.uid)
+        });
+    }
+  );
 
   app.get(
     "/api/chzzk/session/status",

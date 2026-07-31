@@ -208,14 +208,7 @@ export function ChessComAccountSettings({
   }
 
   if (state.status === "signed_out") {
-    return (
-      <section className="border-y border-white/10 py-8">
-        <h2 className="text-xl font-semibold text-white">Chess.com 계정</h2>
-        <p className="mt-2 text-slate-300">
-          위에서 방송 플랫폼 계정으로 먼저 로그인하세요.
-        </p>
-      </section>
-    );
+    return null;
   }
 
   const account = state.account;
