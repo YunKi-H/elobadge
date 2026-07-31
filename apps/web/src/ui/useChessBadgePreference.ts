@@ -7,6 +7,7 @@ import {
   type ChessBadgePreference
 } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
+import { useTranslation } from "react-i18next";
 
 export interface ChessBadgePreferenceController {
   state: ChessBadgePreference | null;
@@ -17,6 +18,7 @@ export interface ChessBadgePreferenceController {
 }
 
 export function useChessBadgePreference(): ChessBadgePreferenceController {
+  const { t } = useTranslation();
   const [state, setState] = useState<ChessBadgePreference | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savingProvider, setSavingProvider] = useState<ChessProvider | null>(null);
@@ -26,9 +28,9 @@ export function useChessBadgePreference(): ChessBadgePreferenceController {
       setState(await getChessBadgePreference());
       setError(null);
     } catch (reason) {
-      setError(errorMessage(reason, "배지 정보를 불러오지 못했습니다."));
+      setError(errorMessage(reason, t("badgePreference.loadFailed")));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => onAuthStateChanged(getFirebaseClientAuth(), (user) => {
     if (user) {
@@ -46,11 +48,11 @@ export function useChessBadgePreference(): ChessBadgePreferenceController {
     try {
       setState(await updateChessBadgePreference(provider));
     } catch (reason) {
-      setError(errorMessage(reason, "배지를 변경하지 못했습니다."));
+      setError(errorMessage(reason, t("badgePreference.saveFailed")));
     } finally {
       setSavingProvider(null);
     }
-  }, []);
+  }, [t]);
 
   return { state, error, savingProvider, refresh, select };
 }

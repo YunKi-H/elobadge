@@ -1,5 +1,6 @@
 import type { ChessProvider } from "@elobadge/core";
 import { LoaderCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { ChessBadgePreferenceController } from "./useChessBadgePreference";
 
 export function ChessBadgePreferenceControl({
@@ -9,11 +10,12 @@ export function ChessBadgePreferenceControl({
   provider: ChessProvider;
   preference: ChessBadgePreferenceController;
 }) {
+  const { t } = useTranslation();
   const { state, error, savingProvider, select } = preference;
   if (error) {
     return (
       <span className="text-xs font-normal text-red-300" title={error}>
-        배지 선택 오류
+        {t("badgePreference.error")}
       </span>
     );
   }
@@ -43,7 +45,7 @@ export function ChessBadgePreferenceControl({
       >
         {selected ? <span className="size-2 rounded-full bg-emerald-300" /> : null}
       </span>
-      <span>기본 배지</span>
+      <span>{t("badgePreference.default")}</span>
       {savingProvider === provider ? (
         <LoaderCircle aria-hidden="true" className="animate-spin" size={14} />
       ) : null}

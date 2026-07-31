@@ -2,15 +2,13 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { LogOut, Radio, UserRound } from "lucide-react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { validateCurrentFirebaseSession } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
-
-const navigation = [
-  { to: "/streamer", label: "스트리머", icon: Radio },
-  { to: "/viewer", label: "시청자", icon: UserRound }
-] as const;
+import { LanguageSelector } from "./LanguageSelector";
 
 export function App() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [signedIn, setSignedIn] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -54,7 +52,7 @@ export function App() {
       await signOut(getFirebaseClientAuth());
       void navigate("/", { replace: true });
     } catch {
-      window.alert("로그아웃하지 못했습니다. 다시 시도해 주세요.");
+      window.alert(t("app.signOutFailed"));
     } finally {
       setSigningOut(false);
     }
@@ -67,8 +65,22 @@ export function App() {
           <Link to="/" className="text-lg font-semibold text-white">
             EloBadge
           </Link>
-          <nav className="flex items-center gap-1" aria-label="주요 메뉴">
-            {navigation.map(({ to, label, icon: Icon }) => (
+          <nav
+            className="flex flex-wrap items-center justify-end gap-1"
+            aria-label={t("app.mainNavigation")}
+          >
+            {[
+              {
+                to: "/streamer",
+                label: t("common.streamer"),
+                icon: Radio
+              },
+              {
+                to: "/viewer",
+                label: t("common.viewer"),
+                icon: UserRound
+              }
+            ].map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -92,9 +104,10 @@ export function App() {
                 className="ml-1 inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white disabled:opacity-50"
               >
                 <LogOut aria-hidden="true" size={16} />
-                {signingOut ? "로그아웃 중" : "로그아웃"}
+                {signingOut ? t("common.signingOut") : t("common.signOut")}
               </button>
             ) : null}
+            <LanguageSelector />
           </nav>
         </div>
       </header>
@@ -104,7 +117,7 @@ export function App() {
       <footer className="border-t border-white/10">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-5 text-sm text-slate-400 sm:px-6">
           <span>
-            문의 및 오류 제보:{" "}
+            {t("app.support")}{" "}
             <a
               href="mailto:support@elobadge.com"
               className="font-medium text-slate-300 transition hover:text-white"
@@ -116,7 +129,7 @@ export function App() {
             to="/privacy"
             className="font-medium text-slate-300 transition hover:text-white"
           >
-            개인정보 처리방침
+            {t("app.privacy")}
           </Link>
         </div>
       </footer>

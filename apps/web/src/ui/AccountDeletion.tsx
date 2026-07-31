@@ -2,13 +2,14 @@ import { useState } from "react";
 import { signOut } from "firebase/auth";
 import { LoaderCircle, Trash2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { deleteEloBadgeAccount } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
 
-const CONFIRMATION_TEXT = "계정 삭제";
-
 export function AccountDeletion() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const confirmationText = t("accountDeletion.confirmation");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -23,7 +24,7 @@ export function AccountDeletion() {
   };
 
   const deleteAccount = async () => {
-    if (confirmation !== CONFIRMATION_TEXT) {
+    if (confirmation !== confirmationText) {
       return;
     }
 
@@ -37,7 +38,7 @@ export function AccountDeletion() {
       window.alert(
         error instanceof Error
           ? error.message
-          : "EloBadge 계정을 삭제하지 못했습니다."
+          : t("accountDeletion.failed")
       );
       setDeleting(false);
     }
@@ -47,9 +48,11 @@ export function AccountDeletion() {
     <section className="mt-10 border-t border-white/10 pt-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-white">계정 삭제</h2>
+          <h2 className="text-base font-semibold text-white">
+            {t("accountDeletion.title")}
+          </h2>
           <p className="mt-1 text-sm text-slate-400">
-            계정과 연결된 체스 정보 및 방송 설정을 영구 삭제합니다.
+            {t("accountDeletion.description")}
           </p>
         </div>
         <button
@@ -58,7 +61,7 @@ export function AccountDeletion() {
           className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
         >
           <Trash2 aria-hidden="true" size={16} />
-          EloBadge 계정 삭제
+          {t("accountDeletion.action")}
         </button>
       </div>
 
@@ -84,19 +87,17 @@ export function AccountDeletion() {
                   id="account-deletion-title"
                   className="text-lg font-semibold text-white"
                 >
-                  EloBadge 계정을 삭제할까요?
+                  {t("accountDeletion.dialogTitle")}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Chess.com 연동, 레이팅, 오버레이 URL과 화면 설정이 모두
-                  삭제됩니다. 기존 브라우저 소스 오버레이 주소도 즉시 작동을
-                  멈춥니다.
+                  {t("accountDeletion.warning")}
                 </p>
               </div>
               <button
                 type="button"
                 disabled={deleting}
                 onClick={closeDialog}
-                aria-label="계정 삭제 창 닫기"
+                aria-label={t("accountDeletion.close")}
                 className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-800 hover:text-white disabled:opacity-50"
               >
                 <X aria-hidden="true" size={18} />
@@ -105,8 +106,9 @@ export function AccountDeletion() {
 
             <label className="mt-5 block">
               <span className="text-sm text-slate-300">
-                계속하려면 <strong className="text-white">계정 삭제</strong>를
-                입력하세요.
+                {t("accountDeletion.instruction", {
+                  text: confirmationText
+                })}
               </span>
               <input
                 value={confirmation}
@@ -124,11 +126,11 @@ export function AccountDeletion() {
                 onClick={closeDialog}
                 className="h-9 rounded-md px-3 text-sm font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white disabled:opacity-50"
               >
-                취소
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
-                disabled={deleting || confirmation !== CONFIRMATION_TEXT}
+                disabled={deleting || confirmation !== confirmationText}
                 onClick={() => void deleteAccount()}
                 className="inline-flex h-9 items-center gap-2 rounded-md bg-red-600 px-3 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -137,7 +139,9 @@ export function AccountDeletion() {
                 ) : (
                   <Trash2 size={16} />
                 )}
-                {deleting ? "삭제 중" : "영구 삭제"}
+                {deleting
+                  ? t("accountDeletion.deleting")
+                  : t("accountDeletion.permanentDelete")}
               </button>
             </div>
           </div>

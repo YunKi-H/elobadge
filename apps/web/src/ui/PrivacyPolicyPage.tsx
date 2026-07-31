@@ -1,6 +1,10 @@
+import { useTranslation } from "react-i18next";
+
 const EFFECTIVE_DATE = "2026년 7월 31일";
 
 export function PrivacyPolicyPage() {
+  const { i18n, t } = useTranslation();
+
   return (
     <article className="mx-auto max-w-3xl text-slate-300">
       <header className="border-b border-white/10 pb-8">
@@ -9,6 +13,11 @@ export function PrivacyPolicyPage() {
           개인정보 처리방침
         </h1>
         <p className="mt-3 text-sm text-slate-400">시행일: {EFFECTIVE_DATE}</p>
+        {i18n.resolvedLanguage === "en" ? (
+          <p className="mt-3 border-l-2 border-amber-400 pl-3 text-sm text-amber-100">
+            {t("privacy.koreanOriginalNotice")}
+          </p>
+        ) : null}
       </header>
 
       <PolicySection title="1. 개인정보 처리 목적">

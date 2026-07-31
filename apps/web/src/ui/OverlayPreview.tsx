@@ -7,6 +7,7 @@ import type {
 } from "@elobadge/core";
 import { onAuthStateChanged } from "firebase/auth";
 import { Check, ChevronDown, Send } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getFirebaseClientAuth } from "../firebase/client";
 import { parseChatOverlayEvent } from "../realtime/chat-event";
 import { RatingBadge } from "./RatingBadge";
@@ -33,6 +34,7 @@ const AUTHOR_KIND_OPTIONS: ReadonlyArray<{
 ];
 
 export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }) {
+  const { t } = useTranslation();
   const { messages, addMessage } = useOverlayMessageQueue(
     appearance.messageDurationSeconds
   );
@@ -121,7 +123,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
       <div className="flex aspect-video w-full flex-col justify-end overflow-hidden rounded-md bg-slate-950/60 p-4 ring-1 ring-white/10">
         {messages.length === 0 ? (
           <div className="border-l-2 border-slate-700 py-2 pl-4 text-sm text-slate-400">
-            아직 표시할 메시지가 없습니다
+            {t("preview.empty")}
           </div>
         ) : null}
         <div
@@ -180,18 +182,18 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
       >
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem_10rem]">
           <label className="grid gap-1.5 text-sm font-medium text-slate-300">
-            닉네임
+            {t("preview.nickname")}
             <input
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
               maxLength={30}
               required
-              placeholder="시청자 닉네임"
+              placeholder={t("preview.nicknamePlaceholder")}
               className="h-10 min-w-0 rounded-md border border-white/10 bg-slate-950 px-3 text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400"
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium text-slate-300">
-            레이팅
+            {t("preview.rating")}
             <input
               type="number"
               value={rating}
@@ -199,7 +201,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
               min={100}
               max={4000}
               step={1}
-              placeholder="선택 사항"
+              placeholder={t("preview.optional")}
               className="h-10 min-w-0 rounded-md border border-white/10 bg-slate-950 px-3 text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400"
             />
           </label>
@@ -211,20 +213,20 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
             onChange={setRatingProvider}
           />
           <label className="grid min-w-0 gap-1.5 text-sm font-medium text-slate-300">
-            메시지
+            {t("preview.message")}
             <span className="flex min-w-0 gap-2">
               <input
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
                 maxLength={200}
                 required
-                placeholder="미리보기 메시지 입력"
+                placeholder={t("preview.messagePlaceholder")}
                 className="h-10 min-w-0 flex-1 rounded-md border border-white/10 bg-slate-950 px-3 text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400"
               />
               <button
                 type="submit"
-                title="미리보기 추가"
-                aria-label="미리보기 추가"
+                title={t("preview.add")}
+                aria-label={t("preview.add")}
                 className="inline-flex size-10 shrink-0 items-center justify-center rounded-md bg-emerald-500 text-slate-950 transition hover:bg-emerald-400"
               >
                 <Send aria-hidden="true" size={18} />
@@ -244,11 +246,10 @@ function AuthorKindSelect({
   value: ChatAuthorKind;
   onChange: (value: ChatAuthorKind) => void;
 }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const selectedLabel =
-    AUTHOR_KIND_OPTIONS.find((option) => option.value === value)?.label ??
-    "일반 시청자";
+  const selectedLabel = t(`overlay.role.${value}`);
 
   useEffect(() => {
     if (!expanded) {
@@ -277,7 +278,9 @@ function AuthorKindSelect({
 
   return (
     <div ref={containerRef} className="relative grid gap-1.5">
-      <span className="text-sm font-medium text-slate-300">역할</span>
+      <span className="text-sm font-medium text-slate-300">
+        {t("preview.role")}
+      </span>
       <button
         type="button"
         aria-haspopup="listbox"
@@ -298,7 +301,7 @@ function AuthorKindSelect({
         <div
           id="overlay-preview-author-options"
           role="listbox"
-          aria-label="채팅 미리보기 역할"
+          aria-label={t("preview.roleLabel")}
           className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-white/10 bg-slate-950 py-1 shadow-xl shadow-black/40"
         >
           {AUTHOR_KIND_OPTIONS.map((option) => {
@@ -316,7 +319,9 @@ function AuthorKindSelect({
                 }}
                 className={`flex min-h-10 w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition ${selected ? "bg-emerald-400/10 text-emerald-200" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
               >
-                <span className="min-w-0 truncate">{option.label}</span>
+                <span className="min-w-0 truncate">
+                  {t(`overlay.role.${option.value}`)}
+                </span>
                 {selected ? (
                   <Check aria-hidden="true" size={16} className="shrink-0" />
                 ) : null}
@@ -336,6 +341,8 @@ function RatingProviderRadioGroup({
   value: ChessProvider;
   onChange: (value: ChessProvider) => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div
       role="radiogroup"
@@ -346,7 +353,7 @@ function RatingProviderRadioGroup({
         id="preview-rating-provider-label"
         className="text-sm font-medium text-slate-300"
       >
-        배지 유형
+        {t("preview.badgeType")}
       </span>
       <span className="flex items-center gap-2">
         <RatingProviderRadio
@@ -377,6 +384,8 @@ function RatingProviderRadio({
   selected: boolean;
   onChange: (value: ChessProvider) => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <label
       title={label}
@@ -388,7 +397,7 @@ function RatingProviderRadio({
         value={provider}
         checked={selected}
         onChange={() => onChange(provider)}
-        aria-label={`${label} 배지`}
+        aria-label={t("preview.badgeLabel", { provider: label })}
         className="sr-only"
       />
       <img

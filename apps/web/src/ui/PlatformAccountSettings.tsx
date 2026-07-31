@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   ChevronRight,
   LoaderCircle,
@@ -38,6 +40,7 @@ export function PlatformAccountSettings({
 }: {
   streamer?: boolean;
 } = {}) {
+  const { t } = useTranslation();
   const [state, setState] = useState<State>({ status: "loading" });
   const [connectingChzzk, setConnectingChzzk] = useState(false);
   const [disconnectingChzzk, setDisconnectingChzzk] = useState(false);
@@ -76,8 +79,8 @@ export function PlatformAccountSettings({
             twitchAuthorization
           });
           setFeedback(
-            chzzkFeedback(chzzkResult, streamer) ??
-              twitchFeedback(result, streamer)
+            chzzkFeedback(chzzkResult, streamer, t) ??
+              twitchFeedback(result, streamer, t)
           );
 
           if (result || chzzkResult) {
@@ -90,10 +93,10 @@ export function PlatformAccountSettings({
         .catch((error: unknown) =>
           setState({
             status: "error",
-            message: errorMessage(error)
+            message: errorMessage(error, t)
           })
         );
-    }), [streamer]);
+    }), [streamer, t]);
 
   const disconnectChzzk = async () => {
     const hasAlternativeLogin =
@@ -103,8 +106,8 @@ export function PlatformAccountSettings({
     if (
       !window.confirm(
         authorizationOnly
-          ? "치지직 채팅 수집 권한을 해제할까요? 치지직 로그인 계정 연결은 유지됩니다."
-          : "치지직 계정 연결과 채팅 수집 권한을 모두 해제할까요?"
+          ? t("platforms.chzzk.disconnectPermissionConfirm")
+          : t("platforms.chzzk.disconnectAccountConfirm")
       )
     ) {
       return;
@@ -139,8 +142,8 @@ export function PlatformAccountSettings({
       setFeedback({
         tone: "success",
         message: result.disconnected > 0
-          ? "치지직 연결을 해제했습니다."
-          : "치지직 채팅 수집 권한을 해제했습니다."
+          ? t("platforms.chzzk.accountDisconnected")
+          : t("platforms.chzzk.permissionDisconnected")
       });
       if (shouldSignOut) {
         await signOut(getFirebaseClientAuth()).catch(() => undefined);
@@ -149,7 +152,7 @@ export function PlatformAccountSettings({
     } catch (error) {
       setFeedback({
         tone: "error",
-        message: errorMessage(error)
+        message: errorMessage(error, t)
       });
     } finally {
       setDisconnectingChzzk(false);
@@ -193,7 +196,7 @@ export function PlatformAccountSettings({
     } catch (error) {
       setFeedback({
         tone: "error",
-        message: errorMessage(error)
+        message: errorMessage(error, t)
       });
       setConnectingChzzk(false);
     }
@@ -212,7 +215,7 @@ export function PlatformAccountSettings({
     } catch (error) {
       setFeedback({
         tone: "error",
-        message: errorMessage(error)
+        message: errorMessage(error, t)
       });
       setConnectingTwitch(false);
     }
@@ -224,8 +227,8 @@ export function PlatformAccountSettings({
       !state.accounts.some((account) => account.platform === "chzzk");
     const authorizationOnly = streamer && keepLoginIdentity;
     const confirmation = authorizationOnly
-      ? "Twitch 채팅 수집 권한을 해제할까요? Twitch 로그인 계정 연결은 유지됩니다."
-      : "Twitch 계정 연결과 채팅 수집 권한을 모두 해제할까요?";
+      ? t("platforms.twitch.disconnectPermissionConfirm")
+      : t("platforms.twitch.disconnectAccountConfirm");
 
     if (!window.confirm(confirmation)) {
       return;
@@ -261,13 +264,13 @@ export function PlatformAccountSettings({
       setFeedback({
         tone: "success",
         message: authorizationOnly
-          ? "Twitch 채팅 수집 권한을 해제했습니다."
-          : "Twitch 연결을 해제했습니다."
+          ? t("platforms.twitch.permissionDisconnected")
+          : t("platforms.twitch.accountDisconnected")
       });
     } catch (error) {
       setFeedback({
         tone: "error",
-        message: errorMessage(error)
+        message: errorMessage(error, t)
       });
     } finally {
       setDisconnectingTwitch(false);
@@ -280,7 +283,9 @@ export function PlatformAccountSettings({
 
   return (
     <section className="max-w-2xl border-t border-white/10 py-8">
-      <h2 className="text-sm font-medium text-slate-400">방송 플랫폼</h2>
+      <h2 className="text-sm font-medium text-slate-400">
+        {t("platforms.title")}
+      </h2>
 
       {state.status === "loading" ? (
         <div className="mt-3 text-sm text-slate-300">
@@ -289,7 +294,7 @@ export function PlatformAccountSettings({
             aria-hidden="true"
             size={17}
           />
-          연결 정보를 확인하고 있습니다.
+          {t("platforms.loading")}
         </div>
       ) : null}
 
@@ -364,6 +369,7 @@ function ChzzkPlatformToggle({
   onConnect: () => void;
   onDisconnect: () => void;
 }) {
+  const { t } = useTranslation();
   const account = accounts[0];
   const connected = Boolean(account);
   const authorized = streamer && authorization?.connected === true;
@@ -372,39 +378,39 @@ function ChzzkPlatformToggle({
   const authorizationOnly = streamer && !hasAlternativeLogin;
   const detail = account
     ? streamer && !authorized
-      ? `${account.displayName} · 채팅 권한 필요`
+      ? `${account.displayName} · ${t("platforms.permissionRequired")}`
       : account.displayName
-    : "연결된 계정 없음";
+    : t("platforms.noAccount");
   const status = active
-    ? "연결됨"
+    ? t("common.connected")
     : connected && streamer
-      ? "권한 필요"
-      : "미연결";
+      ? t("platforms.permissionStatus")
+      : t("common.notConnected");
   const actionTitle = active
     ? canDisconnect
       ? authorizationOnly
-        ? "치지직 채팅 수집 권한 해제"
-        : "치지직 연결 해제"
-      : "다른 로그인 계정을 연결한 후 해제할 수 있습니다."
+        ? t("platforms.chzzk.disconnectPermission")
+        : t("platforms.chzzk.disconnectAccount")
+      : t("platforms.alternativeRequired")
     : connected && streamer
-      ? "치지직 채팅 수집 권한 연결"
-      : "치지직 계정 연결";
+      ? t("platforms.chzzk.connectPermission")
+      : t("platforms.chzzk.connectAccount");
 
   return (
     <PlatformConnectionToggle
       icon={<Radio aria-hidden="true" size={20} />}
       iconClassName="text-emerald-300"
-      name="치지직"
+      name={t("platforms.chzzk.name")}
       detail={detail}
       status={status}
       actionLabel={
         active
           ? authorizationOnly
-            ? "권한 해제"
-            : "연결 해제"
+            ? t("platforms.revokePermission")
+            : t("common.disconnect")
           : connected && streamer
-            ? "권한 연결"
-            : "연결"
+            ? t("platforms.grantPermission")
+            : t("common.connect")
       }
       tone={active ? "connected" : connected ? "attention" : "disconnected"}
       accent="chzzk"
@@ -440,13 +446,14 @@ function TwitchPlatformToggle({
   onConnect: () => void;
   onDisconnect: () => void;
 }) {
+  const { t } = useTranslation();
   const account = accounts[0];
   const authorized = streamer && authorization?.connected === true;
   const connected = Boolean(account) || authorized;
   const active = streamer ? authorized : connected;
   const displayName = authorization?.displayName ?? account?.displayName;
   const sessionDetail = authorized
-    ? twitchSessionDetail(authorization)
+    ? twitchSessionDetail(authorization, t)
     : null;
   const detail = displayName
     ? streamer
@@ -454,27 +461,27 @@ function TwitchPlatformToggle({
         ? sessionDetail
           ? `${displayName} · ${sessionDetail}`
           : displayName
-        : `${displayName} · 채팅 권한 필요`
+        : `${displayName} · ${t("platforms.permissionRequired")}`
       : displayName
-    : "연결된 계정 없음";
+    : t("platforms.noAccount");
   const status = authorized
-    ? twitchSessionStatus(authorization).label
+    ? twitchSessionStatus(authorization, t).label
     : connected && streamer
-      ? "권한 필요"
+      ? t("platforms.permissionStatus")
       : connected
-        ? "연결됨"
-        : "미연결";
+        ? t("common.connected")
+        : t("common.notConnected");
   const canDisconnect = hasAlternativeLogin || authorized;
   const authorizationOnly = streamer && !hasAlternativeLogin;
   const actionTitle = active
     ? canDisconnect
       ? authorizationOnly
-        ? "Twitch 채팅 수집 권한 해제"
-        : "Twitch 연결 해제"
-      : "다른 로그인 계정을 연결한 후 해제할 수 있습니다."
+        ? t("platforms.twitch.disconnectPermission")
+        : t("platforms.twitch.disconnectAccount")
+      : t("platforms.alternativeRequired")
     : streamer
-      ? "Twitch 채팅 수집 권한 연결"
-      : "Twitch 계정 연결";
+      ? t("platforms.twitch.connectPermission")
+      : t("platforms.twitch.connectAccount");
 
   return (
     <PlatformConnectionToggle
@@ -486,11 +493,11 @@ function TwitchPlatformToggle({
       actionLabel={
         active
           ? authorizationOnly
-            ? "권한 해제"
-            : "연결 해제"
+            ? t("platforms.revokePermission")
+            : t("common.disconnect")
           : streamer
-            ? "권한 연결"
-            : "연결"
+            ? t("platforms.grantPermission")
+            : t("common.connect")
       }
       tone={active ? "connected" : connected ? "attention" : "disconnected"}
       accent="twitch"
@@ -630,34 +637,35 @@ function PlatformConnectionToggle({
 
 function twitchFeedback(
   result: string | null,
-  streamer: boolean
+  streamer: boolean,
+  t: TFunction
 ): { tone: "success" | "error"; message: string } | null {
   switch (result) {
     case "connected":
       return {
         tone: "success",
         message: streamer
-          ? "Twitch 연결과 채팅 수집 권한 설정을 완료했습니다."
-          : "Twitch 계정이 연결되었습니다."
+          ? t("platforms.twitch.streamerConnected")
+          : t("platforms.twitch.connected")
       };
     case "denied":
-      return { tone: "error", message: "Twitch 연결 요청을 취소했습니다." };
+      return { tone: "error", message: t("platforms.twitch.denied") };
     case "expired":
       return {
         tone: "error",
-        message: "Twitch 연결 요청이 만료되었습니다. 다시 시도해 주세요."
+        message: t("platforms.twitch.expired")
       };
     case "conflict":
       return {
         tone: "error",
-        message: "이미 다른 EloBadge 사용자가 연결한 Twitch 계정입니다."
+        message: t("platforms.twitch.conflict")
       };
     case "error":
       return {
         tone: "error",
         message: streamer
-          ? "Twitch 연결 또는 채팅 권한 설정을 완료하지 못했습니다."
-          : "Twitch 계정을 연결하지 못했습니다. 다시 시도해 주세요."
+          ? t("platforms.twitch.streamerFailed")
+          : t("platforms.twitch.failed")
       };
     default:
       return null;
@@ -666,27 +674,28 @@ function twitchFeedback(
 
 function chzzkFeedback(
   result: string | null,
-  streamer: boolean
+  streamer: boolean,
+  t: TFunction
 ): { tone: "success" | "error"; message: string } | null {
   switch (result) {
     case "connected":
       return {
         tone: "success",
         message: streamer
-          ? "치지직 연결과 채팅 수집 권한 설정을 완료했습니다."
-          : "치지직 계정이 연결되었습니다."
+          ? t("platforms.chzzk.streamerConnected")
+          : t("platforms.chzzk.connected")
       };
     case "conflict":
       return {
         tone: "error",
-        message: "이미 다른 EloBadge 사용자가 연결한 치지직 계정입니다."
+        message: t("platforms.chzzk.conflict")
       };
     case "error":
       return {
         tone: "error",
         message: streamer
-          ? "치지직 연결 또는 채팅 권한 설정을 완료하지 못했습니다."
-          : "치지직 계정을 연결하지 못했습니다. 다시 시도해 주세요."
+          ? t("platforms.chzzk.streamerFailed")
+          : t("platforms.chzzk.failed")
       };
     default:
       return null;
@@ -694,50 +703,55 @@ function chzzkFeedback(
 }
 
 function twitchSessionDetail(
-  authorization: TwitchStreamerAuthorization
+  authorization: TwitchStreamerAuthorization,
+  t: TFunction
 ): string | null {
   const session = authorization.session;
   if (!session) {
-    return "연결 중";
+    return t("platforms.connecting");
   }
   if (session.subscribed) {
     return null;
   }
   if (session.health === "reconnecting") {
-    return "연결 중";
+    return t("platforms.connecting");
   }
   if (
     session.health === "subscription_failed" ||
     session.health === "connection_failed" ||
     session.health === "authorization_revoked"
   ) {
-    return "재연결 필요";
+    return t("platforms.reconnectRequired");
   }
-  return "연결 중";
+  return t("platforms.connecting");
 }
 
 function twitchSessionStatus(
-  authorization: TwitchStreamerAuthorization
+  authorization: TwitchStreamerAuthorization,
+  t: TFunction
 ): { label: string; className: string } {
   const health = authorization.session?.health;
   if (authorization.session?.subscribed) {
-    return { label: "연결됨", className: "text-emerald-300" };
+    return { label: t("common.connected"), className: "text-emerald-300" };
   }
   if (
     health === "subscription_failed" ||
     health === "connection_failed" ||
     health === "authorization_revoked"
   ) {
-    return { label: "재연결 필요", className: "text-red-300" };
+    return {
+      label: t("platforms.reconnectRequired"),
+      className: "text-red-300"
+    };
   }
   return {
-    label: "연결 중",
+    label: t("platforms.connecting"),
     className: "text-amber-300"
   };
 }
 
-function errorMessage(error: unknown): string {
+function errorMessage(error: unknown, t: TFunction): string {
   return error instanceof Error
     ? error.message
-    : "방송 플랫폼 연결 정보를 불러오지 못했습니다.";
+    : t("platforms.loadFailed");
 }

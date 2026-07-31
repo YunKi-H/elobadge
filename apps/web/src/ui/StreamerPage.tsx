@@ -10,8 +10,10 @@ import { AccountDeletion } from "./AccountDeletion";
 import { LoginOptions } from "./LoginOptions";
 import { PlatformAccountSettings } from "./PlatformAccountSettings";
 import { useFirebaseAuthStatus } from "./useFirebaseAuthStatus";
+import { useTranslation } from "react-i18next";
 
 export function StreamerPage() {
+  const { t } = useTranslation();
   const authStatus = useFirebaseAuthStatus();
   const [appearance, setAppearance] = useState<OverlayAppearance>({
     ...DEFAULT_OVERLAY_APPEARANCE
@@ -21,9 +23,11 @@ export function StreamerPage() {
       <header className="mb-8">
         <div className="flex items-center gap-2 text-emerald-300">
           <Radio aria-hidden="true" size={18} />
-          <span className="text-sm font-medium">스트리머</span>
+          <span className="text-sm font-medium">{t("common.streamer")}</span>
         </div>
-        <h1 className="mt-2 text-2xl font-semibold text-white">방송 오버레이</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-white">
+          {t("streamer.title")}
+        </h1>
       </header>
 
       <LoginOptions mode="streamer" />
@@ -34,7 +38,7 @@ export function StreamerPage() {
 
           <section className="max-w-2xl py-2">
             <h2 className="mb-4 text-lg font-semibold text-white">
-              채팅 미리보기
+              {t("streamer.preview")}
             </h2>
             <OverlayPreview appearance={appearance} />
           </section>

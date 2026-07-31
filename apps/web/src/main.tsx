@@ -11,9 +11,10 @@ if (overlayToken) {
   });
 } else if (!window.location.pathname.startsWith("/overlay/")) {
   void Promise.all([
+    import("./i18n"),
     import("react-router-dom"),
     import("./router")
-  ]).then(([{ RouterProvider }, { router }]) => {
+  ]).then(([, { RouterProvider }, { router }]) => {
     root.render(
       <StrictMode>
         <RouterProvider router={router} />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
+import { useTranslation } from "react-i18next";
 import {
   CheckCircle2,
   ExternalLink,
@@ -39,6 +40,7 @@ export function LichessAccountSettings({
 }: {
   badgePreference: ChessBadgePreferenceController;
 }) {
+  const { i18n, t } = useTranslation();
   const [state, setState] = useState<State>({ status: "loading" });
   const [connecting, setConnecting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,11 +59,11 @@ export function LichessAccountSettings({
           status: "ready",
           account,
           message: result === "connected"
-            ? "Lichess 계정이 연결되었습니다."
+            ? t("lichess.connected")
             : result === "expired"
-              ? "Lichess 연결 요청이 만료되었습니다. 다시 시도해 주세요."
+              ? t("lichess.expired")
               : result === "error"
-                ? "Lichess 계정을 연결하지 못했습니다. 다시 시도해 주세요."
+                ? t("lichess.failed")
                 : undefined
         });
         if (result) {
@@ -73,9 +75,9 @@ export function LichessAccountSettings({
       .catch((error: unknown) => setState({
         status: "error",
         account: null,
-        message: errorMessage(error)
+        message: errorMessage(error, t("chessAccount.requestFailed"))
       }));
-  }), []);
+  }), [t]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(Date.now()), 1_000);
@@ -109,7 +111,7 @@ export function LichessAccountSettings({
   };
 
   const disconnect = async () => {
-    if (!window.confirm("Lichess 계정 연동과 현재 Lichess 배지를 해제할까요?")) {
+    if (!window.confirm(t("lichess.disconnectConfirm"))) {
       return;
     }
     setDisconnecting(true);
@@ -127,14 +129,14 @@ export function LichessAccountSettings({
   const setError = (error: unknown) => setState((current) => ({
     status: "error",
     account: "account" in current ? current.account : null,
-    message: errorMessage(error)
+    message: errorMessage(error, t("chessAccount.requestFailed"))
   }));
 
   if (state.status === "loading") {
     return (
       <section className="py-8 text-slate-300">
         <LoaderCircle className="mr-2 inline animate-spin" size={18} />
-        계정 정보를 확인하고 있습니다.
+        {t("chessAccount.loading")}
       </section>
     );
   }
@@ -161,14 +163,16 @@ export function LichessAccountSettings({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-xl font-semibold text-white">Lichess 계정</h2>
+            <h2 className="text-xl font-semibold text-white">
+              {t("lichess.title")}
+            </h2>
             <ChessBadgePreferenceControl
               provider="lichess"
               preference={badgePreference}
             />
           </div>
           <p className="mt-1 text-sm text-slate-400">
-            Bullet, Blitz, Rapid, Classical 레이팅을 불러옵니다.
+            {t("lichess.description")}
           </p>
         </div>
         {account ? (
@@ -186,7 +190,7 @@ export function LichessAccountSettings({
               type="button"
               disabled={refreshing || disconnecting || cooldownMs > 0}
               onClick={() => void refresh()}
-              title="Lichess 레이팅 갱신"
+              title={t("lichess.refreshTitle")}
               className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-800 px-3 text-sm font-medium text-slate-100 ring-1 ring-white/10 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <RefreshCw
@@ -194,10 +198,12 @@ export function LichessAccountSettings({
                 size={15}
               />
               {refreshing
-                ? "갱신 중"
+                ? t("common.refreshing")
                 : cooldownMs > 0
-                  ? `${Math.ceil(cooldownMs / 60_000)}분 후 갱신`
-                  : "레이팅 갱신"}
+                  ? t("chessAccount.refreshInMinutes", {
+                      count: Math.ceil(cooldownMs / 60_000)
+                    })
+                  : t("common.refresh")}
             </button>
             <button
               type="button"
@@ -210,7 +216,7 @@ export function LichessAccountSettings({
               ) : (
                 <Unlink size={15} />
               )}
-              연동 해제
+              {t("chessAccount.disconnect")}
             </button>
           </div>
         ) : null}
@@ -228,7 +234,7 @@ export function LichessAccountSettings({
           ) : (
             <Link size={18} />
           )}
-          Lichess로 연결
+          {t("lichess.connect")}
         </button>
       ) : null}
 
@@ -240,12 +246,14 @@ export function LichessAccountSettings({
         <div className="mt-6">
           {account.ratingsFetchedAt ? (
             <p className="mb-4 text-xs text-slate-400">
-              마지막 갱신 {formatDateTime(account.ratingsFetchedAt)}
+              {t("chessAccount.lastUpdated", {
+                date: formatDateTime(account.ratingsFetchedAt, i18n.language)
+              })}
             </p>
           ) : null}
           <div className="flex items-center gap-3 border-l-2 border-emerald-400 pl-3 text-sm text-emerald-100">
             <CheckCircle2 className="shrink-0" size={18} />
-            <p>Lichess 계정 소유 인증이 완료되었습니다.</p>
+            <p>{t("lichess.verified")}</p>
           </div>
           <dl className={`mt-5 grid gap-px overflow-hidden rounded-md bg-white/10 ${ratingGridColumns}`}>
             {account.ratings.length > 0 ? account.ratings.map((rating) => (
@@ -257,18 +265,18 @@ export function LichessAccountSettings({
                   {rating.value}{rating.provisional ? "?" : ""}
                 </dd>
                 <p className="mt-1 text-xs text-slate-500">
-                  {rating.games} games
+                  {t("chessAccount.games", { count: rating.games })}
                 </p>
                 {account.selectedSpeed === rating.speed ? (
                   <span className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md bg-emerald-400 px-3 text-sm font-semibold text-slate-950">
                     <CheckCircle2 size={15} />
-                    최고 레이팅 적용 중
+                    {t("chessAccount.highestApplied")}
                   </span>
                 ) : null}
               </div>
             )) : (
               <div className="bg-slate-900 px-4 py-4 text-sm text-slate-400 sm:col-span-2 lg:col-span-4">
-                지원하는 시간 형식의 레이팅이 없습니다.
+                {t("chessAccount.noSupportedRatings")}
               </div>
             )}
           </dl>
@@ -278,13 +286,13 @@ export function LichessAccountSettings({
   );
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "요청을 처리하지 못했습니다.";
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
 
 
-function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat("ko-KR", {
+function formatDateTime(value: string, language: string): string {
+  return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "ko-KR", {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));

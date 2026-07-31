@@ -28,6 +28,7 @@ import {
   Type
 } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
+import { useTranslation } from "react-i18next";
 import {
   disableOverlayAccess,
   enableOverlayAccess,
@@ -128,8 +129,6 @@ const FONT_LINE_HEIGHT_OPTIONS: ReadonlyArray<OverlayFontLineHeight> = [
   1.6
 ];
 
-const FONT_PREVIEW_TEXT = "동해물과 백두산이 마르고 닳도록...";
-
 const RATING_PROVIDER_POLICY_OPTIONS: ReadonlyArray<{
   value: RatingProviderPolicy;
   label: string;
@@ -167,6 +166,7 @@ export function OverlaySettings({
 }: {
   onAppearanceChange: (appearance: OverlayAppearance) => void;
 }) {
+  const { t } = useTranslation();
   const [state, setState] = useState<SettingsState>({ status: "loading" });
   const [updating, setUpdating] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -194,10 +194,10 @@ export function OverlaySettings({
         })
         .catch((error: unknown) => {
           setExpandedSections({ ...DEFAULT_EXPANDED_APPEARANCE_SECTIONS });
-          setState(toErrorState(error));
+          setState(toErrorState(error, t("overlay.requestFailed")));
         });
     });
-  }, [onAppearanceChange]);
+  }, [onAppearanceChange, t]);
 
   const runUpdate = async (operation: () => Promise<OverlayAccess | null>) => {
     setUpdating(true);
@@ -213,7 +213,7 @@ export function OverlaySettings({
       }
     } catch (error) {
       setExpandedSections({ ...DEFAULT_EXPANDED_APPEARANCE_SECTIONS });
-      setState(toErrorState(error));
+      setState(toErrorState(error, t("overlay.requestFailed")));
     } finally {
       setUpdating(false);
     }
@@ -296,22 +296,22 @@ export function OverlaySettings({
       <div className="mb-4">
         <div className="flex items-center gap-2">
           <Link aria-hidden="true" className="text-emerald-300" size={20} />
-          <h2 className="text-lg font-semibold text-white">브라우저 소스 오버레이</h2>
+          <h2 className="text-lg font-semibold text-white">
+            {t("overlay.title")}
+          </h2>
         </div>
         <p className="mt-2 text-sm leading-6 text-slate-400">
-          OBS Studio, XSplit 등 브라우저 소스를 지원하는 방송 프로그램에서
-          사용할 수 있습니다. 너비 600px에 최적화되어 있으며 높이는 방송
-          화면에 맞게 설정하세요.
+          {t("overlay.description")}
         </p>
       </div>
 
       {state.status === "loading" ? (
-        <p className="text-sm text-slate-400">불러오는 중</p>
+        <p className="text-sm text-slate-400">{t("common.loading")}</p>
       ) : null}
 
       {state.status === "signed_out" ? (
         <p className="text-sm text-slate-400">
-          위에서 방송 플랫폼 계정으로 먼저 로그인하세요.
+          {t("overlay.signInFirst")}
         </p>
       ) : null}
 
@@ -327,7 +327,7 @@ export function OverlaySettings({
           className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 font-semibold text-slate-950 disabled:opacity-50"
         >
           <Power aria-hidden="true" size={18} />
-          URL 생성
+          {t("overlay.createUrl")}
         </button>
       ) : null}
 
@@ -335,15 +335,15 @@ export function OverlaySettings({
         <div className="space-y-4">
           <div className="flex gap-2">
             <input
-              aria-label="브라우저 소스 URL"
+              aria-label={t("overlay.urlLabel")}
               readOnly
               value={urlVisible ? overlay.url : "********************"}
               className="min-w-0 flex-1 rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none"
             />
             <button
               type="button"
-              title={urlVisible ? "URL 숨기기" : "URL 표시"}
-              aria-label={urlVisible ? "URL 숨기기" : "URL 표시"}
+              title={urlVisible ? t("overlay.hideUrl") : t("overlay.showUrl")}
+              aria-label={urlVisible ? t("overlay.hideUrl") : t("overlay.showUrl")}
               aria-pressed={urlVisible}
               onClick={() => setUrlVisible((current) => !current)}
               className="inline-flex size-10 shrink-0 items-center justify-center rounded-md bg-slate-800 text-white hover:bg-slate-700"
@@ -356,8 +356,8 @@ export function OverlaySettings({
             </button>
             <button
               type="button"
-              title="URL 복사"
-              aria-label="URL 복사"
+              title={t("overlay.copyUrl")}
+              aria-label={t("overlay.copyUrl")}
               onClick={() => {
                 void navigator.clipboard.writeText(overlay.url).then(() => setCopied(true));
               }}
@@ -366,7 +366,9 @@ export function OverlaySettings({
               <Copy aria-hidden="true" size={18} />
             </button>
           </div>
-          {copied ? <p className="text-sm text-emerald-300">복사됨</p> : null}
+          {copied ? (
+            <p className="text-sm text-emerald-300">{t("overlay.copied")}</p>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             {!overlay.active ? (
@@ -377,21 +379,21 @@ export function OverlaySettings({
                 className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-3 py-2 font-semibold text-slate-950 disabled:opacity-50"
               >
                 <Power aria-hidden="true" size={17} />
-                활성화
+                {t("overlay.enable")}
               </button>
             ) : null}
             <button
               type="button"
               disabled={updating}
               onClick={() => {
-                if (window.confirm("기존 오버레이 URL을 폐기하고 새로 발급할까요?")) {
+                if (window.confirm(t("overlay.rotateConfirm"))) {
                   void runUpdate(rotateOverlayAccess);
                 }
               }}
               className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 font-semibold text-white disabled:opacity-50"
             >
               <RefreshCw aria-hidden="true" size={17} />
-              재발급
+              {t("overlay.rotate")}
             </button>
             {overlay.active ? (
               <button
@@ -401,7 +403,7 @@ export function OverlaySettings({
                 className="inline-flex items-center gap-2 rounded-md bg-red-950 px-3 py-2 font-semibold text-red-200 disabled:opacity-50"
               >
                 <Power aria-hidden="true" size={17} />
-                비활성화
+                {t("overlay.disable")}
               </button>
             ) : null}
           </div>
@@ -409,14 +411,14 @@ export function OverlaySettings({
           <div className="border-t border-white/10">
             <SettingsDisclosure
               id="overlay-general-settings"
-              title="기본 설정"
+              title={t("overlay.general")}
               icon={<Clock3 aria-hidden="true" size={18} />}
               expanded={expandedSections.general}
               onToggle={() => toggleAppearanceSection("general")}
             >
                 <label className="grid gap-2 text-sm font-medium text-slate-200">
                   <span className="flex items-center justify-between gap-4">
-                    채팅 최대 너비
+                    {t("overlay.maxWidth")}
                     <output className="tabular-nums text-slate-400">
                       {overlay.appearance.messageMaxWidthPx}px
                     </output>
@@ -437,7 +439,7 @@ export function OverlaySettings({
                 </label>
 
                 <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
-                  채팅 표시 시간
+                  {t("overlay.duration")}
                   <select
                     value={overlay.appearance.messageDurationSeconds}
                     onChange={(event) =>
@@ -452,8 +454,8 @@ export function OverlaySettings({
                     {MESSAGE_DURATION_OPTIONS.map((seconds) => (
                       <option key={seconds} value={seconds}>
                         {seconds === 0
-                          ? "계속 유지"
-                          : `${seconds}초${seconds === 20 ? " (기본)" : ""}`}
+                          ? t("overlay.keep")
+                          : `${t("overlay.seconds", { count: seconds })}${seconds === 20 ? t("overlay.defaultSuffix") : ""}`}
                       </option>
                     ))}
                   </select>
@@ -462,7 +464,7 @@ export function OverlaySettings({
 
             <SettingsDisclosure
               id="overlay-badge-settings"
-              title="배지 설정"
+              title={t("overlay.badges")}
               icon={<BadgeCheck aria-hidden="true" size={18} />}
               expanded={expandedSections.badges}
               onToggle={() => toggleAppearanceSection("badges")}
@@ -474,12 +476,12 @@ export function OverlaySettings({
                   }
                 />
                 <p className="text-xs leading-5 text-slate-400">
-                  특정 플랫폼을 선택하면 해당 계정을 연결하지 않은 시청자의 체스 배지는 표시하지 않습니다.
+                  {t("overlay.forcedProviderNotice")}
                 </p>
 
                 <div className="space-y-5 border-t border-white/10 pt-5">
                   <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
-                    치지직 배지 전체 표시
+                    {t("overlay.allPlatformBadges")}
                     <input
                       type="checkbox"
                       checked={overlay.appearance.chzzkBadgesVisible}
@@ -497,15 +499,15 @@ export function OverlaySettings({
                     className="disabled:opacity-40"
                   >
                     <legend className="mb-3 text-sm font-medium text-slate-200">
-                      표시할 배지
+                      {t("overlay.visibleBadges")}
                     </legend>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      {CHZZK_BADGE_KIND_OPTIONS.map(({ kind, label }) => (
+                      {CHZZK_BADGE_KIND_OPTIONS.map(({ kind }) => (
                         <label
                           key={kind}
                           className="flex h-10 items-center justify-between gap-3 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-slate-300"
                         >
-                          {label}
+                          {t(`overlay.badgeKind.${kind}`)}
                           <input
                             type="checkbox"
                             checked={
@@ -525,13 +527,13 @@ export function OverlaySettings({
 
             <SettingsDisclosure
               id="overlay-background-settings"
-              title="채팅 배경"
+              title={t("overlay.background")}
               icon={<PaintBucket aria-hidden="true" size={18} />}
               expanded={expandedSections.background}
               onToggle={() => toggleAppearanceSection("background")}
             >
               <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
-                배경 표시
+                {t("overlay.backgroundVisible")}
                 <input
                   type="checkbox"
                   checked={overlay.appearance.backgroundVisible}
@@ -549,7 +551,7 @@ export function OverlaySettings({
                 className="disabled:opacity-40"
               >
                 <legend className="mb-3 text-sm font-medium text-slate-200">
-                  배경 색상
+                  {t("overlay.backgroundColor")}
                 </legend>
                 <div className="flex flex-wrap items-center gap-2">
                   {BACKGROUND_COLOR_SWATCHES.map((color) => (
@@ -557,7 +559,7 @@ export function OverlaySettings({
                       key={color}
                       type="button"
                       title={color}
-                      aria-label={`배경 색상 ${color}`}
+                      aria-label={`${t("overlay.backgroundColor")} ${color}`}
                       aria-pressed={overlay.appearance.backgroundColor === color}
                       onClick={() =>
                         updateAppearanceDraft({ backgroundColor: color })
@@ -568,8 +570,8 @@ export function OverlaySettings({
                   ))}
                   <input
                     type="color"
-                    title="직접 배경 색상 선택"
-                    aria-label="직접 배경 색상 선택"
+                    title={t("overlay.customBackgroundColor")}
+                    aria-label={t("overlay.customBackgroundColor")}
                     value={overlay.appearance.backgroundColor}
                     onChange={(event) =>
                       updateAppearanceDraft({
@@ -583,7 +585,7 @@ export function OverlaySettings({
 
               <label className="grid gap-2 text-sm font-medium text-slate-200">
                 <span className="flex items-center justify-between gap-4">
-                  배경 불투명도
+                  {t("overlay.backgroundOpacity")}
                   <output className="tabular-nums text-slate-400">
                     {overlay.appearance.backgroundOpacity}%
                   </output>
@@ -607,14 +609,14 @@ export function OverlaySettings({
 
             <SettingsDisclosure
               id="overlay-color-settings"
-              title="채팅 색상"
+              title={t("overlay.colors")}
               icon={<Palette aria-hidden="true" size={18} />}
               expanded={expandedSections.colors}
               onToggle={() => toggleAppearanceSection("colors")}
             >
               <div className="space-y-5">
               <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
-                닉네임 표시
+                {t("overlay.nicknameVisible")}
                 <input
                   type="checkbox"
                   checked={overlay.appearance.nicknameVisible}
@@ -632,14 +634,14 @@ export function OverlaySettings({
                 className="disabled:opacity-40"
               >
                 <legend className="mb-3 text-sm font-medium text-slate-200">
-                  닉네임 색상
+                  {t("overlay.nicknameColor")}
                 </legend>
                 <div className="inline-flex rounded-md bg-slate-950 p-1 ring-1 ring-white/10">
                   {([
-                    ["fixed", "단일 색상"],
-                    ["by_user", "사용자별"],
-                    ["by_role", "역할별"]
-                  ] as const).map(([mode, label]) => (
+                    ["fixed", "fixed"],
+                    ["by_user", "by_user"],
+                    ["by_role", "by_role"]
+                  ] as const).map(([mode, labelKey]) => (
                     <button
                       key={mode}
                       type="button"
@@ -649,7 +651,7 @@ export function OverlaySettings({
                       }
                       className={`h-8 rounded px-3 text-sm font-medium transition ${overlay.appearance.nicknameColorMode === mode ? "bg-emerald-500 text-slate-950" : "text-slate-300 hover:text-white"}`}
                     >
-                      {label}
+                      {t(`overlay.colorMode.${labelKey}`)}
                     </button>
                   ))}
                 </div>
@@ -661,7 +663,7 @@ export function OverlaySettings({
                         key={color}
                         type="button"
                         title={color}
-                        aria-label={`닉네임 색상 ${color}`}
+                        aria-label={`${t("overlay.nicknameColor")} ${color}`}
                         aria-pressed={overlay.appearance.nicknameColor === color}
                         onClick={() =>
                           updateAppearanceDraft({ nicknameColor: color })
@@ -672,8 +674,8 @@ export function OverlaySettings({
                     ))}
                     <input
                       type="color"
-                      title="직접 닉네임 색상 선택"
-                      aria-label="직접 닉네임 색상 선택"
+                      title={t("overlay.customNicknameColor")}
+                      aria-label={t("overlay.customNicknameColor")}
                       value={overlay.appearance.nicknameColor}
                       onChange={(event) =>
                         updateAppearanceDraft({
@@ -687,19 +689,19 @@ export function OverlaySettings({
 
                 {overlay.appearance.nicknameColorMode === "by_role" ? (
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {CHAT_AUTHOR_KIND_OPTIONS.map(({ kind, label }) => (
+                    {CHAT_AUTHOR_KIND_OPTIONS.map(({ kind }) => (
                       <label
                         key={kind}
                         className="flex h-10 items-center justify-between gap-3 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-slate-300"
                       >
-                        {label}
+                        {t(`overlay.role.${kind}`)}
                         <span className="flex items-center gap-2">
                           <span className="font-mono text-xs text-slate-500">
                             {overlay.appearance.nicknameRoleColors[kind]}
                           </span>
                           <input
                             type="color"
-                            aria-label={`${label} 닉네임 색상`}
+                            aria-label={`${t(`overlay.role.${kind}`)} ${t("overlay.nicknameColor")}`}
                             value={overlay.appearance.nicknameRoleColors[kind]}
                             onChange={(event) =>
                               updateRoleColor(kind, event.target.value)
@@ -715,13 +717,13 @@ export function OverlaySettings({
 
               <fieldset className="border-t border-white/10 pt-5">
                 <legend className="mb-3 text-sm font-medium text-slate-200">
-                  메시지 색상
+                  {t("overlay.messageColor")}
                 </legend>
                 <div className="inline-flex rounded-md bg-slate-950 p-1 ring-1 ring-white/10">
                   {([
-                    ["fixed", "단일 색상"],
-                    ["by_role", "유형별"]
-                  ] as const).map(([mode, label]) => (
+                    ["fixed", "fixed"],
+                    ["by_role", "message_by_role"]
+                  ] as const).map(([mode, labelKey]) => (
                     <button
                       key={mode}
                       type="button"
@@ -731,7 +733,7 @@ export function OverlaySettings({
                       }
                       className={`h-8 rounded px-3 text-sm font-medium transition ${overlay.appearance.messageColorMode === mode ? "bg-emerald-500 text-slate-950" : "text-slate-300 hover:text-white"}`}
                     >
-                      {label}
+                      {t(`overlay.colorMode.${labelKey}`)}
                     </button>
                   ))}
                 </div>
@@ -743,7 +745,7 @@ export function OverlaySettings({
                         key={color}
                         type="button"
                         title={color}
-                        aria-label={`메시지 색상 ${color}`}
+                        aria-label={`${t("overlay.messageColor")} ${color}`}
                         aria-pressed={overlay.appearance.messageColor === color}
                         onClick={() =>
                           updateAppearanceDraft({ messageColor: color })
@@ -754,8 +756,8 @@ export function OverlaySettings({
                     ))}
                     <input
                       type="color"
-                      title="직접 색상 선택"
-                      aria-label="직접 메시지 색상 선택"
+                      title={t("overlay.customMessageColor")}
+                      aria-label={t("overlay.customMessageColor")}
                       value={overlay.appearance.messageColor}
                       onChange={(event) =>
                         updateAppearanceDraft({
@@ -769,19 +771,19 @@ export function OverlaySettings({
 
                 {overlay.appearance.messageColorMode === "by_role" ? (
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {CHAT_AUTHOR_KIND_OPTIONS.map(({ kind, label }) => (
+                    {CHAT_AUTHOR_KIND_OPTIONS.map(({ kind }) => (
                       <label
                         key={kind}
                         className="flex h-10 items-center justify-between gap-3 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-slate-300"
                       >
-                        {label}
+                        {t(`overlay.role.${kind}`)}
                         <span className="flex items-center gap-2">
                           <span className="font-mono text-xs text-slate-500">
                             {overlay.appearance.messageRoleColors[kind]}
                           </span>
                           <input
                             type="color"
-                            aria-label={`${label} 메시지 색상`}
+                            aria-label={`${t(`overlay.role.${kind}`)} ${t("overlay.messageColor")}`}
                             value={overlay.appearance.messageRoleColors[kind]}
                             onChange={(event) =>
                               updateMessageRoleColor(kind, event.target.value)
@@ -799,7 +801,7 @@ export function OverlaySettings({
 
             <SettingsDisclosure
               id="overlay-font-settings"
-              title="채팅 폰트"
+              title={t("overlay.fonts")}
               icon={<Type aria-hidden="true" size={18} />}
               expanded={expandedSections.fonts}
               onToggle={() => toggleAppearanceSection("fonts")}
@@ -813,7 +815,7 @@ export function OverlaySettings({
 
               <label className="grid gap-2 text-sm font-medium text-slate-200">
                 <span className="flex items-center justify-between gap-4">
-                  글자 크기
+                  {t("overlay.fontSize")}
                   <output className="tabular-nums text-slate-400">
                     {overlay.appearance.fontSizePx}px
                   </output>
@@ -835,7 +837,7 @@ export function OverlaySettings({
 
               <fieldset>
                 <legend className="mb-3 text-sm font-medium text-slate-200">
-                  글자 굵기
+                  {t("overlay.fontWeight")}
                 </legend>
                 <div className="inline-flex flex-wrap rounded-md bg-slate-950 p-1 ring-1 ring-white/10">
                   {FONT_WEIGHT_OPTIONS.map((weight) => (
@@ -855,7 +857,7 @@ export function OverlaySettings({
               </fieldset>
 
               <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
-                줄 간격
+                {t("overlay.lineHeight")}
                 <select
                   value={overlay.appearance.fontLineHeight}
                   onChange={(event) =>
@@ -888,7 +890,7 @@ export function OverlaySettings({
                   className="inline-flex h-10 items-center gap-2 rounded-md bg-emerald-500 px-4 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Save aria-hidden="true" size={17} />
-                  화면 설정 저장
+                  {t("overlay.save")}
                 </button>
                 <button
                   type="button"
@@ -896,7 +898,7 @@ export function OverlaySettings({
                   onClick={() => {
                     if (
                       window.confirm(
-                        "채팅 화면 설정을 모두 기본값으로 초기화할까요?"
+                        t("overlay.resetConfirm")
                       )
                     ) {
                       void runUpdate(() =>
@@ -909,7 +911,7 @@ export function OverlaySettings({
                   className="inline-flex h-10 items-center gap-2 rounded-md bg-slate-800 px-4 font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <RotateCcw aria-hidden="true" size={17} />
-                  기본값으로 초기화
+                  {t("overlay.reset")}
                 </button>
             </div>
           </div>
@@ -969,113 +971,15 @@ function FontFamilySelect({
   value: OverlayFontFamily;
   onChange: (value: OverlayFontFamily) => void;
 }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const selectedLabel =
-    FONT_FAMILY_OPTIONS.find((option) => option.value === value)?.label ??
-    "시스템 기본";
-
-  useEffect(() => {
-    if (!expanded) {
-      return;
-    }
-
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setExpanded(false);
-      }
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setExpanded(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
-
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [expanded]);
-
-  return (
-    <div ref={containerRef} className="relative grid gap-2">
-      <span className="text-sm font-medium text-slate-200">폰트</span>
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={expanded}
-        aria-controls="overlay-font-options"
-        onClick={() => setExpanded((current) => !current)}
-        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-left text-base text-white outline-none transition hover:border-white/25 focus-visible:border-emerald-400 focus-visible:ring-2 focus-visible:ring-emerald-400/30"
-      >
-        <span
-          className="min-w-0 truncate"
-          style={{ fontFamily: overlayFontFamilyValue(value) }}
-        >
-          {selectedLabel} - {FONT_PREVIEW_TEXT}
-        </span>
-        <ChevronDown
-          aria-hidden="true"
-          size={18}
-          className={`shrink-0 text-slate-400 transition-transform ${expanded ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {expanded ? (
-        <div
-          id="overlay-font-options"
-          role="listbox"
-          aria-label="채팅 폰트"
-          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto overscroll-contain rounded-md border border-white/10 bg-slate-950 py-1 shadow-xl shadow-black/40"
-        >
-          {FONT_FAMILY_OPTIONS.map((option) => {
-            const selected = option.value === value;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                onClick={() => {
-                  onChange(option.value);
-                  setExpanded(false);
-                }}
-                className={`flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-base transition ${selected ? "bg-emerald-400/10 text-emerald-200" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
-              >
-                <span
-                  className="min-w-0 truncate"
-                  style={{ fontFamily: overlayFontFamilyValue(option.value) }}
-                >
-                  {option.label} - {FONT_PREVIEW_TEXT}
-                </span>
-                {selected ? (
-                  <Check aria-hidden="true" size={17} className="shrink-0" />
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function RatingProviderPolicySelect({
-  value,
-  onChange
-}: {
-  value: RatingProviderPolicy;
-  onChange: (value: RatingProviderPolicy) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const selectedLabel =
-    RATING_PROVIDER_POLICY_OPTIONS.find((option) => option.value === value)
-      ?.label ?? "시청자 선택 따르기";
+  const selectedOption =
+    FONT_FAMILY_OPTIONS.find((option) => option.value === value);
+  const selectedLabel = selectedOption?.value === "system"
+    ? t("overlay.systemFont")
+    : selectedOption?.label ?? t("overlay.systemFont");
+  const previewText = t("overlay.fontPreview");
 
   useEffect(() => {
     if (!expanded) {
@@ -1105,7 +1009,113 @@ function RatingProviderPolicySelect({
   return (
     <div ref={containerRef} className="relative grid gap-2">
       <span className="text-sm font-medium text-slate-200">
-        체스 레이팅 배지
+        {t("overlay.font")}
+      </span>
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={expanded}
+        aria-controls="overlay-font-options"
+        onClick={() => setExpanded((current) => !current)}
+        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-left text-base text-white outline-none transition hover:border-white/25 focus-visible:border-emerald-400 focus-visible:ring-2 focus-visible:ring-emerald-400/30"
+      >
+        <span
+          className="min-w-0 truncate"
+          style={{ fontFamily: overlayFontFamilyValue(value) }}
+        >
+          {selectedLabel} - {previewText}
+        </span>
+        <ChevronDown
+          aria-hidden="true"
+          size={18}
+          className={`shrink-0 text-slate-400 transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {expanded ? (
+        <div
+          id="overlay-font-options"
+          role="listbox"
+          aria-label={t("overlay.fonts")}
+          className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto overscroll-contain rounded-md border border-white/10 bg-slate-950 py-1 shadow-xl shadow-black/40"
+        >
+          {FONT_FAMILY_OPTIONS.map((option) => {
+            const selected = option.value === value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onChange(option.value);
+                  setExpanded(false);
+                }}
+                className={`flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-base transition ${selected ? "bg-emerald-400/10 text-emerald-200" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
+              >
+                <span
+                  className="min-w-0 truncate"
+                  style={{ fontFamily: overlayFontFamilyValue(option.value) }}
+                >
+                  {option.value === "system"
+                    ? t("overlay.systemFont")
+                    : option.label}{" "}
+                  - {previewText}
+                </span>
+                {selected ? (
+                  <Check aria-hidden="true" size={17} className="shrink-0" />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function RatingProviderPolicySelect({
+  value,
+  onChange
+}: {
+  value: RatingProviderPolicy;
+  onChange: (value: RatingProviderPolicy) => void;
+}) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selectedLabel = t(`overlay.ratingPolicy.${value}`);
+
+  useEffect(() => {
+    if (!expanded) {
+      return;
+    }
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setExpanded(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setExpanded(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [expanded]);
+
+  return (
+    <div ref={containerRef} className="relative grid gap-2">
+      <span className="text-sm font-medium text-slate-200">
+        {t("overlay.ratingBadge")}
       </span>
       <button
         type="button"
@@ -1127,7 +1137,7 @@ function RatingProviderPolicySelect({
         <div
           id="overlay-rating-provider-options"
           role="listbox"
-          aria-label="체스 레이팅 배지 표시 방식"
+          aria-label={t("overlay.ratingBadge")}
           className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-white/10 bg-slate-950 py-1 shadow-xl shadow-black/40"
         >
           {RATING_PROVIDER_POLICY_OPTIONS.map((option) => {
@@ -1145,7 +1155,9 @@ function RatingProviderPolicySelect({
                 }}
                 className={`flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-base transition ${selected ? "bg-emerald-400/10 text-emerald-200" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
               >
-                <span className="min-w-0 truncate">{option.label}</span>
+                <span className="min-w-0 truncate">
+                  {t(`overlay.ratingPolicy.${option.value}`)}
+                </span>
                 {selected ? (
                   <Check aria-hidden="true" size={17} className="shrink-0" />
                 ) : null}
@@ -1188,9 +1200,9 @@ function readExpandedAppearanceSections(): ExpandedAppearanceSections {
   }
 }
 
-function toErrorState(error: unknown): SettingsState {
+function toErrorState(error: unknown, fallback: string): SettingsState {
   return {
     status: "error",
-    message: error instanceof Error ? error.message : "요청에 실패했습니다."
+    message: error instanceof Error ? error.message : fallback
   };
 }

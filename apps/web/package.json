@@ -13,9 +13,11 @@
     "@elobadge/core": "workspace:*",
     "@vitejs/plugin-react": "^6.0.3",
     "firebase": "^12.16.0",
+    "i18next": "^26.3.6",
     "lucide-react": "^1.24.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-i18next": "^17.0.11",
     "react-router-dom": "^7.18.1",
     "vite": "^8.1.4"
   },

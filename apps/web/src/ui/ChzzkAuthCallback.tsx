@@ -4,6 +4,7 @@ import { getFirebaseClientAuth } from "../firebase/client";
 import { getCurrentApiUser } from "../api/client";
 import type { LoginMode } from "@elobadge/core";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 type LoginState =
   | { status: "loading" }
@@ -22,6 +23,7 @@ interface LoginExchangeResponse {
 const pendingLogins = new Map<string, Promise<LoginExchangeResponse>>();
 
 export function AuthCallback() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [code] = useState(() =>
     new URLSearchParams(window.location.search).get("code")
@@ -29,7 +31,7 @@ export function AuthCallback() {
   const [state, setState] = useState<LoginState>(() =>
     code
       ? { status: "loading" }
-      : { status: "error", message: "로그인 코드가 없습니다." }
+      : { status: "error", message: t("authCallback.missingCode") }
   );
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function AuthCallback() {
       return;
     }
 
-    void completeLogin(code)
+    void completeLogin(code, t("authCallback.invalidCode"))
       .then((result) => {
         setState({
           status: "success",
@@ -47,34 +49,43 @@ export function AuthCallback() {
         void navigate(window.location.pathname, { replace: true });
       })
       .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : "로그인에 실패했습니다.";
+        const message = error instanceof Error
+          ? error.message
+          : t("authCallback.loginFailed");
         setState({ status: "error", message });
       });
-  }, [code, navigate]);
+  }, [code, navigate, t]);
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6">
       <section className="w-full max-w-md rounded-md bg-slate-900 p-6 ring-1 ring-white/10">
         {state.status === "loading" ? (
-          <p className="text-slate-200">방송 플랫폼 계정으로 로그인하고 있습니다.</p>
+          <p className="text-slate-200">{t("authCallback.loggingIn")}</p>
         ) : null}
         {state.status === "success" ? (
           <>
-            <h1 className="text-xl font-semibold text-white">계정 연결 완료</h1>
+            <h1 className="text-xl font-semibold text-white">
+              {t("authCallback.success")}
+            </h1>
             <p className="mt-2 text-slate-300">
-              {state.displayName} 계정을 {loginModeLabel(state.mode)} 모드로 연결했습니다.
+              {t("authCallback.successDescription", {
+                name: state.displayName,
+                role: t(`common.${state.mode}`)
+              })}
             </p>
             <Link
               to={`/${state.mode}`}
               className="mt-5 inline-flex rounded-md bg-emerald-500 px-4 py-2 font-semibold text-slate-950 transition hover:bg-emerald-400"
             >
-              계속하기
+              {t("authCallback.continue")}
             </Link>
           </>
         ) : null}
         {state.status === "error" ? (
           <>
-            <h1 className="text-xl font-semibold text-white">계정 연결 실패</h1>
+            <h1 className="text-xl font-semibold text-white">
+              {t("authCallback.failure")}
+            </h1>
             <p className="mt-2 text-red-300">{state.message}</p>
           </>
         ) : null}
@@ -83,14 +94,17 @@ export function AuthCallback() {
   );
 }
 
-function completeLogin(code: string): Promise<LoginExchangeResponse> {
+function completeLogin(
+  code: string,
+  invalidCodeMessage: string
+): Promise<LoginExchangeResponse> {
   const pendingLogin = pendingLogins.get(code);
 
   if (pendingLogin) {
     return pendingLogin;
   }
 
-  const login = exchangeLoginCode(code).then(async (result) => {
+  const login = exchangeLoginCode(code, invalidCodeMessage).then(async (result) => {
     await signInWithCustomToken(getFirebaseClientAuth(), result.customToken);
     await getCurrentApiUser();
     return result;
@@ -100,7 +114,10 @@ function completeLogin(code: string): Promise<LoginExchangeResponse> {
   return login;
 }
 
-async function exchangeLoginCode(code: string): Promise<LoginExchangeResponse> {
+async function exchangeLoginCode(
+  code: string,
+  invalidCodeMessage: string
+): Promise<LoginExchangeResponse> {
   const response = await fetch("/api/auth/firebase/exchange", {
     method: "POST",
     headers: {
@@ -112,7 +129,7 @@ async function exchangeLoginCode(code: string): Promise<LoginExchangeResponse> {
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok || !isLoginExchangeResponse(body)) {
-    throw new Error("로그인 코드가 만료되었거나 유효하지 않습니다.");
+    throw new Error(invalidCodeMessage);
   }
 
   return body;
@@ -131,10 +148,6 @@ function isLoginExchangeResponse(value: unknown): value is LoginExchangeResponse
     Boolean(response.user) &&
     typeof response.user?.displayName === "string"
   );
-}
-
-function loginModeLabel(mode: LoginMode) {
-  return mode === "streamer" ? "스트리머" : "시청자";
 }
 
 export const ChzzkAuthCallback = AuthCallback;

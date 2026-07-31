@@ -2,6 +2,7 @@ import type {
   PlatformBadgeVisibility,
   PlatformChatBadge
 } from "@elobadge/core";
+import { useTranslation } from "react-i18next";
 
 export function PlatformBadges({
   badges,
@@ -12,6 +13,7 @@ export function PlatformBadges({
   visibility: PlatformBadgeVisibility;
   lineHeight: number;
 }) {
+  const { t } = useTranslation();
   const visibleBadges = badges?.filter((badge) => visibility[badge.kind]);
 
   if (!visibleBadges?.length) {
@@ -22,7 +24,7 @@ export function PlatformBadges({
     <span
       className="mr-[0.45em] inline-flex items-center gap-1 align-top"
       style={{ height: `${lineHeight}em` }}
-      aria-label="플랫폼 배지"
+      aria-label={t("platformBadge")}
     >
       {visibleBadges.map((badge) => (
         <img

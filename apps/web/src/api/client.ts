@@ -7,6 +7,7 @@ import {
 } from "@elobadge/core";
 import { signOut } from "firebase/auth";
 import { getFirebaseClientAuth } from "../firebase/client";
+import i18n from "../i18n";
 
 export async function authenticatedFetch(
   input: RequestInfo | URL,
@@ -17,12 +18,13 @@ export async function authenticatedFetch(
   const user = auth.currentUser;
 
   if (!user) {
-    throw new Error("EloBadge 로그인이 필요합니다.");
+    throw new Error(i18n.t("api.signInRequired"));
   }
 
   const idToken = await user.getIdToken();
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${idToken}`);
+  headers.set("Accept-Language", i18n.resolvedLanguage ?? i18n.language);
 
   const response = await fetch(input, {
     ...init,
@@ -550,7 +552,7 @@ export async function getCurrentApiUser(): Promise<CurrentApiUser> {
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok || !isCurrentUserResponse(body)) {
-    throw new Error("서버 로그인 확인에 실패했습니다.");
+    throw new Error(i18n.t("api.serverLoginFailed"));
   }
 
   return body.user;
@@ -561,7 +563,7 @@ export async function getAdminStatus(): Promise<AdminStatus> {
   const body: unknown = await response.json().catch(() => null);
 
   if (response.status === 403) {
-    throw new Error("관리자 권한이 없는 계정입니다.");
+    throw new Error(i18n.t("api.adminRequired"));
   }
   if (!response.ok || !isAdminStatusResponse(body)) {
     throw new Error(apiError(body, "운영 현황을 불러오지 못했습니다."));
@@ -592,7 +594,7 @@ export async function getOverlayAccess(): Promise<OverlayAccess | null> {
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok || !isOverlayResponse(body)) {
-    throw new Error("오버레이 정보를 불러오지 못했습니다.");
+    throw new Error(i18n.t("api.overlayLoadFailed"));
   }
 
   return body.overlay;
@@ -1005,14 +1007,17 @@ function isChessBadgePreferenceResponse(value: unknown): value is {
 }
 
 function apiError(value: unknown, fallback: string): string {
+  const english = i18n.resolvedLanguage === "en";
+
   if (
     value &&
     typeof value === "object" &&
     "error" in value &&
-    typeof value.error === "string"
+    typeof value.error === "string" &&
+    (!english || !/[가-힣]/.test(value.error))
   ) {
     return value.error;
   }
 
-  return fallback;
+  return english ? i18n.t("api.requestFailed") : fallback;
 }
