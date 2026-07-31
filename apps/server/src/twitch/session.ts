@@ -1,14 +1,17 @@
 import type {
   ChatAuthorKind,
   ChatEmote,
-  ChatOverlayEvent
+  ChatOverlayEvent,
+  PlatformBadgeKind,
+  PlatformChatBadge
 } from "@elobadge/core";
 import type { FastifyBaseLogger } from "fastify";
 import { z } from "zod";
 import {
   createTwitchClient,
   TwitchClientError,
-  type TwitchAuthConfig
+  type TwitchAuthConfig,
+  type TwitchChatBadge
 } from "../auth/twitch/client.js";
 import { ratingBadgeCache } from "../chess/badge-cache.js";
 import { platformUserCache } from "../chess/platform-user-cache.js";
@@ -103,6 +106,11 @@ export interface TwitchSessionDependencies {
     broadcasterUserId: string,
     sessionId: string
   ): Promise<void>;
+  loadChatBadges(
+    config: TwitchAuthConfig,
+    accessToken: string,
+    broadcasterUserId: string
+  ): Promise<TwitchChatBadge[]>;
   getRatingBadge(chatterUserId: string): Promise<ChzzkChessBadgeState>;
   getCachedRatingBadge(chatterUserId: string): Promise<ChzzkChessBadgeState | null>;
   publish(ownerUid: string, event: ChatOverlayEvent): void;
@@ -118,6 +126,8 @@ const defaultDependencies: TwitchSessionDependencies = {
       sessionId
     );
   },
+  loadChatBadges: (config, accessToken, broadcasterUserId) =>
+    createTwitchClient(config).getChatBadges(accessToken, broadcasterUserId),
   getRatingBadge: loadTwitchRatingBadge,
   getCachedRatingBadge: getCachedTwitchRatingBadge,
   publish: publishChatOverlayEvent,
@@ -136,6 +146,8 @@ export class TwitchSession {
   private logger: FastifyBaseLogger | null = null;
   private broadcasterUserId: string | null = null;
   private readonly seenMessageIds = new Set<string>();
+  private readonly chatBadges = new Map<string, TwitchChatBadge>();
+  private badgeLoadGeneration = 0;
   private status: TwitchSessionStatus = emptyStatus();
 
   constructor(
@@ -160,6 +172,7 @@ export class TwitchSession {
       health: "connecting",
       startedAt: new Date().toISOString()
     };
+    this.loadChatBadges(config, accessToken, broadcasterUserId);
     this.connect(config.eventSubWebSocketUrl || DEFAULT_EVENTSUB_URL, false);
     return this.getStatus();
   }
@@ -178,6 +191,8 @@ export class TwitchSession {
     this.broadcasterUserId = null;
     this.logger = null;
     this.seenMessageIds.clear();
+    this.chatBadges.clear();
+    this.badgeLoadGeneration += 1;
   }
 
   updateAccessToken(accessToken: string): void {
@@ -418,6 +433,7 @@ export class TwitchSession {
         content: normalized.content,
         ratings: badgeState.badges,
         preferredChessProvider: badgeState.preferredProvider,
+        platformBadges: normalizeTwitchBadges(message.badges, this.chatBadges),
         emotes: normalized.emotes,
         authorKind: classifyTwitchAuthor(message),
         sentAt: messageTimestamp ?? new Date().toISOString(),
@@ -437,6 +453,38 @@ export class TwitchSession {
       },
       "Twitch chat overlay event published"
     );
+  }
+
+  private loadChatBadges(
+    config: TwitchAuthConfig,
+    accessToken: string,
+    broadcasterUserId: string
+  ) {
+    const generation = ++this.badgeLoadGeneration;
+    void this.dependencies
+      .loadChatBadges(config, accessToken, broadcasterUserId)
+      .then((badges) => {
+        if (!this.active || generation !== this.badgeLoadGeneration) {
+          return;
+        }
+        this.chatBadges.clear();
+        for (const badge of badges) {
+          this.chatBadges.set(`${badge.setId}:${badge.versionId}`, badge);
+        }
+        this.logger?.info(
+          { ownerUid: this.ownerUid, badgeCount: this.chatBadges.size },
+          "Twitch chat badge catalog loaded"
+        );
+      })
+      .catch((error: unknown) => {
+        if (!this.active || generation !== this.badgeLoadGeneration) {
+          return;
+        }
+        this.logger?.warn(
+          { ownerUid: this.ownerUid, errorType: safeErrorType(error) },
+          "Twitch chat badge catalog load failed"
+        );
+      });
   }
 
   private resetKeepalive(generation: number) {
@@ -633,6 +681,41 @@ function classifyTwitchAuthor(
     return "donator";
   }
   return "viewer";
+}
+
+function normalizeTwitchBadges(
+  eventBadges: z.infer<typeof badgeSchema>[],
+  catalog: ReadonlyMap<string, TwitchChatBadge>
+): PlatformChatBadge[] {
+  return eventBadges.flatMap((badge) => {
+    const resolved = catalog.get(`${badge.set_id}:${badge.id}`);
+    return resolved
+      ? [{
+          provider: "twitch" as const,
+          kind: classifyTwitchBadge(badge.set_id),
+          imageUrl: resolved.imageUrl
+        }]
+      : [];
+  });
+}
+
+function classifyTwitchBadge(setId: string): PlatformBadgeKind {
+  if (
+    ["broadcaster", "moderator", "vip", "staff", "admin", "global_mod"]
+      .includes(setId)
+  ) {
+    return "role";
+  }
+  if (["subscriber", "founder"].includes(setId)) {
+    return "subscription";
+  }
+  if (setId === "sub-gifter") {
+    return "subscription_gift";
+  }
+  if (["bits", "bits-leader", "cheerer"].includes(setId)) {
+    return "donation";
+  }
+  return "unknown";
 }
 
 async function webSocketMessageText(raw: unknown): Promise<string> {

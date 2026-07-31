@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   DEFAULT_OVERLAY_APPEARANCE,
-  type OverlayAppearance
+  type OverlayAppearance,
+  type StreamingPlatform
 } from "@elobadge/core";
 import { Radio } from "lucide-react";
 import { OverlayPreview } from "./OverlayPreview";
@@ -18,6 +19,13 @@ export function StreamerPage() {
   const [appearance, setAppearance] = useState<OverlayAppearance>({
     ...DEFAULT_OVERLAY_APPEARANCE
   });
+  const [connectedPlatforms, setConnectedPlatforms] = useState<
+    StreamingPlatform[]
+  >([]);
+  const handleConnectedPlatformsChange = useCallback(
+    (platforms: StreamingPlatform[]) => setConnectedPlatforms(platforms),
+    []
+  );
   return (
     <div>
       <header className="mb-8">
@@ -33,8 +41,14 @@ export function StreamerPage() {
       <LoginOptions mode="streamer" />
       {authStatus === "signed_in" ? (
         <>
-          <PlatformAccountSettings streamer />
-          <OverlaySettings onAppearanceChange={setAppearance} />
+          <PlatformAccountSettings
+            streamer
+            onConnectedPlatformsChange={handleConnectedPlatformsChange}
+          />
+          <OverlaySettings
+            onAppearanceChange={setAppearance}
+            connectedPlatforms={connectedPlatforms}
+          />
 
           <section className="max-w-2xl py-2">
             <h2 className="mb-4 text-lg font-semibold text-white">

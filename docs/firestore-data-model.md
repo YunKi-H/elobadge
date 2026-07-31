@@ -123,13 +123,27 @@ token fields. The current in-process refresh lock assumes one ECS server task.
     backgroundVisible: boolean;
     backgroundColor: string; // #RRGGBB
     backgroundOpacity: number; // integer from 0 through 100
-    chzzkBadgesVisible: boolean;
-    chzzkBadgeVisibility: {
-      role: boolean;
-      subscription: boolean;
-      donation: boolean;
-      subscription_gift: boolean;
-      unknown: boolean;
+    platformBadgeSettings: {
+      chzzk: {
+        visible: boolean;
+        visibility: {
+          role: boolean;
+          subscription: boolean;
+          donation: boolean;
+          subscription_gift: boolean;
+          unknown: boolean;
+        };
+      };
+      twitch: {
+        visible: boolean;
+        visibility: {
+          role: boolean;
+          subscription: boolean;
+          donation: boolean;
+          subscription_gift: boolean;
+          unknown: boolean;
+        };
+      };
     };
     nicknameVisible: boolean;
     nicknameColorMode: "fixed" | "by_user" | "by_role";
@@ -177,13 +191,11 @@ token fields. The current in-process refresh lock assumes one ECS server task.
 }
 ```
 
-Legacy theme documents without font settings use the system font at 18px,
-weight 400, and line height 1.4. Documents without `messageDurationSeconds` use
-20 seconds, documents without `chzzkBadgesVisible` show Chzzk badges, and
-documents without `nicknameRoleColors` or `messageRoleColors` use their default
-role palettes. Documents without `messageColorMode` keep using the single
-message color. The browser keeps at most the latest 30 messages regardless of
-the duration.
+Theme documents written before platform-specific badge settings used
+`platformBadgesVisible` and `platformBadgeVisibility`. The server reads that
+shared value for both Chzzk and Twitch until the theme is saved in the new
+`platformBadgeSettings` shape. The browser keeps at most the latest 30 messages
+regardless of the duration.
 
 The random document ID is the OBS browser-source token. It must be long enough
 to resist guessing and must be replaceable from the streamer dashboard. Rotation

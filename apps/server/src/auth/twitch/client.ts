@@ -31,6 +31,24 @@ const eventSubSubscriptionsSchema = z.object({
   )
 });
 
+const chatBadgesSchema = z.object({
+  data: z.array(
+    z.object({
+      set_id: z.string().min(1),
+      versions: z.array(
+        z.object({
+          id: z.string().min(1),
+          image_url_1x: z.string().url(),
+          image_url_2x: z.string().url(),
+          image_url_4x: z.string().url(),
+          title: z.string(),
+          description: z.string()
+        })
+      )
+    })
+  )
+});
+
 export interface TwitchAuthConfig {
   clientId: string;
   clientSecret: string;
@@ -59,6 +77,14 @@ export interface TwitchEventSubSubscription {
   status: string;
   type: string;
   version: string;
+}
+
+export interface TwitchChatBadge {
+  setId: string;
+  versionId: string;
+  imageUrl: string;
+  title: string;
+  description: string;
 }
 
 export type TwitchClientErrorCode =
@@ -277,6 +303,49 @@ export function createTwitchClient(
       }
 
       return subscription;
+    },
+
+    async getChatBadges(
+      accessToken: string,
+      broadcasterUserId: string
+    ): Promise<TwitchChatBadge[]> {
+      const headers = {
+        Authorization: `Bearer ${accessToken}`,
+        "Client-Id": config.clientId
+      };
+      const channelUrl = new URL("/helix/chat/badges", config.apiBaseUrl);
+      channelUrl.searchParams.set("broadcaster_id", broadcasterUserId);
+      const globalUrl = new URL("/helix/chat/badges/global", config.apiBaseUrl);
+      const [globalResponse, channelResponse] = await Promise.all([
+        requestJson(globalUrl, { headers }, "request_failed"),
+        requestJson(channelUrl, { headers }, "request_failed")
+      ]);
+      const globalBadges = chatBadgesSchema.safeParse(globalResponse);
+      const channelBadges = chatBadgesSchema.safeParse(channelResponse);
+
+      if (!globalBadges.success || !channelBadges.success) {
+        throw new TwitchClientError(
+          "invalid_response",
+          "Twitch returned an invalid chat badge response"
+        );
+      }
+
+      const badges = new Map<string, TwitchChatBadge>();
+      for (const badgeSet of [
+        ...globalBadges.data.data,
+        ...channelBadges.data.data
+      ]) {
+        for (const version of badgeSet.versions) {
+          badges.set(`${badgeSet.set_id}:${version.id}`, {
+            setId: badgeSet.set_id,
+            versionId: version.id,
+            imageUrl: version.image_url_2x,
+            title: version.title,
+            description: version.description
+          });
+        }
+      }
+      return [...badges.values()];
     },
 
     async revokeToken(accessToken: string): Promise<void> {

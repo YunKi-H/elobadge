@@ -146,6 +146,8 @@ export interface OverlayAppearance {
   backgroundOpacity: number;
   chzzkBadgesVisible: boolean;
   chzzkBadgeVisibility: PlatformBadgeVisibility;
+  twitchBadgesVisible: boolean;
+  twitchBadgeVisibility: PlatformBadgeVisibility;
   ratingProviderPolicy: RatingProviderPolicy;
   nicknameVisible: boolean;
   nicknameColorMode: NicknameColorMode;
@@ -168,6 +170,14 @@ export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
   backgroundOpacity: 90,
   chzzkBadgesVisible: true,
   chzzkBadgeVisibility: {
+    role: true,
+    subscription: true,
+    donation: true,
+    subscription_gift: true,
+    unknown: true
+  },
+  twitchBadgesVisible: true,
+  twitchBadgeVisibility: {
     role: true,
     subscription: true,
     donation: true,

@@ -54,6 +54,14 @@ const overlayAppearanceSchema = z.object({
     subscription_gift: true,
     unknown: true
   }),
+  twitchBadgesVisible: z.boolean().optional(),
+  twitchBadgeVisibility: z.object({
+    role: z.boolean(),
+    subscription: z.boolean(),
+    donation: z.boolean(),
+    subscription_gift: z.boolean(),
+    unknown: z.boolean()
+  }).optional(),
   ratingProviderPolicy: z.enum([
     "viewer_choice",
     "chesscom_only",
@@ -182,24 +190,32 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
         return reply.code(400).send({ error: "Invalid overlay appearance" });
       }
 
-      const appearance: OverlayAppearance = {
-        ...parsedAppearance.data,
-        backgroundColor: parsedAppearance.data.backgroundColor.toUpperCase(),
-        nicknameColor: parsedAppearance.data.nicknameColor.toUpperCase(),
-        nicknameRoleColors: Object.fromEntries(
-          Object.entries(parsedAppearance.data.nicknameRoleColors).map(
-            ([kind, color]) => [kind, color.toUpperCase()]
-          )
-        ) as OverlayAppearance["nicknameRoleColors"],
-        messageColor: parsedAppearance.data.messageColor.toUpperCase(),
-        messageRoleColors: Object.fromEntries(
-          Object.entries(parsedAppearance.data.messageRoleColors).map(
-            ([kind, color]) => [kind, color.toUpperCase()]
-          )
-        ) as OverlayAppearance["messageRoleColors"]
-      };
-
       try {
+        const currentOverlay = await getStreamerOverlayAccess(user.uid);
+        const appearance: OverlayAppearance = {
+          ...parsedAppearance.data,
+          twitchBadgesVisible:
+            parsedAppearance.data.twitchBadgesVisible ??
+            currentOverlay?.appearance.twitchBadgesVisible ??
+            parsedAppearance.data.chzzkBadgesVisible,
+          twitchBadgeVisibility:
+            parsedAppearance.data.twitchBadgeVisibility ??
+            currentOverlay?.appearance.twitchBadgeVisibility ??
+            parsedAppearance.data.chzzkBadgeVisibility,
+          backgroundColor: parsedAppearance.data.backgroundColor.toUpperCase(),
+          nicknameColor: parsedAppearance.data.nicknameColor.toUpperCase(),
+          nicknameRoleColors: Object.fromEntries(
+            Object.entries(parsedAppearance.data.nicknameRoleColors).map(
+              ([kind, color]) => [kind, color.toUpperCase()]
+            )
+          ) as OverlayAppearance["nicknameRoleColors"],
+          messageColor: parsedAppearance.data.messageColor.toUpperCase(),
+          messageRoleColors: Object.fromEntries(
+            Object.entries(parsedAppearance.data.messageRoleColors).map(
+              ([kind, color]) => [kind, color.toUpperCase()]
+            )
+          ) as OverlayAppearance["messageRoleColors"]
+        };
         const overlay = await updateStreamerOverlayAppearance(user.uid, appearance);
         publishOverlayAppearance(overlay.publicToken, appearance);
         return { ok: true, overlay: toOverlayResponse(overlay) };

@@ -153,6 +153,53 @@ test("creates a channel chat EventSub WebSocket subscription", async () => {
   assert.equal(subscription.id, "subscription-1");
 });
 
+test("loads and merges global and channel Twitch chat badges", async () => {
+  const requests: string[] = [];
+  const client = createTwitchClient(config, async (input) => {
+    const url = String(input);
+    requests.push(url);
+    const isGlobal = url.endsWith("/helix/chat/badges/global");
+    return jsonResponse({
+      data: [{
+        set_id: isGlobal ? "moderator" : "subscriber",
+        versions: [{
+          id: isGlobal ? "1" : "3",
+          image_url_1x: `https://static.twitch.test/${isGlobal ? "mod" : "sub"}-1x.png`,
+          image_url_2x: `https://static.twitch.test/${isGlobal ? "mod" : "sub"}-2x.png`,
+          image_url_4x: `https://static.twitch.test/${isGlobal ? "mod" : "sub"}-4x.png`,
+          title: isGlobal ? "Moderator" : "3-Month Subscriber",
+          description: "Badge description",
+          click_action: null,
+          click_url: null
+        }]
+      }]
+    });
+  });
+
+  const badges = await client.getChatBadges("access-token", "broadcaster-1");
+
+  assert.deepEqual(requests.sort(), [
+    "https://api.twitch.test/helix/chat/badges/global",
+    "https://api.twitch.test/helix/chat/badges?broadcaster_id=broadcaster-1"
+  ]);
+  assert.deepEqual(badges, [
+    {
+      setId: "moderator",
+      versionId: "1",
+      imageUrl: "https://static.twitch.test/mod-2x.png",
+      title: "Moderator",
+      description: "Badge description"
+    },
+    {
+      setId: "subscriber",
+      versionId: "3",
+      imageUrl: "https://static.twitch.test/sub-2x.png",
+      title: "3-Month Subscriber",
+      description: "Badge description"
+    }
+  ]);
+});
+
 test("revokes a temporary Twitch access token", async () => {
   let requestBody = "";
   const client = createTwitchClient(config, async (_input, init) => {

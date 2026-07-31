@@ -139,6 +139,8 @@ export function parseOverlayAppearanceEvent(
     appearance.backgroundOpacity > 100 ||
     typeof appearance.chzzkBadgesVisible !== "boolean" ||
     !isChzzkBadgeVisibility(appearance.chzzkBadgeVisibility) ||
+    typeof appearance.twitchBadgesVisible !== "boolean" ||
+    !isChzzkBadgeVisibility(appearance.twitchBadgeVisibility) ||
     (appearance.ratingProviderPolicy !== "viewer_choice" &&
       appearance.ratingProviderPolicy !== "chesscom_only" &&
       appearance.ratingProviderPolicy !== "lichess_only" &&
@@ -184,6 +186,8 @@ export function parseOverlayAppearanceEvent(
     backgroundOpacity: appearance.backgroundOpacity,
     chzzkBadgesVisible: appearance.chzzkBadgesVisible,
     chzzkBadgeVisibility: { ...appearance.chzzkBadgeVisibility },
+    twitchBadgesVisible: appearance.twitchBadgesVisible,
+    twitchBadgeVisibility: { ...appearance.twitchBadgeVisibility },
     ratingProviderPolicy: appearance.ratingProviderPolicy,
     nicknameVisible: appearance.nicknameVisible,
     nicknameColorMode: appearance.nicknameColorMode,

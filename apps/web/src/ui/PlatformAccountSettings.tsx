@@ -23,6 +23,7 @@ import {
   type TwitchStreamerAuthorization
 } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
+import type { StreamingPlatform } from "@elobadge/core";
 
 type State =
   | { status: "loading" }
@@ -36,9 +37,11 @@ type State =
   | { status: "error"; message: string };
 
 export function PlatformAccountSettings({
-  streamer = false
+  streamer = false,
+  onConnectedPlatformsChange
 }: {
   streamer?: boolean;
+  onConnectedPlatformsChange?: (platforms: StreamingPlatform[]) => void;
 } = {}) {
   const { t } = useTranslation();
   const [state, setState] = useState<State>({ status: "loading" });
@@ -50,6 +53,20 @@ export function PlatformAccountSettings({
     tone: "success" | "error";
     message: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (state.status === "ready") {
+      const platforms = streamer
+        ? [
+            state.chzzkAuthorization?.connected ? "chzzk" : null,
+            state.twitchAuthorization?.connected ? "twitch" : null
+          ].filter((platform): platform is StreamingPlatform => platform !== null)
+        : state.accounts.map((account) => account.platform);
+      onConnectedPlatformsChange?.([...new Set(platforms)]);
+    } else if (state.status === "signed_out") {
+      onConnectedPlatformsChange?.([]);
+    }
+  }, [onConnectedPlatformsChange, state, streamer]);
 
   useEffect(() =>
     onAuthStateChanged(getFirebaseClientAuth(), (user) => {

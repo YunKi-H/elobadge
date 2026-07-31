@@ -145,13 +145,18 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
                 lineHeight: appearance.fontLineHeight
               }}
             >
-              {appearance.chzzkBadgesVisible ? (
-                <PlatformBadges
-                  badges={message.platformBadges}
-                  visibility={appearance.chzzkBadgeVisibility}
-                  lineHeight={appearance.fontLineHeight}
-                />
-              ) : null}
+              <PlatformBadges
+                badges={message.platformBadges}
+                visibilityByPlatform={{
+                  chzzk: appearance.chzzkBadgesVisible
+                    ? appearance.chzzkBadgeVisibility
+                    : undefined,
+                  twitch: appearance.twitchBadgesVisible
+                    ? appearance.twitchBadgeVisibility
+                    : undefined
+                }}
+                lineHeight={appearance.fontLineHeight}
+              />
               {resolvedRating ? (
                 <RatingBadge
                   rating={resolvedRating}

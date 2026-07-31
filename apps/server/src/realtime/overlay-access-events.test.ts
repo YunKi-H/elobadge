@@ -47,6 +47,14 @@ test("overlay appearance updates are scoped to one public token", () => {
       subscription_gift: false,
       unknown: true
     },
+    twitchBadgesVisible: true,
+    twitchBadgeVisibility: {
+      role: true,
+      subscription: true,
+      donation: false,
+      subscription_gift: false,
+      unknown: true
+    },
     nicknameVisible: false,
     nicknameColorMode: "by_user",
     nicknameColor: "#7DD3FC",

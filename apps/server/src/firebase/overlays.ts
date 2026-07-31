@@ -128,14 +128,10 @@ export async function updateStreamerOverlayAppearance(
       throw new StreamerOverlayAccessError();
     }
 
-    transaction.set(
-      overlayRef,
-      {
-        theme: toStoredOverlayTheme(appearance),
-        updatedAt: FieldValue.serverTimestamp()
-      },
-      { merge: true }
-    );
+    transaction.update(overlayRef, {
+      theme: toStoredOverlayTheme(appearance),
+      updatedAt: FieldValue.serverTimestamp()
+    });
 
     return { publicToken, active: data.active, appearance };
   });
@@ -168,9 +164,23 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
   }
 
   const appearance = value as Record<string, unknown>;
-  const platformBadgeVisibility = parsePlatformBadgeVisibility(
+  const platformBadgeSettings = parsePlatformBadgeSettings(
+    appearance.platformBadgeSettings
+  );
+  const legacyPlatformBadgeVisibility = parsePlatformBadgeVisibility(
     appearance.platformBadgeVisibility
   );
+  const legacyPlatformBadgesVisible = appearance.platformBadgesVisible;
+  const chzzkBadgeSettings = platformBadgeSettings?.chzzk ?? (
+    typeof legacyPlatformBadgesVisible === "boolean" &&
+    legacyPlatformBadgeVisibility
+      ? {
+          visible: legacyPlatformBadgesVisible,
+          visibility: legacyPlatformBadgeVisibility
+        }
+      : null
+  );
+  const twitchBadgeSettings = platformBadgeSettings?.twitch ?? chzzkBadgeSettings;
   const nicknameRoleColors = parseRoleColors(
     appearance.nicknameRoleColors,
     DEFAULT_OVERLAY_APPEARANCE.nicknameRoleColors
@@ -191,8 +201,8 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
     !Number.isInteger(appearance.backgroundOpacity) ||
     appearance.backgroundOpacity < 0 ||
     appearance.backgroundOpacity > 100 ||
-    typeof appearance.platformBadgesVisible !== "boolean" ||
-    !platformBadgeVisibility ||
+    !chzzkBadgeSettings ||
+    !twitchBadgeSettings ||
     !isRatingProviderPolicy(appearance.ratingProviderPolicy) ||
     typeof appearance.nicknameVisible !== "boolean" ||
     !isNicknameColorMode(appearance.nicknameColorMode) ||
@@ -218,8 +228,10 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
     backgroundVisible: appearance.backgroundVisible,
     backgroundColor: appearance.backgroundColor.toUpperCase(),
     backgroundOpacity: appearance.backgroundOpacity,
-    chzzkBadgesVisible: appearance.platformBadgesVisible,
-    chzzkBadgeVisibility: platformBadgeVisibility,
+    chzzkBadgesVisible: chzzkBadgeSettings.visible,
+    chzzkBadgeVisibility: chzzkBadgeSettings.visibility,
+    twitchBadgesVisible: twitchBadgeSettings.visible,
+    twitchBadgeVisibility: twitchBadgeSettings.visibility,
     ratingProviderPolicy: appearance.ratingProviderPolicy,
     nicknameVisible: appearance.nicknameVisible,
     nicknameColorMode: appearance.nicknameColorMode,
@@ -242,14 +254,53 @@ export function toStoredOverlayTheme(
   const {
     chzzkBadgesVisible,
     chzzkBadgeVisibility,
+    twitchBadgesVisible,
+    twitchBadgeVisibility,
     ...commonAppearance
   } = appearance;
 
   return {
     ...commonAppearance,
-    platformBadgesVisible: chzzkBadgesVisible,
-    platformBadgeVisibility: { ...chzzkBadgeVisibility }
+    platformBadgeSettings: {
+      chzzk: {
+        visible: chzzkBadgesVisible,
+        visibility: { ...chzzkBadgeVisibility }
+      },
+      twitch: {
+        visible: twitchBadgesVisible,
+        visibility: { ...twitchBadgeVisibility }
+      }
+    }
   };
+}
+
+function parsePlatformBadgeSettings(value: unknown): {
+  chzzk: PlatformBadgeSettings;
+  twitch: PlatformBadgeSettings;
+} | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const settings = value as Record<string, unknown>;
+  const chzzk = parsePlatformBadgeSetting(settings.chzzk);
+  const twitch = parsePlatformBadgeSetting(settings.twitch);
+  return chzzk && twitch ? { chzzk, twitch } : null;
+}
+
+interface PlatformBadgeSettings {
+  visible: boolean;
+  visibility: OverlayAppearance["chzzkBadgeVisibility"];
+}
+
+function parsePlatformBadgeSetting(value: unknown): PlatformBadgeSettings | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const setting = value as Record<string, unknown>;
+  const visibility = parsePlatformBadgeVisibility(setting.visibility);
+  return typeof setting.visible === "boolean" && visibility
+    ? { visible: setting.visible, visibility }
+    : null;
 }
 
 function parsePlatformBadgeVisibility(

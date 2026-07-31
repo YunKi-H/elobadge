@@ -203,7 +203,11 @@ const resources = {
         },
         forcedProviderNotice:
           "특정 플랫폼을 선택하면 해당 계정을 연결하지 않은 시청자의 체스 배지는 표시하지 않습니다.",
-        allPlatformBadges: "치지직 배지 전체 표시",
+        allPlatformBadges: "전체 표시",
+        platformBadges: {
+          chzzk: "치지직 배지",
+          twitch: "Twitch 배지"
+        },
         visibleBadges: "표시할 배지",
         badgeKind: {
           role: "스트리머·매니저",
@@ -211,6 +215,13 @@ const resources = {
           donation: "후원",
           subscription_gift: "구독 선물",
           unknown: "기타"
+        },
+        twitchBadgeKind: {
+          role: "스트리머·매니저·VIP",
+          subscription: "구독·창립자",
+          donation: "Bits",
+          subscription_gift: "구독 선물",
+          unknown: "글로벌·기타"
         },
         backgroundVisible: "배경 표시",
         backgroundColor: "배경 색상",
@@ -500,7 +511,11 @@ const resources = {
         },
         forcedProviderNotice:
           "When a specific platform is selected, viewers without that account will not receive a chess badge.",
-        allPlatformBadges: "Show all Chzzk badges",
+        allPlatformBadges: "Show all",
+        platformBadges: {
+          chzzk: "Chzzk badges",
+          twitch: "Twitch badges"
+        },
         visibleBadges: "Visible badges",
         badgeKind: {
           role: "Streamer and manager",
@@ -508,6 +523,13 @@ const resources = {
           donation: "Donation",
           subscription_gift: "Subscription gift",
           unknown: "Other"
+        },
+        twitchBadgeKind: {
+          role: "Broadcaster, moderator, and VIP",
+          subscription: "Subscriber and founder",
+          donation: "Bits",
+          subscription_gift: "Subscription gift",
+          unknown: "Global and other"
         },
         backgroundVisible: "Show background",
         backgroundColor: "Background color",

@@ -8,7 +8,8 @@ import {
   type OverlayFontWeight,
   type OverlayMessageDurationSeconds,
   type PlatformBadgeKind,
-  type RatingProviderPolicy
+  type RatingProviderPolicy,
+  type StreamingPlatform
 } from "@elobadge/core";
 import {
   BadgeCheck,
@@ -150,7 +151,7 @@ const CHAT_AUTHOR_KIND_OPTIONS: ReadonlyArray<{
   { kind: "viewer", label: "일반 시청자" }
 ];
 
-const CHZZK_BADGE_KIND_OPTIONS: ReadonlyArray<{
+const PLATFORM_BADGE_KIND_OPTIONS: ReadonlyArray<{
   kind: PlatformBadgeKind;
   label: string;
 }> = [
@@ -162,9 +163,11 @@ const CHZZK_BADGE_KIND_OPTIONS: ReadonlyArray<{
 ];
 
 export function OverlaySettings({
-  onAppearanceChange
+  onAppearanceChange,
+  connectedPlatforms = []
 }: {
   onAppearanceChange: (appearance: OverlayAppearance) => void;
+  connectedPlatforms?: StreamingPlatform[];
 }) {
   const { t } = useTranslation();
   const [state, setState] = useState<SettingsState>({ status: "loading" });
@@ -278,18 +281,34 @@ export function OverlaySettings({
     });
   };
 
-  const updateBadgeVisibility = (kind: PlatformBadgeKind, visible: boolean) => {
+  const updateBadgeVisibility = (
+    platform: StreamingPlatform,
+    kind: PlatformBadgeKind,
+    visible: boolean
+  ) => {
     if (!overlay) {
       return;
     }
 
+    const visibilityKey = platform === "chzzk"
+      ? "chzzkBadgeVisibility"
+      : "twitchBadgeVisibility";
     updateAppearanceDraft({
-      chzzkBadgeVisibility: {
-        ...overlay.appearance.chzzkBadgeVisibility,
+      [visibilityKey]: {
+        ...overlay.appearance[visibilityKey],
         [kind]: visible
       }
     });
   };
+
+  const updatePlatformBadgesVisible = (
+    platform: StreamingPlatform,
+    visible: boolean
+  ) => updateAppearanceDraft(
+    platform === "chzzk"
+      ? { chzzkBadgesVisible: visible }
+      : { twitchBadgesVisible: visible }
+  );
 
   return (
     <section className="mb-10 max-w-2xl border-y border-white/10 py-6">
@@ -479,50 +498,23 @@ export function OverlaySettings({
                   {t("overlay.forcedProviderNotice")}
                 </p>
 
-                <div className="space-y-5 border-t border-white/10 pt-5">
-                  <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
-                    {t("overlay.allPlatformBadges")}
-                    <input
-                      type="checkbox"
-                      checked={overlay.appearance.chzzkBadgesVisible}
-                      onChange={(event) =>
-                        updateAppearanceDraft({
-                          chzzkBadgesVisible: event.target.checked
-                        })
-                      }
-                      className="size-4 accent-emerald-500"
-                    />
-                  </label>
-
-                  <fieldset
-                    disabled={!overlay.appearance.chzzkBadgesVisible}
-                    className="disabled:opacity-40"
-                  >
-                    <legend className="mb-3 text-sm font-medium text-slate-200">
-                      {t("overlay.visibleBadges")}
-                    </legend>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {CHZZK_BADGE_KIND_OPTIONS.map(({ kind }) => (
-                        <label
-                          key={kind}
-                          className="flex h-10 items-center justify-between gap-3 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-slate-300"
-                        >
-                          {t(`overlay.badgeKind.${kind}`)}
-                          <input
-                            type="checkbox"
-                            checked={
-                              overlay.appearance.chzzkBadgeVisibility[kind]
-                            }
-                            onChange={(event) =>
-                              updateBadgeVisibility(kind, event.target.checked)
-                            }
-                            className="size-4 accent-emerald-500"
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                </div>
+                {connectedPlatforms.length > 0 ? (
+                  <div className="space-y-6 border-t border-white/10 pt-5">
+                    {connectedPlatforms.map((platform) => (
+                      <PlatformBadgeSettings
+                        key={platform}
+                        platform={platform}
+                        appearance={overlay.appearance}
+                        onVisibleChange={(visible) =>
+                          updatePlatformBadgesVisible(platform, visible)
+                        }
+                        onKindChange={(kind, visible) =>
+                          updateBadgeVisibility(platform, kind, visible)
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : null}
             </SettingsDisclosure>
 
             <SettingsDisclosure
@@ -918,6 +910,70 @@ export function OverlaySettings({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function PlatformBadgeSettings({
+  platform,
+  appearance,
+  onVisibleChange,
+  onKindChange
+}: {
+  platform: StreamingPlatform;
+  appearance: OverlayAppearance;
+  onVisibleChange: (visible: boolean) => void;
+  onKindChange: (kind: PlatformBadgeKind, visible: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const visible = platform === "chzzk"
+    ? appearance.chzzkBadgesVisible
+    : appearance.twitchBadgesVisible;
+  const visibility = platform === "chzzk"
+    ? appearance.chzzkBadgeVisibility
+    : appearance.twitchBadgeVisibility;
+  const kindTranslation = platform === "chzzk"
+    ? "overlay.badgeKind"
+    : "overlay.twitchBadgeKind";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="text-sm font-semibold text-white">
+          {t(`overlay.platformBadges.${platform}`)}
+        </h3>
+        <label className="flex shrink-0 items-center gap-2 text-sm text-slate-300">
+          {t("overlay.allPlatformBadges")}
+          <input
+            type="checkbox"
+            checked={visible}
+            onChange={(event) => onVisibleChange(event.target.checked)}
+            className="size-4 accent-emerald-500"
+          />
+        </label>
+      </div>
+
+      <fieldset disabled={!visible} className="disabled:opacity-40">
+        <legend className="mb-3 text-sm font-medium text-slate-200">
+          {t("overlay.visibleBadges")}
+        </legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {PLATFORM_BADGE_KIND_OPTIONS.map(({ kind }) => (
+            <label
+              key={kind}
+              className="flex h-10 items-center justify-between gap-3 rounded-md border border-white/10 bg-slate-950 px-3 text-sm text-slate-300"
+            >
+              {t(`${kindTranslation}.${kind}`)}
+              <input
+                type="checkbox"
+                checked={visibility[kind]}
+                onChange={(event) => onKindChange(kind, event.target.checked)}
+                className="size-4 accent-emerald-500"
+              />
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    </div>
   );
 }
 

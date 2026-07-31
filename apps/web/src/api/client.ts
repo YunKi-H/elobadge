@@ -817,6 +817,8 @@ function isOverlayAppearance(value: unknown): value is OverlayAppearance {
     appearance.backgroundOpacity <= 100 &&
     typeof appearance.chzzkBadgesVisible === "boolean" &&
     isChzzkBadgeVisibility(appearance.chzzkBadgeVisibility) &&
+    typeof appearance.twitchBadgesVisible === "boolean" &&
+    isChzzkBadgeVisibility(appearance.twitchBadgeVisibility) &&
     (appearance.ratingProviderPolicy === "viewer_choice" ||
       appearance.ratingProviderPolicy === "chesscom_only" ||
       appearance.ratingProviderPolicy === "lichess_only" ||

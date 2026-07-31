@@ -953,7 +953,7 @@ test("enabling an invalid legacy overlay replaces it with current defaults", asy
         .collection("overlays")
         .doc(replacement.publicToken)
         .get()
-    ).get("theme.platformBadgesVisible"),
+    ).get("theme.platformBadgeSettings.chzzk.visible"),
     true
   );
 });
@@ -965,7 +965,14 @@ test("overlay appearance persists and survives public token rotation", async () 
 
   const initial = await enableStreamerOverlayAccess(uid);
   const initialTheme = await db.collection("overlays").doc(initial.publicToken).get();
-  assert.equal(initialTheme.get("theme.platformBadgesVisible"), true);
+  assert.equal(
+    initialTheme.get("theme.platformBadgeSettings.chzzk.visible"),
+    true
+  );
+  assert.equal(
+    initialTheme.get("theme.platformBadgeSettings.twitch.visible"),
+    true
+  );
   assert.equal(initialTheme.get("theme.chzzkBadgesVisible"), undefined);
   assert.deepEqual(initial.appearance, {
     messageMaxWidthPx: 600,
@@ -974,6 +981,14 @@ test("overlay appearance persists and survives public token rotation", async () 
     backgroundOpacity: 90,
     chzzkBadgesVisible: true,
     chzzkBadgeVisibility: {
+      role: true,
+      subscription: true,
+      donation: true,
+      subscription_gift: true,
+      unknown: true
+    },
+    twitchBadgesVisible: true,
+    twitchBadgeVisibility: {
       role: true,
       subscription: true,
       donation: true,
@@ -1019,6 +1034,14 @@ test("overlay appearance persists and survives public token rotation", async () 
       donation: false,
       subscription_gift: true,
       unknown: false
+    },
+    twitchBadgesVisible: true,
+    twitchBadgeVisibility: {
+      role: true,
+      subscription: false,
+      donation: true,
+      subscription_gift: false,
+      unknown: true
     },
     ratingProviderPolicy: "lichess_only" as const,
     nicknameVisible: false,

@@ -76,6 +76,14 @@ test("overlay appearance accepts a complete valid document", () => {
         subscription_gift: true,
         unknown: false
       },
+      twitchBadgesVisible: false,
+      twitchBadgeVisibility: {
+        role: false,
+        subscription: true,
+        donation: false,
+        subscription_gift: true,
+        unknown: false
+      },
       ratingProviderPolicy: "viewer_choice",
       nicknameVisible: false,
       nicknameColorMode: "by_user",
@@ -105,9 +113,11 @@ test("overlay appearance accepts a complete valid document", () => {
   );
 });
 
-test("overlay appearance ignores legacy badge fields", () => {
+test("overlay appearance converts the previous shared badge settings", () => {
+  const commonTheme = toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE);
+  delete commonTheme.platformBadgeSettings;
   const storedTheme = {
-    ...toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE),
+    ...commonTheme,
     platformBadgesVisible: false,
     chzzkBadgesVisible: true,
     platformBadgeVisibility: {
@@ -135,6 +145,14 @@ test("overlay appearance ignores legacy badge fields", () => {
       donation: false,
       subscription_gift: true,
       unknown: false
+    },
+    twitchBadgesVisible: false,
+    twitchBadgeVisibility: {
+      role: false,
+      subscription: true,
+      donation: false,
+      subscription_gift: true,
+      unknown: false
     }
   });
 
@@ -148,14 +166,24 @@ test("overlay appearance ignores legacy badge fields", () => {
   );
 });
 
-test("stored overlay themes use only platform-neutral badge fields", () => {
+test("stored overlay themes keep separate platform badge settings", () => {
   const stored = toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE);
 
-  assert.equal(stored.platformBadgesVisible, true);
   assert.deepEqual(
-    stored.platformBadgeVisibility,
-    DEFAULT_OVERLAY_APPEARANCE.chzzkBadgeVisibility
+    stored.platformBadgeSettings,
+    {
+      chzzk: {
+        visible: true,
+        visibility: DEFAULT_OVERLAY_APPEARANCE.chzzkBadgeVisibility
+      },
+      twitch: {
+        visible: true,
+        visibility: DEFAULT_OVERLAY_APPEARANCE.twitchBadgeVisibility
+      }
+    }
   );
+  assert.equal("platformBadgesVisible" in stored, false);
+  assert.equal("platformBadgeVisibility" in stored, false);
   assert.equal("chzzkBadgesVisible" in stored, false);
   assert.equal("chzzkBadgeVisibility" in stored, false);
 });
@@ -172,7 +200,13 @@ test("overlay appearance rejects incomplete and invalid documents", () => {
   assert.equal(
     parseOverlayAppearance({
       ...toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE),
-      platformBadgeVisibility: { donation: false }
+      platformBadgeSettings: {
+        chzzk: { visible: true, visibility: { donation: false } },
+        twitch: {
+          visible: true,
+          visibility: DEFAULT_OVERLAY_APPEARANCE.twitchBadgeVisibility
+        }
+      }
     }),
     null
   );

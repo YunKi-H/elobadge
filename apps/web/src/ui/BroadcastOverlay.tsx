@@ -180,13 +180,18 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
               lineHeight: appearance.fontLineHeight
             }}
           >
-            {appearance.chzzkBadgesVisible ? (
-              <PlatformBadges
-                badges={message.platformBadges}
-                visibility={appearance.chzzkBadgeVisibility}
-                lineHeight={appearance.fontLineHeight}
-              />
-            ) : null}
+            <PlatformBadges
+              badges={message.platformBadges}
+              visibilityByPlatform={{
+                chzzk: appearance.chzzkBadgesVisible
+                  ? appearance.chzzkBadgeVisibility
+                  : undefined,
+                twitch: appearance.twitchBadgesVisible
+                  ? appearance.twitchBadgeVisibility
+                  : undefined
+              }}
+              lineHeight={appearance.fontLineHeight}
+            />
             {rating ? (
               <RatingBadge
                 rating={rating}

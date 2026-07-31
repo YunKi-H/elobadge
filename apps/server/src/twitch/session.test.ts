@@ -50,6 +50,11 @@ test("publishes Twitch chat with ratings, role, and emotes", async () => {
     provisional: false
   });
   assert.equal(published[0]?.authorKind, "subscriber");
+  assert.deepEqual(published[0]?.platformBadges, [{
+    provider: "twitch",
+    kind: "subscription",
+    imageUrl: "https://static.twitch.test/subscriber-3-2x.png"
+  }]);
   assert.equal(published[0]?.content, "hello {:twitch_emote_0:}");
   assert.match(
     published[0]?.emotes[0]?.imageUrl ?? "",
@@ -173,6 +178,13 @@ function dependencies(
       return socket as unknown as WebSocket;
     },
     subscribe,
+    loadChatBadges: async () => [{
+      setId: "subscriber",
+      versionId: "3",
+      imageUrl: "https://static.twitch.test/subscriber-3-2x.png",
+      title: "3-Month Subscriber",
+      description: "Subscribed for 3 months"
+    }],
     getRatingBadge: async () => ({
       badges: {
         chesscom: {
