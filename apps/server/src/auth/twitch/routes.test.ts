@@ -321,6 +321,7 @@ async function createApp(
     issueLoginCode: () => "firebase-login-code",
     saveStreamerAuthorization: async () => undefined,
     startStreamerSession: async () => undefined,
+    invalidatePlatformAccount: () => undefined,
     disconnectAccount: async () => 0,
     revokeToken: async () => undefined,
     webAppUrl: () => "https://elobadge.test",

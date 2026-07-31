@@ -42,6 +42,7 @@ import { getFirebaseAuth } from "../../firebase/admin.js";
 import { issueFirebaseLoginCode } from "../../firebase/login-exchange.js";
 import { upsertTwitchUser } from "../../firebase/users.js";
 import { TWITCH_STREAMER_SCOPES } from "../../firebase/twitch-tokens.js";
+import { platformUserCache } from "../../chess/platform-user-cache.js";
 
 const callbackQuerySchema = z.object({
   state: z.string().min(1),
@@ -83,6 +84,7 @@ export interface TwitchRouteDependencies {
     user: TwitchUser,
     logger: FastifyBaseLogger
   ): Promise<void>;
+  invalidatePlatformAccount(platformUserId: string): void;
   disconnectAccount(uid: string): Promise<number>;
   revokeToken(accessToken: string): Promise<void>;
   webAppUrl(): string;
@@ -181,6 +183,7 @@ export async function registerTwitchRoutes(
         const twitchUser = await dependencies.getCurrentUser(accessToken);
         if (pending.purpose === "login") {
           const uid = await dependencies.upsertLoginUser(twitchUser);
+          dependencies.invalidatePlatformAccount(twitchUser.id);
           if (pending.mode === "streamer") {
             await dependencies.saveStreamerAuthorization(uid, twitchUser, token);
             accessToken = null;
@@ -231,6 +234,7 @@ export async function registerTwitchRoutes(
             twitchUser,
             token
           );
+          dependencies.invalidatePlatformAccount(twitchUser.id);
           try {
             await dependencies.startStreamerSession(
               pending.uid,
@@ -245,6 +249,7 @@ export async function registerTwitchRoutes(
           }
         } else {
           await dependencies.saveAccount(pending.uid, twitchUser);
+          dependencies.invalidatePlatformAccount(twitchUser.id);
         }
         const streamerAuthorization = pending.purpose === "streamer_chat";
 
@@ -366,7 +371,13 @@ function defaultDependencies(): TwitchRouteDependencies {
         user.id,
         logger
       ),
+    invalidatePlatformAccount: (platformUserId) =>
+      platformUserCache.invalidate("twitch", platformUserId),
     disconnectAccount: async (uid) => {
+      const accounts = await listUserPlatformAccounts(uid);
+      const twitchAccountIds = accounts.flatMap((account) =>
+        account.platform === "twitch" ? [account.platformUserId] : []
+      );
       const tokens = await loadTwitchStreamerTokens(uid);
 
       if (tokens) {
@@ -385,7 +396,13 @@ function defaultDependencies(): TwitchRouteDependencies {
         await deleteTwitchStreamerTokens(uid);
       }
 
-      return deleteUserPlatformAccounts(uid, "twitch");
+      const disconnected = await deleteUserPlatformAccounts(uid, "twitch");
+      if (disconnected > 0) {
+        for (const platformUserId of twitchAccountIds) {
+          platformUserCache.invalidate("twitch", platformUserId);
+        }
+      }
+      return disconnected;
     },
     revokeToken: (accessToken) => getClient().revokeToken(accessToken),
     webAppUrl: getWebAppUrl

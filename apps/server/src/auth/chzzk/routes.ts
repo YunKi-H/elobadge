@@ -24,6 +24,7 @@ import {
 } from "../../firebase/users.js";
 import { OneTimeStore } from "../one-time-store.js";
 import { getRequiredFirebaseUser, requireFirebaseUser } from "../firebase.js";
+import { platformUserCache } from "../../chess/platform-user-cache.js";
 
 const callbackQuerySchema = z.object({
   code: z.string().min(1),
@@ -87,6 +88,7 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
     const token = await exchangeChzzkAuthorizationCode(config, code, state);
     const chzzkUser = await getChzzkCurrentUser(config, token.accessToken);
     const firebaseUid = await upsertChzzkUser(chzzkUser);
+    platformUserCache.invalidate("chzzk", chzzkUser.channelId);
 
     if (pendingLogin.mode === "streamer") {
       await registerChzzkStreamer(firebaseUid, chzzkUser);
