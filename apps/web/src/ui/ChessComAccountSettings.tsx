@@ -212,15 +212,8 @@ export function ChessComAccountSettings({
       <section className="border-y border-white/10 py-8">
         <h2 className="text-xl font-semibold text-white">Chess.com 계정</h2>
         <p className="mt-2 text-slate-300">
-          먼저 치지직 시청자 계정으로 로그인해야 합니다.
+          위에서 방송 플랫폼 계정으로 먼저 로그인하세요.
         </p>
-        <a
-          href="/api/auth/chzzk/start?mode=viewer"
-          className="mt-5 inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 font-semibold text-slate-950 transition hover:bg-emerald-400"
-        >
-          <Link aria-hidden="true" size={18} />
-          치지직으로 로그인
-        </a>
       </section>
     );
   }

@@ -12,6 +12,7 @@ import { OverlayPreview } from "./OverlayPreview";
 import { OverlaySettings } from "./OverlaySettings";
 import { AccountDeletion } from "./AccountDeletion";
 import { TwitchStreamerAuthorization } from "./TwitchStreamerAuthorization";
+import { LoginOptions } from "./LoginOptions";
 
 export function StreamerPage() {
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export function StreamerPage() {
         <h1 className="mt-2 text-2xl font-semibold text-white">방송 오버레이</h1>
       </header>
 
+      <LoginOptions mode="streamer" />
       <TwitchStreamerAuthorization />
       <OverlaySettings onAppearanceChange={setAppearance} />
 

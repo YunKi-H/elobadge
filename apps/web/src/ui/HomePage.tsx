@@ -7,7 +7,7 @@ export function HomePage() {
       <header className="max-w-2xl border-b border-white/10 pb-8">
         <h1 className="text-3xl font-semibold text-white">EloBadge</h1>
         <p className="mt-3 text-base leading-7 text-slate-300">
-          치지직 채팅에 시청자의 Chess.com 레이팅을 표시합니다.
+          치지직과 Twitch 채팅에 시청자의 체스 레이팅을 표시합니다.
         </p>
       </header>
 
@@ -16,7 +16,7 @@ export function HomePage() {
           <Radio className="text-emerald-300" aria-hidden="true" size={24} />
           <h2 className="mt-4 text-xl font-semibold text-white">방송 설정</h2>
           <p className="mt-2 text-sm leading-6 text-slate-400">
-            치지직 채팅을 연결하고 OBS 오버레이 주소를 관리합니다.
+            방송 채팅을 연결하고 범용 브라우저 소스 주소를 관리합니다.
           </p>
           <Link
             to="/streamer"
@@ -31,7 +31,8 @@ export function HomePage() {
           <UserRound className="text-sky-300" aria-hidden="true" size={24} />
           <h2 className="mt-4 text-xl font-semibold text-white">레이팅 연결</h2>
           <p className="mt-2 text-sm leading-6 text-slate-400">
-            치지직 계정과 Chess.com 계정을 연결하고 레이팅을 관리합니다.
+            방송 플랫폼 계정과 Chess.com·Lichess 계정을 연결해 레이팅을
+            관리합니다.
           </p>
           <Link
             to="/viewer"

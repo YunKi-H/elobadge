@@ -2,18 +2,18 @@ import { useEffect, useState } from "react";
 import { signInWithCustomToken } from "firebase/auth";
 import { getFirebaseClientAuth } from "../firebase/client";
 import { getCurrentApiUser } from "../api/client";
-import type { ChzzkLoginMode } from "@elobadge/core";
+import type { LoginMode } from "@elobadge/core";
 import { Link, useNavigate } from "react-router-dom";
 
 type LoginState =
   | { status: "loading" }
-  | { status: "success"; displayName: string; mode: ChzzkLoginMode }
+  | { status: "success"; displayName: string; mode: LoginMode }
   | { status: "error"; message: string };
 
 interface LoginExchangeResponse {
   ok: true;
   customToken: string;
-  mode: ChzzkLoginMode;
+  mode: LoginMode;
   user: {
     displayName: string;
   };
@@ -21,7 +21,7 @@ interface LoginExchangeResponse {
 
 const pendingLogins = new Map<string, Promise<LoginExchangeResponse>>();
 
-export function ChzzkAuthCallback() {
+export function AuthCallback() {
   const navigate = useNavigate();
   const [code] = useState(() =>
     new URLSearchParams(window.location.search).get("code")
@@ -44,7 +44,7 @@ export function ChzzkAuthCallback() {
           displayName: result.user.displayName,
           mode: result.mode
         });
-        void navigate("/auth/chzzk/callback", { replace: true });
+        void navigate(window.location.pathname, { replace: true });
       })
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : "로그인에 실패했습니다.";
@@ -56,7 +56,7 @@ export function ChzzkAuthCallback() {
     <main className="flex min-h-screen items-center justify-center px-6">
       <section className="w-full max-w-md rounded-md bg-slate-900 p-6 ring-1 ring-white/10">
         {state.status === "loading" ? (
-          <p className="text-slate-200">치지직 계정을 연결하고 있습니다.</p>
+          <p className="text-slate-200">방송 플랫폼 계정으로 로그인하고 있습니다.</p>
         ) : null}
         {state.status === "success" ? (
           <>
@@ -133,6 +133,8 @@ function isLoginExchangeResponse(value: unknown): value is LoginExchangeResponse
   );
 }
 
-function loginModeLabel(mode: ChzzkLoginMode) {
+function loginModeLabel(mode: LoginMode) {
   return mode === "streamer" ? "스트리머" : "시청자";
 }
+
+export const ChzzkAuthCallback = AuthCallback;

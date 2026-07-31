@@ -97,13 +97,6 @@ export async function registerFirebaseRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const user = getRequiredFirebaseUser(request);
 
-      if (
-        !user.chzzkChannelId ||
-        user.uid !== `chzzk:${user.chzzkChannelId}`
-      ) {
-        return reply.code(403).send({ error: "Chzzk identity required" });
-      }
-
       await accountDeletionService.deleteAccount(
         user.uid,
         user.chzzkChannelId,

@@ -5,6 +5,7 @@ import type {
   preHandlerAsyncHookHandler
 } from "fastify";
 import { z } from "zod";
+import type { LoginMode } from "@elobadge/core";
 import {
   getRequiredFirebaseUser,
   requireFirebaseUser
@@ -12,6 +13,7 @@ import {
 import { getWebAppUrl } from "../../config/web.js";
 import {
   deleteUserPlatformAccounts,
+  listUserPlatformAccounts,
   PlatformAccountConflictError,
   upsertPlatformAccount
 } from "../../firebase/platform-accounts.js";
@@ -36,11 +38,18 @@ import {
   type TwitchUser
 } from "./client.js";
 import { twitchSessionService } from "../../twitch/session-service.js";
+import { getFirebaseAuth } from "../../firebase/admin.js";
+import { issueFirebaseLoginCode } from "../../firebase/login-exchange.js";
+import { upsertTwitchUser } from "../../firebase/users.js";
+import { TWITCH_STREAMER_SCOPES } from "../../firebase/twitch-tokens.js";
 
 const callbackQuerySchema = z.object({
   state: z.string().min(1),
   code: z.string().min(1).optional(),
   error: z.string().min(1).optional()
+});
+const loginStartQuerySchema = z.object({
+  mode: z.enum(["streamer", "viewer"])
 });
 
 export interface TwitchRouteDependencies {
@@ -48,9 +57,22 @@ export interface TwitchRouteDependencies {
   issueState(value: PendingTwitchOAuth): string;
   consumeState(state: string): PendingTwitchOAuth | null;
   createAuthorizationUrl(state: string): URL;
+  createLoginAuthorizationUrl(state: string, mode: LoginMode): URL;
   exchangeCode(code: string): Promise<TwitchAccessToken>;
   getCurrentUser(accessToken: string): Promise<TwitchUser>;
   saveAccount(uid: string, user: TwitchUser): Promise<void>;
+  upsertLoginUser(user: TwitchUser): Promise<string>;
+  createFirebaseCustomToken(uid: string, twitchUserId: string): Promise<string>;
+  issueLoginCode(value: {
+    customToken: string;
+    mode: LoginMode;
+    user: {
+      uid: string;
+      provider: "twitch";
+      platformUserId: string;
+      displayName: string;
+    };
+  }): string;
   saveStreamerAuthorization(
     uid: string,
     user: TwitchUser,
@@ -70,6 +92,34 @@ export async function registerTwitchRoutes(
   app: FastifyInstance,
   dependencies: TwitchRouteDependencies = defaultDependencies()
 ) {
+  app.get(
+    "/api/auth/twitch/login/start",
+    {
+      config: {
+        rateLimit: { max: 10, timeWindow: "1 minute" }
+      }
+    },
+    async (request, reply) => {
+      const result = loginStartQuerySchema.safeParse(request.query);
+      if (!result.success) {
+        return reply.code(400).send({
+          error: "A valid Twitch login mode is required",
+          modes: ["streamer", "viewer"]
+        });
+      }
+
+      const state = dependencies.issueState({
+        purpose: "login",
+        mode: result.data.mode
+      });
+      return reply.redirect(
+        dependencies
+          .createLoginAuthorizationUrl(state, result.data.mode)
+          .toString()
+      );
+    }
+  );
+
   app.post(
     "/api/auth/twitch/start",
     {
@@ -129,6 +179,52 @@ export async function registerTwitchRoutes(
         const token = await dependencies.exchangeCode(result.data.code);
         accessToken = token.accessToken;
         const twitchUser = await dependencies.getCurrentUser(accessToken);
+        if (pending.purpose === "login") {
+          const uid = await dependencies.upsertLoginUser(twitchUser);
+          if (pending.mode === "streamer") {
+            await dependencies.saveStreamerAuthorization(uid, twitchUser, token);
+            accessToken = null;
+            try {
+              await dependencies.startStreamerSession(
+                uid,
+                twitchUser,
+                request.log
+              );
+            } catch (error) {
+              request.log.error(
+                { err: error, uid },
+                "Twitch chat session did not start after login"
+              );
+            }
+          }
+
+          const customToken = await dependencies.createFirebaseCustomToken(
+            uid,
+            twitchUser.id
+          );
+          const loginCode = dependencies.issueLoginCode({
+            customToken,
+            mode: pending.mode,
+            user: {
+              uid,
+              provider: "twitch",
+              platformUserId: twitchUser.id,
+              displayName: twitchUser.displayName
+            }
+          });
+          request.log.info(
+            {
+              uid,
+              twitchUserId: twitchUser.id,
+              mode: pending.mode
+            },
+            "Twitch OAuth login succeeded"
+          );
+          const callbackUrl = new URL("/auth/twitch/callback", dependencies.webAppUrl());
+          callbackUrl.searchParams.set("code", loginCode);
+          return reply.redirect(callbackUrl.toString());
+        }
+
         if (pending.purpose === "streamer_chat") {
           await dependencies.saveStreamerAuthorization(
             pending.uid,
@@ -175,7 +271,7 @@ export async function registerTwitchRoutes(
             ? "conflict"
             : "error";
         request.log.warn(
-          { err: error, uid: pending.uid },
+          { err: error, uid: "uid" in pending ? pending.uid : undefined },
           "Twitch account connection failed"
         );
         return redirectForPurpose(
@@ -190,7 +286,7 @@ export async function registerTwitchRoutes(
             await dependencies.revokeToken(accessToken);
           } catch (error) {
             request.log.warn(
-              { err: error, uid: pending.uid },
+              { err: error, uid: "uid" in pending ? pending.uid : undefined },
               "Temporary Twitch token revocation failed"
             );
           }
@@ -231,6 +327,12 @@ function defaultDependencies(): TwitchRouteDependencies {
     consumeState: consumeTwitchOAuthState,
     createAuthorizationUrl: (state) =>
       createTwitchAuthorizationUrl(getTwitchAuthConfig(), state),
+    createLoginAuthorizationUrl: (state, mode) =>
+      createTwitchAuthorizationUrl(
+        getTwitchAuthConfig(),
+        state,
+        mode === "streamer" ? TWITCH_STREAMER_SCOPES : ["openid"]
+      ),
     exchangeCode: (code) => getClient().exchangeCode(code),
     getCurrentUser: (accessToken) =>
       getClient().getCurrentUser(accessToken),
@@ -240,6 +342,22 @@ function defaultDependencies(): TwitchRouteDependencies {
         platformUserId: user.id,
         displayName: user.displayName
       }),
+    upsertLoginUser: (user) =>
+      upsertTwitchUser({ id: user.id, displayName: user.displayName }),
+    createFirebaseCustomToken: async (uid, twitchUserId) => {
+      const accounts = await listUserPlatformAccounts(uid);
+      const chzzkAccount = accounts.find(
+        (account) => account.platform === "chzzk"
+      );
+      return getFirebaseAuth().createCustomToken(uid, {
+        provider: "twitch",
+        twitchUserId,
+        ...(chzzkAccount
+          ? { chzzkChannelId: chzzkAccount.platformUserId }
+          : {})
+      });
+    },
+    issueLoginCode: issueFirebaseLoginCode,
     saveStreamerAuthorization: saveTwitchStreamerAuthorization,
     startStreamerSession: (uid, user, logger) =>
       twitchSessionService.startAfterAuthorization(
@@ -293,6 +411,11 @@ function redirectForPurpose(
   if (purpose === "streamer_chat") {
     const url = new URL("/streamer", webAppUrl);
     url.searchParams.set("twitchChat", result);
+    return reply.redirect(url.toString());
+  }
+  if (purpose === "login") {
+    const url = new URL("/", webAppUrl);
+    url.searchParams.set("twitchLogin", result);
     return reply.redirect(url.toString());
   }
 

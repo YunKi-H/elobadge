@@ -28,6 +28,96 @@ test("Twitch connection requires Firebase authentication", async () => {
   await app.close();
 });
 
+test("starts a Twitch viewer login without Firebase authentication", async () => {
+  let pending: Parameters<TwitchRouteDependencies["issueState"]>[0] | null = null;
+  let loginMode = "";
+  const app = await createApp({
+    issueState: (value) => {
+      pending = value;
+      return "login-state";
+    },
+    createLoginAuthorizationUrl: (state, mode) => {
+      loginMode = mode;
+      return new URL(`https://twitch.test/login?state=${state}`);
+    }
+  });
+  const response = await app.inject({
+    method: "GET",
+    url: "/api/auth/twitch/login/start?mode=viewer"
+  });
+
+  assert.equal(response.statusCode, 302);
+  assert.equal(response.headers.location, "https://twitch.test/login?state=login-state");
+  assert.deepEqual(pending, { purpose: "login", mode: "viewer" });
+  assert.equal(loginMode, "viewer");
+  await app.close();
+});
+
+test("creates a Firebase session after Twitch viewer login", async () => {
+  const operations: string[] = [];
+  const app = await createApp({
+    consumeState: () => ({ purpose: "login", mode: "viewer" }),
+    upsertLoginUser: async () => {
+      operations.push("upsert-user");
+      return "twitch:123456789";
+    },
+    createFirebaseCustomToken: async () => {
+      operations.push("custom-token");
+      return "firebase-token";
+    },
+    issueLoginCode: (value) => {
+      operations.push(`login-code:${value.user.provider}:${value.mode}`);
+      return "firebase-login-code";
+    },
+    revokeToken: async () => {
+      operations.push("revoke");
+    }
+  });
+  const response = await app.inject({
+    method: "GET",
+    url: "/api/auth/twitch/callback?code=code&state=state"
+  });
+
+  assert.equal(response.statusCode, 302);
+  assert.equal(
+    response.headers.location,
+    "https://elobadge.test/auth/twitch/callback?code=firebase-login-code"
+  );
+  assert.deepEqual(operations, [
+    "upsert-user",
+    "custom-token",
+    "login-code:twitch:viewer",
+    "revoke"
+  ]);
+  await app.close();
+});
+
+test("Twitch streamer login stores chat authorization and keeps its token", async () => {
+  const operations: string[] = [];
+  const app = await createApp({
+    consumeState: () => ({ purpose: "login", mode: "streamer" }),
+    upsertLoginUser: async () => "twitch:123456789",
+    saveStreamerAuthorization: async () => {
+      operations.push("save-streamer");
+    },
+    startStreamerSession: async () => {
+      operations.push("start-session");
+    },
+    createFirebaseCustomToken: async () => "firebase-token",
+    issueLoginCode: () => "firebase-login-code",
+    revokeToken: async () => {
+      operations.push("revoke");
+    }
+  });
+  await app.inject({
+    method: "GET",
+    url: "/api/auth/twitch/callback?code=code&state=state"
+  });
+
+  assert.deepEqual(operations, ["save-streamer", "start-session"]);
+  await app.close();
+});
+
 test("Twitch disconnection requires Firebase authentication", async () => {
   const app = await createApp();
   const response = await app.inject({
@@ -215,6 +305,8 @@ async function createApp(
     consumeState: () => null,
     createAuthorizationUrl: (state) =>
       new URL(`https://twitch.test/oauth?state=${state}`),
+    createLoginAuthorizationUrl: (state) =>
+      new URL(`https://twitch.test/login?state=${state}`),
     exchangeCode: async () => ({
       accessToken: "access-token",
       refreshToken: "refresh-token",
@@ -224,6 +316,9 @@ async function createApp(
     }),
     getCurrentUser: async () => twitchUser,
     saveAccount: async () => undefined,
+    upsertLoginUser: async () => "twitch:123456789",
+    createFirebaseCustomToken: async () => "firebase-token",
+    issueLoginCode: () => "firebase-login-code",
     saveStreamerAuthorization: async () => undefined,
     startStreamerSession: async () => undefined,
     disconnectAccount: async () => 0,

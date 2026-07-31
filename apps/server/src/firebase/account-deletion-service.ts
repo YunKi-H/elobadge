@@ -28,7 +28,7 @@ interface AccountDeletionDependencies {
   revokeToken: typeof revokeChzzkToken;
   deleteFirestoreData(
     uid: string,
-    chzzkChannelId: string
+    chzzkChannelId: string | null
   ): Promise<DeletedUserData>;
   deleteAuthUser(uid: string): Promise<void>;
   revokeOverlay(publicToken: string): void;
@@ -73,11 +73,11 @@ export class AccountDeletionService {
 
   async deleteAccount(
     uid: string,
-    chzzkChannelId: string,
+    chzzkChannelId: string | null,
     chzzkConfig: ChzzkAuthConfig,
     logger: FastifyBaseLogger
   ): Promise<void> {
-    if (uid !== `chzzk:${chzzkChannelId}`) {
+    if (chzzkChannelId && uid !== `chzzk:${chzzkChannelId}`) {
       throw new Error("Firebase user does not match the Chzzk identity");
     }
 
@@ -90,7 +90,9 @@ export class AccountDeletionService {
         "Twitch disconnection failed during account deletion"
       );
     }
-    await this.revokeStoredChzzkToken(uid, chzzkConfig, logger);
+    if (chzzkChannelId) {
+      await this.revokeStoredChzzkToken(uid, chzzkConfig, logger);
+    }
 
     const deleted = await this.dependencies.deleteFirestoreData(
       uid,
@@ -100,7 +102,9 @@ export class AccountDeletionService {
     for (const publicToken of deleted.overlayTokens) {
       this.dependencies.revokeOverlay(publicToken);
     }
-    this.dependencies.invalidateBadge(chzzkChannelId);
+    if (chzzkChannelId) {
+      this.dependencies.invalidateBadge(chzzkChannelId);
+    }
 
     await this.dependencies.deleteAuthUser(uid);
   }

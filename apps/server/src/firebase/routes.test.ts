@@ -5,7 +5,7 @@ import { registerFirebaseAuthentication } from "../auth/firebase.js";
 import { issueFirebaseLoginCode } from "./login-exchange.js";
 import { registerFirebaseRoutes } from "./routes.js";
 
-test("Firebase login exchange returns the Chzzk login mode", async () => {
+test("Firebase login exchange returns platform-neutral login metadata", async () => {
   const app = Fastify();
   await registerFirebaseAuthentication(app);
   await registerFirebaseRoutes(app);
@@ -15,7 +15,8 @@ test("Firebase login exchange returns the Chzzk login mode", async () => {
     mode: "viewer",
     user: {
       uid: "chzzk:channel-id",
-      chzzkChannelId: "channel-id",
+      provider: "chzzk",
+      platformUserId: "channel-id",
       displayName: "viewer"
     }
   });
@@ -33,7 +34,8 @@ test("Firebase login exchange returns the Chzzk login mode", async () => {
     mode: "viewer",
     user: {
       uid: "chzzk:channel-id",
-      chzzkChannelId: "channel-id",
+      provider: "chzzk",
+      platformUserId: "channel-id",
       displayName: "viewer"
     }
   });

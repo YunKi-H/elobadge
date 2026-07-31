@@ -11,10 +11,8 @@ export interface DeletedUserData {
 
 export async function deleteUserFirestoreData(
   uid: string,
-  chzzkChannelId: string
+  chzzkChannelId: string | null
 ): Promise<DeletedUserData> {
-  assertChzzkIdentity(uid, chzzkChannelId);
-
   const db = getFirestoreDb();
   const userRef = db.collection("users").doc(uid);
   const [userSnapshot, overlaysSnapshot, platformAccountsSnapshot] =
@@ -77,7 +75,21 @@ export async function deleteUserFirestoreData(
 
   const finalBatch = db.batch();
   finalBatch.delete(userRef);
-  finalBatch.delete(db.collection("chzzkAccounts").doc(chzzkChannelId));
+  const chzzkAccountIds = new Set(
+    platformAccountsSnapshot.docs.flatMap((document) => {
+      const data = document.data();
+      return data.platform === "chzzk" &&
+        typeof data.platformUserId === "string"
+        ? [data.platformUserId]
+        : [];
+    })
+  );
+  if (chzzkChannelId) {
+    chzzkAccountIds.add(chzzkChannelId);
+  }
+  for (const platformUserId of chzzkAccountIds) {
+    finalBatch.delete(db.collection("chzzkAccounts").doc(platformUserId));
+  }
   finalBatch.delete(db.collection("streamers").doc(uid));
   finalBatch.delete(db.collection("chzzkTokens").doc(uid));
   finalBatch.delete(db.collection("twitchTokens").doc(uid));
@@ -95,12 +107,6 @@ export async function deleteFirebaseAuthUser(uid: string): Promise<void> {
     if (!hasFirebaseCode(error, "auth/user-not-found")) {
       throw error;
     }
-  }
-}
-
-function assertChzzkIdentity(uid: string, chzzkChannelId: string): void {
-  if (uid !== `chzzk:${chzzkChannelId}`) {
-    throw new Error("Firebase user does not match the Chzzk identity");
   }
 }
 

@@ -19,7 +19,7 @@ Firestore Emulator. Production containers pin Node.js 24.18.0.
 ```text
 apps/
   server/   Fastify API, Chzzk ingestion, SSE gateway, jobs
-  web/      React/Vite dashboard and OBS overlay UI
+  web/      React/Vite dashboard and browser-source overlay UI
 packages/
   core/     Shared domain types and rating rules
 docs/       Architecture and Firestore data model
@@ -36,13 +36,13 @@ own route:
 
 ```text
 /                       Streamer/viewer entry point
-/streamer               Chzzk connection and OBS overlay management
+/streamer               Streaming-platform connection and overlay management
 /viewer                 Chzzk login and Chess.com/Lichess account management
 /auth/chzzk/callback     Shared OAuth completion screen
-/overlay/:publicToken    Minimal, transparent OBS browser source
+/overlay/:publicToken    Minimal, transparent browser source
 ```
 
-The OBS route deliberately renders outside the dashboard shell so navigation and
+The browser-source route deliberately renders outside the dashboard shell so navigation and
 page backgrounds never appear on the broadcast. Dashboard routes are loaded on
 demand to keep the overlay bundle independent from account-management UI.
 
@@ -110,12 +110,12 @@ IDs, full image URLs, query strings, and fragments, and logs each unique shape
 once per process. Disable the flag and restart after collecting samples.
 
 Authenticated streamers can create, rotate, enable, and disable a 256-bit public
-overlay token. `/overlay/{token}` is the OBS browser-source page and
+overlay token. `/overlay/{token}` is the browser-source page and
 `/events/overlay/{token}` streams only that token's streamer events. Rotation or
 disablement revokes current in-process SSE connections immediately; periodic
 Firestore revalidation also closes connections changed by external processes.
 Rotation deletes the previous overlay document after copying its appearance.
-Disabling preserves the current document so enabling can restore the same OBS
+Disabling preserves the current document so enabling can restore the same browser-source
 URL. A daily cleanup removes legacy inactive documents that are no longer the
 streamer's current token.
 

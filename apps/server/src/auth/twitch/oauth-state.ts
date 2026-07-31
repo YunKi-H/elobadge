@@ -1,11 +1,22 @@
 import { OneTimeStore } from "../one-time-store.js";
 
-export type TwitchOAuthPurpose = "identity" | "streamer_chat";
+import type { LoginMode } from "@elobadge/core";
 
-export interface PendingTwitchOAuth {
+export type TwitchOAuthPurpose = "identity" | "streamer_chat" | "login";
+
+interface PendingTwitchAccountOAuth {
   uid: string;
-  purpose: TwitchOAuthPurpose;
+  purpose: "identity" | "streamer_chat";
 }
+
+interface PendingTwitchLoginOAuth {
+  purpose: "login";
+  mode: LoginMode;
+}
+
+export type PendingTwitchOAuth =
+  | PendingTwitchAccountOAuth
+  | PendingTwitchLoginOAuth;
 
 const pendingAuthorizations =
   new OneTimeStore<PendingTwitchOAuth>(10 * 60 * 1_000);
@@ -39,7 +50,10 @@ export function getTwitchOAuthPurposeHint(
 }
 
 function purposePrefix(purpose: TwitchOAuthPurpose): string {
-  return purpose === "streamer_chat" ? "streamer" : "identity";
+  if (purpose === "streamer_chat") {
+    return "streamer";
+  }
+  return purpose;
 }
 
 function purposeFromPrefix(prefix: string): TwitchOAuthPurpose | null {
@@ -48,6 +62,9 @@ function purposeFromPrefix(prefix: string): TwitchOAuthPurpose | null {
   }
   if (prefix === "identity") {
     return "identity";
+  }
+  if (prefix === "login") {
+    return "login";
   }
   return null;
 }

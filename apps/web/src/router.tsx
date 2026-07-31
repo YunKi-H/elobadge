@@ -8,7 +8,15 @@ export const router = createBrowserRouter([
     HydrateFallback: RouteLoading,
     lazy: async () => {
       const module = await import("./ui/ChzzkAuthCallback");
-      return { Component: module.ChzzkAuthCallback };
+      return { Component: module.AuthCallback };
+    }
+  },
+  {
+    path: "/auth/twitch/callback",
+    HydrateFallback: RouteLoading,
+    lazy: async () => {
+      const module = await import("./ui/ChzzkAuthCallback");
+      return { Component: module.AuthCallback };
     }
   },
   {

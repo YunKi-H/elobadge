@@ -1,12 +1,13 @@
 import { OneTimeStore } from "../auth/one-time-store.js";
-import type { ChzzkLoginMode } from "@elobadge/core";
+import type { LoginMode, StreamingPlatform } from "@elobadge/core";
 
 export interface FirebaseLoginExchange {
   customToken: string;
-  mode: ChzzkLoginMode;
+  mode: LoginMode;
   user: {
     uid: string;
-    chzzkChannelId: string;
+    provider: StreamingPlatform;
+    platformUserId: string;
     displayName: string;
   };
 }

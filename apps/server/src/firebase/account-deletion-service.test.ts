@@ -115,6 +115,47 @@ test("remote token failure does not block personal data deletion", async () => {
   assert.equal(warningLogs.length, 1);
 });
 
+test("Twitch-only account deletion skips Chzzk token work", async () => {
+  const operations: string[] = [];
+  const service = createService({
+    stopSession: async () => {
+      operations.push("stop-chzzk-session");
+      return false;
+    },
+    disconnectTwitch: async () => {
+      operations.push("disconnect-twitch");
+    },
+    loadTokens: async () => {
+      operations.push("load-chzzk-token");
+      return tokens;
+    },
+    deleteFirestoreData: async (_uid, chzzkChannelId) => {
+      operations.push(`delete-firestore:${String(chzzkChannelId)}`);
+      return { overlayTokens: [] };
+    },
+    deleteAuthUser: async () => {
+      operations.push("delete-auth");
+    },
+    invalidateBadge: () => {
+      operations.push("invalidate-badge");
+    }
+  });
+
+  await service.deleteAccount(
+    "twitch:123456789",
+    null,
+    config,
+    createLogger()
+  );
+
+  assert.deepEqual(operations, [
+    "stop-chzzk-session",
+    "disconnect-twitch",
+    "delete-firestore:null",
+    "delete-auth"
+  ]);
+});
+
 function createService(
   overrides: Partial<ConstructorParameters<typeof AccountDeletionService>[0]> = {}
 ) {

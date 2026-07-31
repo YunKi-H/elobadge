@@ -88,7 +88,8 @@ export function AccountDeletion() {
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
                   Chess.com 연동, 레이팅, 오버레이 URL과 화면 설정이 모두
-                  삭제됩니다. 기존 OBS 오버레이 주소도 즉시 작동을 멈춥니다.
+                  삭제됩니다. 기존 브라우저 소스 오버레이 주소도 즉시 작동을
+                  멈춥니다.
                 </p>
               </div>
               <button

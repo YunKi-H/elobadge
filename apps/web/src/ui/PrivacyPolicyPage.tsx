@@ -13,7 +13,7 @@ export function PrivacyPolicyPage() {
 
       <PolicySection title="1. 개인정보 처리 목적">
         <p>
-          Pawn Lab(이하 "운영자")은 EloBadge의 치지직 로그인, Twitch 계정
+          Pawn Lab(이하 "운영자")은 EloBadge의 치지직·Twitch 로그인과 계정
           연결, 스트리머 채팅 연결, 방송용 오버레이 제공, Chess.com·Lichess
           계정 소유 확인과 레이팅 표시, 문의 대응 및 서비스 보안·장애 대응을
           위해 개인정보를 처리합니다. 수집한 정보는 이 목적 외로 이용하지
@@ -36,9 +36,9 @@ export function PrivacyPolicyPage() {
               "스트리머가 치지직 연결 시 수집"
             ],
             [
-              "Twitch 계정 연결",
-              "Twitch 숫자 사용자 ID, 로그인명, 표시 이름",
-              "Twitch OAuth 및 Helix API"
+              "Twitch 로그인·계정 연결",
+              "Twitch 숫자 사용자 ID, 로그인명, 표시 이름, 로그인 유형, Firebase UID와 인증 메타데이터",
+              "Twitch OAuth, Helix API 및 Firebase Authentication"
             ],
             [
               "Twitch 스트리머 연결",
@@ -57,8 +57,8 @@ export function PrivacyPolicyPage() {
             ],
             [
               "채팅 오버레이",
-              "발신자 채널 ID, 닉네임, 메시지, 역할, 치지직 배지·이모지 URL",
-              "치지직 실시간 채팅 이벤트"
+              "플랫폼·채널·발신자 ID, 닉네임, 메시지, 역할, 플랫폼 배지·이모지 URL",
+              "치지직·Twitch 실시간 채팅 이벤트"
             ],
             [
               "방송 설정",
@@ -80,11 +80,11 @@ export function PrivacyPolicyPage() {
         <p className="mt-4">
           시청자의 치지직 OAuth 토큰과 채팅 메시지 원문은 서버 데이터베이스에
           저장하지 않습니다. 스트리머의 치지직 OAuth 토큰은 채팅 세션 유지와
-          자동 갱신을 위해 암호화하여 저장합니다. 일반 Twitch 계정 연결에
-          사용한 OAuth 토큰은 계정 확인 직후 폐기합니다. Twitch 스트리머가
-          채팅 권한을 연결한 경우 접근·갱신 토큰은 세션 유지와 자동 갱신을
-          위해 암호화하여 저장합니다. Lichess OAuth 토큰은 계정 확인 직후
-          폐기하며 저장하지 않습니다.
+          자동 갱신을 위해 암호화하여 저장합니다. Twitch 시청자 로그인과 일반
+          계정 연결에 사용한 OAuth 토큰은 계정 확인 직후 폐기합니다. Twitch
+          스트리머로 로그인하거나 채팅 권한을 연결한 경우 접근·갱신 토큰은
+          세션 유지와 자동 갱신을 위해 암호화하여 저장합니다. Lichess OAuth
+          토큰은 계정 확인 직후 폐기하며 저장하지 않습니다.
         </p>
       </PolicySection>
 
@@ -92,7 +92,7 @@ export function PrivacyPolicyPage() {
         <PolicyTable
           headers={["정보", "보유 기간"]}
           rows={[
-            ["계정 및 치지직 연결 정보", "EloBadge 계정 삭제 시까지"],
+            ["계정 및 방송 플랫폼 연결 정보", "EloBadge 계정 삭제 시까지"],
             ["Twitch 계정 연결 정보", "Twitch 연동 해제 또는 계정 삭제 시까지"],
             ["치지직 스트리머 OAuth 토큰", "치지직 연결 해제 또는 계정 삭제 시까지"],
             ["Twitch 스트리머 OAuth 토큰", "Twitch 채팅 권한 해제·연동 해제 또는 계정 삭제 시까지"],
@@ -189,7 +189,7 @@ export function PrivacyPolicyPage() {
         <ContactLink />
         <p className="mt-3">
           운영자는 요청자의 권리와 다른 이용자의 개인정보를 보호하기 위해
-          치지직 계정 재로그인 등 합리적인 본인 확인을 요구할 수 있으며,
+          연결된 방송 플랫폼 계정 재로그인 등 합리적인 본인 확인을 요구할 수 있으며,
           비밀번호·OAuth 토큰·신분증 제출을 요구하지 않습니다.
         </p>
       </PolicySection>

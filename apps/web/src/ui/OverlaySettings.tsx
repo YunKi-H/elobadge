@@ -296,10 +296,11 @@ export function OverlaySettings({
       <div className="mb-4">
         <div className="flex items-center gap-2">
           <Link aria-hidden="true" className="text-emerald-300" size={20} />
-          <h2 className="text-lg font-semibold text-white">OBS 오버레이</h2>
+          <h2 className="text-lg font-semibold text-white">브라우저 소스 오버레이</h2>
         </div>
         <p className="mt-2 text-sm leading-6 text-slate-400">
-          OBS 브라우저 소스 너비 600px에 최적화되어 있습니다. 높이는 방송
+          OBS Studio, XSplit 등 브라우저 소스를 지원하는 방송 프로그램에서
+          사용할 수 있습니다. 너비 600px에 최적화되어 있으며 높이는 방송
           화면에 맞게 설정하세요.
         </p>
       </div>
@@ -309,13 +310,9 @@ export function OverlaySettings({
       ) : null}
 
       {state.status === "signed_out" ? (
-        <a
-          href="/api/auth/chzzk/start?mode=streamer"
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-emerald-500 px-4 font-semibold text-slate-950 transition hover:bg-emerald-400"
-        >
-          <Power aria-hidden="true" size={18} />
-          치지직 스트리머 연결
-        </a>
+        <p className="text-sm text-slate-400">
+          위에서 방송 플랫폼 계정으로 먼저 로그인하세요.
+        </p>
       ) : null}
 
       {state.status === "error" ? (
@@ -338,7 +335,7 @@ export function OverlaySettings({
         <div className="space-y-4">
           <div className="flex gap-2">
             <input
-              aria-label="OBS Browser Source URL"
+              aria-label="브라우저 소스 URL"
               readOnly
               value={urlVisible ? overlay.url : "********************"}
               className="min-w-0 flex-1 rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none"

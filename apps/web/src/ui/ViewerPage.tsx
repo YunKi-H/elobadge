@@ -4,6 +4,7 @@ import { LichessAccountSettings } from "./LichessAccountSettings";
 import { AccountDeletion } from "./AccountDeletion";
 import { PlatformAccountSettings } from "./PlatformAccountSettings";
 import { useChessBadgePreference } from "./useChessBadgePreference";
+import { LoginOptions } from "./LoginOptions";
 
 export function ViewerPage() {
   const badgePreference = useChessBadgePreference();
@@ -17,6 +18,7 @@ export function ViewerPage() {
         </div>
         <h1 className="mt-2 text-2xl font-semibold text-white">계정 연결</h1>
       </header>
+      <LoginOptions mode="viewer" />
       <PlatformAccountSettings />
       <ChessComAccountSettings badgePreference={badgePreference} />
       <LichessAccountSettings badgePreference={badgePreference} />

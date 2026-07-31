@@ -114,7 +114,8 @@ export async function registerChzzkAuthRoutes(app: FastifyInstance) {
       mode: pendingLogin.mode,
       user: {
         uid: firebaseUid,
-        chzzkChannelId: chzzkUser.channelId,
+        provider: "chzzk",
+        platformUserId: chzzkUser.channelId,
         displayName: chzzkUser.channelName
       }
     });

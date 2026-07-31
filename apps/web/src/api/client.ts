@@ -16,7 +16,7 @@ export async function authenticatedFetch(
   const user = auth.currentUser;
 
   if (!user) {
-    throw new Error("치지직 로그인이 필요합니다.");
+    throw new Error("EloBadge 로그인이 필요합니다.");
   }
 
   const idToken = await user.getIdToken();

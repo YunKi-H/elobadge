@@ -1,10 +1,18 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { getFirebaseAuth, getFirestoreDb } from "./admin.js";
-import { upsertPlatformAccountInTransaction } from "./platform-accounts.js";
+import {
+  toPlatformAccountDocumentId,
+  upsertPlatformAccountInTransaction
+} from "./platform-accounts.js";
 
 export interface ChzzkUserIdentity {
   channelId: string;
   channelName: string;
+}
+
+export interface TwitchUserIdentity {
+  id: string;
+  displayName: string;
 }
 
 export interface ChzzkStreamerSessionIntent {
@@ -65,6 +73,46 @@ export async function upsertChzzkUser(identity: ChzzkUserIdentity): Promise<stri
 
   await upsertFirebaseAuthUser(uid, identity.channelName);
 
+  return uid;
+}
+
+export async function upsertTwitchUser(
+  identity: TwitchUserIdentity
+): Promise<string> {
+  const db = getFirestoreDb();
+  const accountRef = db
+    .collection("platformAccounts")
+    .doc(toPlatformAccountDocumentId("twitch", identity.id));
+  const accountSnapshot = await accountRef.get();
+  const linkedUserId = accountSnapshot.data()?.userId;
+  const uid =
+    typeof linkedUserId === "string" && linkedUserId
+      ? linkedUserId
+      : `twitch:${identity.id}`;
+  const userRef = db.collection("users").doc(uid);
+
+  await db.runTransaction(async (transaction) => {
+    const userSnapshot = await transaction.get(userRef);
+
+    await upsertPlatformAccountInTransaction(transaction, db, uid, {
+      platform: "twitch",
+      platformUserId: identity.id,
+      displayName: identity.displayName
+    });
+
+    const now = FieldValue.serverTimestamp();
+    transaction.set(
+      userRef,
+      {
+        displayName: identity.displayName,
+        ...(userSnapshot.exists ? {} : { createdAt: now }),
+        updatedAt: now
+      },
+      { merge: true }
+    );
+  });
+
+  await upsertFirebaseAuthUser(uid, identity.displayName);
   return uid;
 }
 
