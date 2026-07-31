@@ -20,6 +20,7 @@ const config: TwitchAuthConfig = {
 test("publishes Twitch chat with ratings, role, and emotes", async () => {
   const sockets: FakeWebSocket[] = [];
   const published: ChatOverlayEvent[] = [];
+  const logs: RecordedLog[] = [];
   let subscriptions = 0;
   const session = new TwitchSession(
     "chzzk:owner",
@@ -28,7 +29,12 @@ test("publishes Twitch chat with ratings, role, and emotes", async () => {
     })
   );
 
-  session.start(config, "access-token", "broadcaster-1", logger);
+  session.start(
+    config,
+    "access-token",
+    "broadcaster-1",
+    recordingLogger(logs)
+  );
   sockets[0]!.emitMessage(welcome("session-1"));
   await settle();
 
@@ -55,7 +61,60 @@ test("publishes Twitch chat with ratings, role, and emotes", async () => {
     senderId: "viewer-1",
     messageId: "chat-1"
   });
+  const publishedLog = logs.find(
+    (entry) => entry.message === "Twitch chat overlay event published"
+  );
+  assert.deepEqual(publishedLog?.context, {
+    broadcasterUserId: "broadcaster-1",
+    contentLength: 11,
+    ratingProviderCount: 1
+  });
+  assert.equal(JSON.stringify(publishedLog).includes("viewer-1"), false);
+  assert.equal(JSON.stringify(publishedLog).includes("Viewer"), false);
+  assert.equal(JSON.stringify(publishedLog).includes("hello Kappa"), false);
   assert.equal(session.getStatus().health, "healthy_active");
+  session.stop();
+});
+
+test("Twitch rating lookup failure logs no chatter identifiers", async () => {
+  const sockets: FakeWebSocket[] = [];
+  const published: ChatOverlayEvent[] = [];
+  const logs: RecordedLog[] = [];
+  const sessionDependencies = dependencies(
+    sockets,
+    published,
+    async () => undefined
+  );
+  sessionDependencies.getRatingBadge = async () => {
+    throw new Error("rating lookup failed for viewer-1");
+  };
+  const session = new TwitchSession(
+    "chzzk:owner",
+    sessionDependencies
+  );
+
+  session.start(
+    config,
+    "access-token",
+    "broadcaster-1",
+    recordingLogger(logs)
+  );
+  sockets[0]!.emitMessage(welcome("session-1"));
+  await settle();
+  sockets[0]!.emitMessage(notification("event-1"));
+  await settle();
+
+  const warning = logs.find(
+    (entry) => entry.message === "Twitch chatter rating badge lookup failed"
+  );
+  assert.deepEqual(warning?.context, {
+    broadcasterUserId: "broadcaster-1",
+    errorType: "Error",
+    usedCachedRatingBadge: false
+  });
+  assert.equal(JSON.stringify(warning).includes("viewer-1"), false);
+  assert.equal(JSON.stringify(warning).includes("Viewer"), false);
+  assert.equal(JSON.stringify(warning).includes("rating lookup failed"), false);
   session.stop();
 });
 
@@ -214,3 +273,27 @@ const logger = {
   warn() {},
   error() {}
 } as unknown as FastifyBaseLogger;
+
+interface RecordedLog {
+  level: "info" | "warn" | "error";
+  context: unknown;
+  message: string;
+}
+
+function recordingLogger(logs: RecordedLog[]): FastifyBaseLogger {
+  const record =
+    (level: RecordedLog["level"]) =>
+    (context: unknown, message?: string) => {
+      logs.push({
+        level,
+        context: typeof context === "string" ? undefined : context,
+        message: typeof context === "string" ? context : (message ?? "")
+      });
+    };
+
+  return {
+    info: record("info"),
+    warn: record("warn"),
+    error: record("error")
+  } as unknown as FastifyBaseLogger;
+}

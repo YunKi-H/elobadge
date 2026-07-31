@@ -218,7 +218,6 @@ export async function registerTwitchRoutes(
           request.log.info(
             {
               uid,
-              twitchUserId: twitchUser.id,
               mode: pending.mode
             },
             "Twitch OAuth login succeeded"
@@ -256,7 +255,6 @@ export async function registerTwitchRoutes(
         request.log.info(
           {
             uid: pending.uid,
-            twitchUserId: twitchUser.id,
             purpose: pending.purpose
           },
           streamerAuthorization

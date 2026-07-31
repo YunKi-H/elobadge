@@ -392,11 +392,15 @@ export class TwitchSession {
         RATING_LOOKUP_TIMEOUT_MS
       );
     } catch (error) {
-      badgeState =
-        (await this.dependencies.getCachedRatingBadge(message.chatter_user_id)) ??
-        badgeState;
+      const cachedBadgeState =
+        await this.dependencies.getCachedRatingBadge(message.chatter_user_id);
+      badgeState = cachedBadgeState ?? badgeState;
       this.logger?.warn(
-        { err: error, chatterUserId: message.chatter_user_id },
+        {
+          broadcasterUserId: message.broadcaster_user_id,
+          errorType: safeErrorType(error),
+          usedCachedRatingBadge: cachedBadgeState !== null
+        },
         "Twitch chatter rating badge lookup failed"
       );
     }
@@ -428,7 +432,6 @@ export class TwitchSession {
     this.logger?.info(
       {
         broadcasterUserId: message.broadcaster_user_id,
-        chatterUserId: message.chatter_user_id,
         contentLength: message.message.text.length,
         ratingProviderCount: Object.keys(badgeState.badges).length
       },
@@ -651,6 +654,11 @@ function parseJson(value: string): unknown {
   } catch {
     return null;
   }
+}
+
+function safeErrorType(error: unknown): string {
+  const name = error instanceof Error ? error.name : typeof error;
+  return /^[A-Za-z][A-Za-z0-9]*$/.test(name) ? name : "UnknownError";
 }
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
