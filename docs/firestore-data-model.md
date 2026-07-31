@@ -20,7 +20,7 @@ chessVerificationChallenges/{accountId}
 
 ### `users/{firebaseUid}`
 
-The service user created after a successful Chzzk custom-auth login.
+The service user created after a successful Chzzk or Twitch custom-auth login.
 
 ```ts
 {
@@ -53,20 +53,21 @@ user's badge state.
 
 ### `streamers/{firebaseUid}`
 
-Created only when the user completes Chzzk OAuth with `mode=streamer`. Viewer
-login updates the common user and Chzzk account documents without creating this
+Created when the user authorizes chat collection for at least one broadcasting
+platform. It owns the stable overlay pointer and also contains Chzzk-specific
+session intent when Chzzk is connected. Viewer-only login does not create this
 document. Existing streamer documents remain when the same user logs in as a
-viewer.
+viewer or disconnects one platform.
 
 ```ts
 {
-  chzzkChannelId: string;
+  chzzkChannelId?: string;
   displayName: string;
-  chatSessionEnabled: boolean;
-  tokenStatus: "active" | "reauth_required";
-  tokenErrorAt: Timestamp | null;
+  chatSessionEnabled?: boolean;
+  tokenStatus?: "active" | "reauth_required";
+  tokenErrorAt?: Timestamp | null;
   disconnectedAt?: Timestamp;
-  sessionUpdatedAt: Timestamp;
+  sessionUpdatedAt?: Timestamp;
   overlayToken: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;

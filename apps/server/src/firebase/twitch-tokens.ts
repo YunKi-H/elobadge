@@ -42,6 +42,7 @@ export async function saveTwitchStreamerAuthorization(
   const cipher = getTwitchTokenCipher();
   const db = getFirestoreDb();
   const tokenRef = db.collection("twitchTokens").doc(uid);
+  const streamerRef = db.collection("streamers").doc(uid);
   const encryptedAccessToken = cipher.encrypt(
     token.accessToken,
     encryptionContext(uid, "access")
@@ -52,7 +53,10 @@ export async function saveTwitchStreamerAuthorization(
   );
 
   await db.runTransaction(async (transaction) => {
-    const tokenSnapshot = await transaction.get(tokenRef);
+    const [tokenSnapshot, streamerSnapshot] = await Promise.all([
+      transaction.get(tokenRef),
+      transaction.get(streamerRef)
+    ]);
 
     await upsertPlatformAccountInTransaction(transaction, db, uid, {
       platform: "twitch",
@@ -61,6 +65,15 @@ export async function saveTwitchStreamerAuthorization(
     });
 
     const now = FieldValue.serverTimestamp();
+    transaction.set(
+      streamerRef,
+      {
+        displayName: user.displayName,
+        ...(streamerSnapshot.exists ? {} : { createdAt: now }),
+        updatedAt: now
+      },
+      { merge: true }
+    );
     transaction.set(
       tokenRef,
       {

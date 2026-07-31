@@ -829,8 +829,8 @@ test("account deletion removes user-owned Firestore data", async () => {
   );
 });
 
-test("Twitch streamer authorization encrypts tokens and exposes safe status", async () => {
-  const uid = "chzzk:twitch-streamer";
+test("Twitch-first streamer authorization supports overlay creation", async () => {
+  const uid = "twitch:123456789";
   const db = getFirestoreDb();
 
   await saveTwitchStreamerAuthorization(
@@ -870,6 +870,19 @@ test("Twitch streamer authorization encrypts tokens and exposes safe status", as
   assert.equal(
     (await getPlatformAccount("twitch", "123456789"))?.userId,
     uid
+  );
+  assert.equal(
+    (await db.collection("streamers").doc(uid).get()).data()?.displayName,
+    "Streamer"
+  );
+
+  // Existing Twitch-first users may predate the shared streamer document.
+  await db.collection("streamers").doc(uid).delete();
+  const overlay = await enableStreamerOverlayAccess(uid);
+  assert.equal(overlay.active, true);
+  assert.equal(
+    (await db.collection("streamers").doc(uid).get()).data()?.overlayToken,
+    overlay.publicToken
   );
 
   await deleteTwitchStreamerTokens(uid);

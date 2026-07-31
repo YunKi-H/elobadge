@@ -20,7 +20,7 @@ export interface ActiveOverlayAccess {
 
 export class StreamerOverlayAccessError extends Error {
   constructor() {
-    super("스트리머 인증이 필요합니다. 치지직 스트리머로 다시 연결해 주세요.");
+    super("스트리머 인증이 필요합니다. 방송 플랫폼을 스트리머로 연결해 주세요.");
     this.name = "StreamerOverlayAccessError";
   }
 }
@@ -340,12 +340,19 @@ async function createOrRotateOverlayAccess(
 
     const result = await db.runTransaction(async (transaction) => {
       const streamerRef = db.collection("streamers").doc(streamerUid);
-      const [streamer, candidate] = await Promise.all([
+      const twitchTokenRef = db.collection("twitchTokens").doc(streamerUid);
+      const [streamer, twitchToken, candidate] = await Promise.all([
         transaction.get(streamerRef),
+        transaction.get(twitchTokenRef),
         transaction.get(candidateRef)
       ]);
 
-      if (!streamer.exists) {
+      const twitchTokenData = twitchToken.data();
+      const hasActiveTwitchStreamerAuthorization =
+        twitchTokenData?.status === "active" &&
+        twitchTokenData.chatSessionEnabled === true;
+
+      if (!streamer.exists && !hasActiveTwitchStreamerAuthorization) {
         throw new StreamerOverlayAccessError();
       }
 
@@ -391,7 +398,11 @@ async function createOrRotateOverlayAccess(
       });
       transaction.set(
         streamerRef,
-        { overlayToken: candidateToken, updatedAt: now },
+        {
+          overlayToken: candidateToken,
+          ...(streamer.exists ? {} : { createdAt: now }),
+          updatedAt: now
+        },
         { merge: true }
       );
 
