@@ -96,7 +96,7 @@ export class LichessRatingRefreshService {
         now,
         getNextLichessRefreshAt(now, () => this.dependencies.random())
       );
-      if (completed) this.dependencies.invalidate(claim.chzzkChannelId);
+      if (completed) this.dependencies.invalidate(claim.uid);
     } catch (error) {
       await this.dependencies.fail(claim, error, this.dependencies.now());
       throw error;

@@ -53,6 +53,7 @@ import {
   upsertPlatformAccount
 } from "../platform-accounts.js";
 import { migrateChzzkPlatformAccounts } from "../platform-account-migration.js";
+import { migrateChessBadgesToUsers } from "../chess-badge-migration.js";
 import {
   deleteTwitchStreamerTokens,
   getTwitchStreamerAuthorizationStatus,
@@ -173,7 +174,7 @@ test("Chess.com verification selects the highest badge and disconnect clears it"
       error instanceof ChessRatingRefreshError && error.code === "cooldown"
   );
 
-  assert.equal(await disconnectChessComAccount(uid, channelId), true);
+  assert.equal(await disconnectChessComAccount(uid), true);
   assert.equal(await getUserChessComAccount(uid), null);
   assert.equal(await getChzzkRatingBadge(channelId), null);
 
@@ -189,7 +190,7 @@ test("Chess.com verification selects the highest badge and disconnect clears it"
     assert.equal(deletedRating.exists, false);
   }
 
-  assert.equal(await disconnectChessComAccount(uid, channelId), true);
+  assert.equal(await disconnectChessComAccount(uid), true);
 });
 
 test("one Chess.com account cannot be linked to two Chzzk users", async () => {
@@ -357,7 +358,7 @@ test("Lichess OAuth linking stores ratings, selects a badge, and disconnects", a
     db.collection("chzzkAccounts").doc(channelId).set({ uid, badge: null })
   ]);
 
-  const account = await saveVerifiedLichessAccount(uid, channelId, {
+  const account = await saveVerifiedLichessAccount(uid, {
     username: "LichessViewer",
     normalizedUsername: "lichessviewer",
     playerId: "lichessviewer",
@@ -379,7 +380,7 @@ test("Lichess OAuth linking stores ratings, selects a badge, and disconnects", a
     provisional: true
   });
 
-  assert.equal(await disconnectLichessAccount(uid, channelId), true);
+  assert.equal(await disconnectLichessAccount(uid), true);
   assert.equal(await getUserLichessAccount(uid), null);
   assert.equal(await getChzzkRatingBadge(channelId), null);
 });
@@ -403,7 +404,7 @@ test("linking Lichess preserves an existing Chess.com badge", async () => {
     })
   ]);
 
-  await saveVerifiedLichessAccount(uid, channelId, {
+  await saveVerifiedLichessAccount(uid, {
     username: "LegacyViewer",
     normalizedUsername: "legacyviewer",
     playerId: "legacyviewer",
@@ -477,12 +478,12 @@ test("disconnect switches the badge preference to the remaining linked provider"
     })
   ]);
 
-  assert.equal(await disconnectLichessAccount(uid, channelId), true);
+  assert.equal(await disconnectLichessAccount(uid), true);
   assert.deepEqual(await getChzzkChessBadgeState(channelId), {
     badges: { chesscom: chessComBadge },
     preferredProvider: "chesscom"
   });
-  assert.equal(await disconnectChessComAccount(uid, channelId), true);
+  assert.equal(await disconnectChessComAccount(uid), true);
   assert.deepEqual(await getChzzkChessBadgeState(channelId), {
     badges: {},
     preferredProvider: null
@@ -533,7 +534,7 @@ test("badge preference restores a missing provider badge from linked accounts", 
       })
   ]);
 
-  assert.deepEqual(await getChessBadgePreference(uid, channelId), {
+  assert.deepEqual(await getChessBadgePreference(uid), {
     badges: {
       chesscom: chessComBadge,
       lichess: {
@@ -591,8 +592,8 @@ test("concurrent badge reconciliation does not restore a disconnected account", 
   ]);
 
   const results = await Promise.all([
-    getChessBadgePreference(uid, channelId),
-    disconnectLichessAccount(uid, channelId)
+    getChessBadgePreference(uid),
+    disconnectLichessAccount(uid)
   ]);
 
   assert.equal(results.at(-1), true);
@@ -971,6 +972,61 @@ test("overlay theme migration backfills platform-neutral badge fields", async ()
     migrated: 0,
     unchanged: 2,
     invalid: 1
+  });
+});
+
+test("chess badge migration copies legacy Chzzk state to the EloBadge user", async () => {
+  const db = getFirestoreDb();
+  const uid = "chzzk:migration-viewer";
+  const badge = {
+    provider: "chesscom",
+    speed: "rapid",
+    value: 1820,
+    provisional: false
+  } as const;
+
+  await Promise.all([
+    db.collection("users").doc(uid).set({ displayName: "Migration Viewer" }),
+    db.collection("chzzkAccounts").doc("migration-viewer").set({
+      uid,
+      badges: { chesscom: badge },
+      preferredChessProvider: "chesscom"
+    })
+  ]);
+
+  assert.deepEqual(await migrateChessBadgesToUsers(false, db), {
+    scanned: 1,
+    candidates: 1,
+    migrated: 0,
+    unchanged: 0,
+    invalid: 0,
+    conflicts: 0
+  });
+  assert.equal(
+    (await db.collection("users").doc(uid).get()).get("chessBadges"),
+    undefined
+  );
+
+  assert.deepEqual(await migrateChessBadgesToUsers(true, db), {
+    scanned: 1,
+    candidates: 1,
+    migrated: 1,
+    unchanged: 0,
+    invalid: 0,
+    conflicts: 0
+  });
+  assert.deepEqual(
+    (await db.collection("users").doc(uid).get()).get("chessBadges"),
+    { chesscom: badge }
+  );
+
+  assert.deepEqual(await migrateChessBadgesToUsers(false, db), {
+    scanned: 1,
+    candidates: 0,
+    migrated: 0,
+    unchanged: 1,
+    invalid: 0,
+    conflicts: 0
   });
 });
 

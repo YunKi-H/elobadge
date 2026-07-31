@@ -17,6 +17,7 @@ import {
 import { markChzzkStreamerReauthenticationRequired } from "../firebase/chzzk-tokens.js";
 import { publishChatOverlayEvent } from "../realtime/overlay-events.js";
 import { ratingBadgeCache } from "../chess/badge-cache.js";
+import { platformUserCache } from "../chess/platform-user-cache.js";
 import type { ChzzkChessBadgeState } from "../firebase/chess-badges.js";
 import { classifyChzzkChatAuthor } from "./chat-author.js";
 import { classifyChzzkBadge } from "./badge-classifier.js";
@@ -61,8 +62,16 @@ const defaultSessionDependencies: ChzzkSessionDependencies = {
       forceNew: true,
       timeout: 3000
     }),
-  getRatingBadge: (senderChannelId) => ratingBadgeCache.get(senderChannelId),
-  getCachedRatingBadge: (senderChannelId) => ratingBadgeCache.peek(senderChannelId),
+  getRatingBadge: async (senderChannelId) => {
+    const uid = await platformUserCache.get("chzzk", senderChannelId);
+    return uid
+      ? ratingBadgeCache.get(uid)
+      : { badges: {}, preferredProvider: null };
+  },
+  getCachedRatingBadge: (senderChannelId) => {
+    const uid = platformUserCache.peek("chzzk", senderChannelId);
+    return uid ? ratingBadgeCache.peek(uid) : null;
+  },
   random: Math.random
 };
 

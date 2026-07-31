@@ -32,7 +32,7 @@ interface AccountDeletionDependencies {
   ): Promise<DeletedUserData>;
   deleteAuthUser(uid: string): Promise<void>;
   revokeOverlay(publicToken: string): void;
-  invalidateBadge(chzzkChannelId: string): void;
+  invalidateBadge(uid: string): void;
 }
 
 const defaultDependencies: AccountDeletionDependencies = {
@@ -61,8 +61,7 @@ const defaultDependencies: AccountDeletionDependencies = {
   deleteFirestoreData: deleteUserFirestoreData,
   deleteAuthUser: deleteFirebaseAuthUser,
   revokeOverlay: revokeOverlayConnections,
-  invalidateBadge: (chzzkChannelId) =>
-    ratingBadgeCache.invalidate(chzzkChannelId)
+  invalidateBadge: (uid) => ratingBadgeCache.invalidate(uid)
 };
 
 export class AccountDeletionService {
@@ -102,9 +101,7 @@ export class AccountDeletionService {
     for (const publicToken of deleted.overlayTokens) {
       this.dependencies.revokeOverlay(publicToken);
     }
-    if (chzzkChannelId) {
-      this.dependencies.invalidateBadge(chzzkChannelId);
-    }
+    this.dependencies.invalidateBadge(uid);
 
     await this.dependencies.deleteAuthUser(uid);
   }

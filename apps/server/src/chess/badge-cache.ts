@@ -1,47 +1,47 @@
 import type { ChessBadges } from "@elobadge/core";
 import {
-  getChzzkChessBadgeState,
-  type ChzzkChessBadgeState
+  getUserChessBadgeState,
+  type ChessBadgeState
 } from "../firebase/chess-badges.js";
 
 const DEFAULT_TTL_MS = 10 * 60_000;
 const DEFAULT_MAX_ENTRIES = 10_000;
 
 interface CacheEntry {
-  state: ChzzkChessBadgeState;
+  state: ChessBadgeState;
   expiresAt: number;
 }
 
 export class RatingBadgeCache {
   private readonly entries = new Map<string, CacheEntry>();
-  private readonly pending = new Map<string, Promise<ChzzkChessBadgeState>>();
+  private readonly pending = new Map<string, Promise<ChessBadgeState>>();
   private readonly versions = new Map<string, number>();
 
   constructor(
-    private readonly loadBadge: (channelId: string) => Promise<ChzzkChessBadgeState>,
+    private readonly loadBadge: (uid: string) => Promise<ChessBadgeState>,
     private readonly ttlMs = DEFAULT_TTL_MS,
     private readonly maxEntries = DEFAULT_MAX_ENTRIES
   ) {}
 
-  async get(channelId: string): Promise<ChzzkChessBadgeState> {
-    const cached = this.entries.get(channelId);
+  async get(uid: string): Promise<ChessBadgeState> {
+    const cached = this.entries.get(uid);
 
     if (cached && cached.expiresAt > Date.now()) {
       return cloneState(cached.state);
     }
 
-    const existingLoad = this.pending.get(channelId);
+    const existingLoad = this.pending.get(uid);
 
     if (existingLoad) {
       return existingLoad;
     }
 
-    const version = this.versions.get(channelId) ?? 0;
-    const load = this.loadBadge(channelId)
+    const version = this.versions.get(uid) ?? 0;
+    const load = this.loadBadge(uid)
       .then((state) => {
-        if ((this.versions.get(channelId) ?? 0) === version) {
+        if ((this.versions.get(uid) ?? 0) === version) {
           this.ensureCapacity();
-          this.entries.set(channelId, {
+          this.entries.set(uid, {
             state: cloneState(state),
             expiresAt: Date.now() + this.ttlMs
           });
@@ -49,24 +49,24 @@ export class RatingBadgeCache {
         return cloneState(state);
       })
       .finally(() => {
-        if (this.pending.get(channelId) === load) {
-          this.pending.delete(channelId);
+        if (this.pending.get(uid) === load) {
+          this.pending.delete(uid);
         }
       });
 
-    this.pending.set(channelId, load);
+    this.pending.set(uid, load);
     return load;
   }
 
-  peek(channelId: string): ChzzkChessBadgeState | null {
-    const cached = this.entries.get(channelId);
+  peek(uid: string): ChessBadgeState | null {
+    const cached = this.entries.get(uid);
     return cached ? cloneState(cached.state) : null;
   }
 
-  invalidate(channelId: string): void {
-    this.versions.set(channelId, (this.versions.get(channelId) ?? 0) + 1);
-    this.entries.delete(channelId);
-    this.pending.delete(channelId);
+  invalidate(uid: string): void {
+    this.versions.set(uid, (this.versions.get(uid) ?? 0) + 1);
+    this.entries.delete(uid);
+    this.pending.delete(uid);
   }
 
   clear(): void {
@@ -88,7 +88,7 @@ export class RatingBadgeCache {
   }
 }
 
-function cloneState(state: ChzzkChessBadgeState): ChzzkChessBadgeState {
+function cloneState(state: ChessBadgeState): ChessBadgeState {
   const badges: ChessBadges = {};
   if (state.badges.chesscom) {
     badges.chesscom = { ...state.badges.chesscom };
@@ -99,4 +99,4 @@ function cloneState(state: ChzzkChessBadgeState): ChzzkChessBadgeState {
   return { badges, preferredProvider: state.preferredProvider };
 }
 
-export const ratingBadgeCache = new RatingBadgeCache(getChzzkChessBadgeState);
+export const ratingBadgeCache = new RatingBadgeCache(getUserChessBadgeState);

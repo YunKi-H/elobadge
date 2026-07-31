@@ -152,6 +152,7 @@ test("Twitch-only account deletion skips Chzzk token work", async () => {
     "stop-chzzk-session",
     "disconnect-twitch",
     "delete-firestore:null",
+    "invalidate-badge",
     "delete-auth"
   ]);
 });

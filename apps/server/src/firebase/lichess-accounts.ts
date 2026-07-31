@@ -4,7 +4,7 @@ import { getHighestRating } from "../chess/rating-selection.js";
 import { getNextLichessRefreshAt } from "../chess/lichess/rating-refresh-policy.js";
 import { getFirestoreDb } from "./admin.js";
 import {
-  parseChzzkChessBadgeState,
+  getUserChessBadgeStateInTransaction,
   selectPreferredChessProvider
 } from "./chess-badges.js";
 
@@ -27,35 +27,32 @@ export class LichessAccountConflictError extends Error {
 
 export async function saveVerifiedLichessAccount(
   uid: string,
-  chzzkChannelId: string,
   player: LichessPlayer
 ): Promise<StoredLichessAccount> {
   const db = getFirestoreDb();
   const accountId = toLichessAccountId(player.normalizedUsername);
   const accountRef = db.collection("chessAccounts").doc(accountId);
   const userRef = db.collection("users").doc(uid);
-  const chzzkAccountRef = db.collection("chzzkAccounts").doc(chzzkChannelId);
   const fetchedAt = new Date();
   const refreshAvailableAt = new Date(fetchedAt.getTime() + MANUAL_REFRESH_COOLDOWN_MS);
   const highest = getHighestRating(player.ratings);
 
   await db.runTransaction(async (transaction) => {
-    const [accountSnapshot, userSnapshot, chzzkAccountSnapshot] = await Promise.all([
+    const [accountSnapshot, userSnapshot] = await Promise.all([
       transaction.get(accountRef),
-      transaction.get(userRef),
-      transaction.get(chzzkAccountRef)
+      transaction.get(userRef)
     ]);
     const linkedUid = accountSnapshot.data()?.uid;
 
     if (linkedUid && linkedUid !== uid) {
       throw new LichessAccountConflictError();
     }
-    if (chzzkAccountSnapshot.data()?.uid !== uid) {
-      throw new Error("Chzzk account does not match the authenticated user");
-    }
-
     const previousAccountId = userSnapshot.data()?.chessAccountIds?.lichess;
-    const currentState = parseChzzkChessBadgeState(chzzkAccountSnapshot.data());
+    const currentState = await getUserChessBadgeStateInTransaction(
+      transaction,
+      uid,
+      userSnapshot
+    );
     const lichessBadge = highest ? toBadge(highest) : null;
     const badges = { ...currentState.badges };
     if (lichessBadge) {
@@ -103,10 +100,7 @@ export async function saveVerifiedLichessAccount(
     }, { merge: true });
     transaction.set(userRef, {
       chessAccountIds: { lichess: accountId },
-      updatedAt: now
-    }, { merge: true });
-    transaction.set(chzzkAccountRef, {
-      badges,
+      chessBadges: badges,
       preferredChessProvider: preferredProvider ?? FieldValue.delete(),
       updatedAt: now
     }, { merge: true });
@@ -192,18 +186,13 @@ export async function getUserLichessAccount(uid: string): Promise<StoredLichessA
 }
 
 export async function disconnectLichessAccount(
-  uid: string,
-  chzzkChannelId: string
+  uid: string
 ): Promise<boolean> {
   const db = getFirestoreDb();
   const userRef = db.collection("users").doc(uid);
-  const chzzkAccountRef = db.collection("chzzkAccounts").doc(chzzkChannelId);
 
   return db.runTransaction(async (transaction) => {
-    const [userSnapshot, chzzkAccountSnapshot] = await Promise.all([
-      transaction.get(userRef),
-      transaction.get(chzzkAccountRef)
-    ]);
+    const userSnapshot = await transaction.get(userRef);
     const accountId = userSnapshot.data()?.chessAccountIds?.lichess;
     if (typeof accountId !== "string") {
       return true;
@@ -213,13 +202,16 @@ export async function disconnectLichessAccount(
     const accountSnapshot = await transaction.get(accountRef);
     if (
       accountSnapshot.data()?.uid !== uid ||
-      accountSnapshot.data()?.provider !== "lichess" ||
-      chzzkAccountSnapshot.data()?.uid !== uid
+      accountSnapshot.data()?.provider !== "lichess"
     ) {
       return false;
     }
 
-    const currentState = parseChzzkChessBadgeState(chzzkAccountSnapshot.data());
+    const currentState = await getUserChessBadgeStateInTransaction(
+      transaction,
+      uid,
+      userSnapshot
+    );
     const remainingBadges = { ...currentState.badges };
     delete remainingBadges.lichess;
     const preferredProvider = selectPreferredChessProvider(
@@ -233,10 +225,7 @@ export async function disconnectLichessAccount(
     transaction.delete(accountRef);
     transaction.update(userRef, {
       "chessAccountIds.lichess": FieldValue.delete(),
-      updatedAt: now
-    });
-    transaction.update(chzzkAccountRef, {
-      badges: remainingBadges,
+      chessBadges: remainingBadges,
       preferredChessProvider: preferredProvider ?? FieldValue.delete(),
       updatedAt: now
     });

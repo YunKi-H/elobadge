@@ -198,6 +198,26 @@ docker compose exec -T app \
   --execute --confirm-project=<FIREBASE_PROJECT_ID>
 ```
 
+After deploying the version that reads chess badges from `users/{uid}`, copy
+the legacy `chzzkAccounts.badges` state into the EloBadge user documents. The
+command is idempotent, defaults to a dry run, and does not delete the legacy
+fields so the previous server version remains a viable rollback.
+
+```bash
+pnpm chess-badges:migrate
+pnpm chess-badges:migrate --execute --confirm-project=<FIREBASE_PROJECT_ID>
+```
+
+For a built production container:
+
+```bash
+docker compose exec -T app \
+  node apps/server/dist/scripts/migrate-chess-badges-to-users.js
+docker compose exec -T app \
+  node apps/server/dist/scripts/migrate-chess-badges-to-users.js \
+  --execute --confirm-project=<FIREBASE_PROJECT_ID>
+```
+
 After deploying the version that reads platform-neutral overlay badge fields,
 backfill existing `overlays.theme` documents. The migration copies
 `chzzkBadgesVisible` and `chzzkBadgeVisibility` into

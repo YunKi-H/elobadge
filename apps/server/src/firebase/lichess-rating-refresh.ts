@@ -10,7 +10,7 @@ import {
 import { getFirestoreDb } from "./admin.js";
 import { listDueRatingRefreshAccountIds } from "./rating-refresh-queries.js";
 import {
-  parseChzzkChessBadgeState,
+  getUserChessBadgeStateInTransaction,
   selectPreferredChessProvider
 } from "./chess-badges.js";
 
@@ -35,7 +35,6 @@ export class LichessRatingRefreshError extends Error {
 export interface LichessRatingRefreshClaim {
   accountId: string;
   uid: string;
-  chzzkChannelId: string;
   username: string;
   playerId: string;
   leaseId: string;
@@ -95,12 +94,12 @@ export async function completeLichessRatingRefresh(
 ): Promise<boolean> {
   const db = getFirestoreDb();
   const accountRef = db.collection("chessAccounts").doc(claim.accountId);
-  const chzzkRef = db.collection("chzzkAccounts").doc(claim.chzzkChannelId);
+  const userRef = db.collection("users").doc(claim.uid);
 
   return db.runTransaction(async (transaction) => {
-    const [accountSnapshot, chzzkSnapshot] = await Promise.all([
+    const [accountSnapshot, userSnapshot] = await Promise.all([
       transaction.get(accountRef),
-      transaction.get(chzzkRef)
+      transaction.get(userRef)
     ]);
     const account = accountSnapshot.data();
     if (
@@ -115,6 +114,11 @@ export async function completeLichessRatingRefresh(
     }
 
     const highest = getHighestRating(player.ratings);
+    const currentState = await getUserChessBadgeStateInTransaction(
+      transaction,
+      claim.uid,
+      userSnapshot
+    );
     const ratings = new Map(player.ratings.map((rating) => [rating.speed, rating]));
     for (const speed of SUPPORTED_SPEEDS) {
       const ref = accountRef.collection("ratings").doc(speed);
@@ -149,32 +153,29 @@ export async function completeLichessRatingRefresh(
       updatedAt: Timestamp.fromDate(now)
     });
 
-    if (chzzkSnapshot.data()?.uid === claim.uid) {
-      const badge = highest
-        ? {
-            provider: "lichess" as const,
-            speed: highest.speed,
-            value: highest.value,
-            provisional: highest.provisional
-          }
-        : null;
-      const currentState = parseChzzkChessBadgeState(chzzkSnapshot.data());
-      const badges = { ...currentState.badges };
-      if (badge) {
-        badges.lichess = badge;
-      } else {
-        delete badges.lichess;
-      }
-      const preferredProvider = selectPreferredChessProvider(
-        badges,
-        currentState.preferredProvider
-      );
-      transaction.set(chzzkRef, {
-        badges,
-        preferredChessProvider: preferredProvider ?? FieldValue.delete(),
-        updatedAt: Timestamp.fromDate(now)
-      }, { merge: true });
+    const badge = highest
+      ? {
+          provider: "lichess" as const,
+          speed: highest.speed,
+          value: highest.value,
+          provisional: highest.provisional
+        }
+      : null;
+    const badges = { ...currentState.badges };
+    if (badge) {
+      badges.lichess = badge;
+    } else {
+      delete badges.lichess;
     }
+    const preferredProvider = selectPreferredChessProvider(
+      badges,
+      currentState.preferredProvider
+    );
+    transaction.set(userRef, {
+      chessBadges: badges,
+      preferredChessProvider: preferredProvider ?? FieldValue.delete(),
+      updatedAt: Timestamp.fromDate(now)
+    }, { merge: true });
     return true;
   });
 }
@@ -234,8 +235,7 @@ function claimRefresh(
   if (leaseUntil instanceof Timestamp && leaseUntil.toMillis() > now.getTime()) {
     throw new LichessRatingRefreshError("in_progress", leaseUntil.toDate());
   }
-  const channelId = account.uid.startsWith("chzzk:") ? account.uid.slice(6) : null;
-  if (!channelId || typeof account.username !== "string" || typeof account.providerUserId !== "string") {
+  if (typeof account.username !== "string" || typeof account.providerUserId !== "string") {
     throw new LichessRatingRefreshError("account_missing");
   }
 
@@ -251,7 +251,6 @@ function claimRefresh(
   return {
     accountId: snapshot.id,
     uid: account.uid,
-    chzzkChannelId: channelId,
     username: account.username,
     playerId: account.providerUserId,
     leaseId

@@ -7,10 +7,10 @@ import type {
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getFirestoreDb } from "./admin.js";
 import { getHighestChessComRating } from "../chess/rating-selection.js";
+import { getPlatformAccount } from "./platform-accounts.js";
 
 export async function ensureHighestChessComBadge(
-  uid: string,
-  chzzkChannelId: string
+  uid: string
 ): Promise<boolean> {
   const db = getFirestoreDb();
   const userRef = db.collection("users").doc(uid);
@@ -24,22 +24,15 @@ export async function ensureHighestChessComBadge(
     }
 
     const accountRef = db.collection("chessAccounts").doc(accountId);
-    const chzzkAccountRef = db.collection("chzzkAccounts").doc(chzzkChannelId);
     const ratingRefs = (["bullet", "blitz", "rapid"] as const).map((speed) =>
       accountRef.collection("ratings").doc(speed)
     );
     const snapshots = await Promise.all([
       transaction.get(accountRef),
-      ...ratingRefs.map((ratingRef) => transaction.get(ratingRef)),
-      transaction.get(chzzkAccountRef)
+      ...ratingRefs.map((ratingRef) => transaction.get(ratingRef))
     ]);
     const accountSnapshot = snapshots[0];
     const ratingSnapshots = snapshots.slice(1, 4);
-    const chzzkAccountSnapshot = snapshots[4];
-
-    if (!chzzkAccountSnapshot) {
-      return false;
-    }
 
     const account = accountSnapshot.data();
 
@@ -47,8 +40,7 @@ export async function ensureHighestChessComBadge(
       !account ||
       account.uid !== uid ||
       account.provider !== "chesscom" ||
-      !(account.verifiedAt instanceof Timestamp) ||
-      chzzkAccountSnapshot.data()?.uid !== uid
+      !(account.verifiedAt instanceof Timestamp)
     ) {
       return false;
     }
@@ -78,16 +70,16 @@ export async function ensureHighestChessComBadge(
       value: highestRating.value,
       provisional: false
     };
-    const currentState = parseChzzkChessBadgeState(chzzkAccountSnapshot.data());
+    const currentState = parseUserChessBadgeState(userSnapshot.data());
     const badges = { ...currentState.badges, chesscom: chessComBadge };
     transaction.update(accountRef, {
       selectedSpeed: highestRating.speed,
       updatedAt: now
     });
     transaction.set(
-      chzzkAccountRef,
+      userRef,
       {
-        badges,
+        chessBadges: badges,
         preferredChessProvider: selectPreferredChessProvider(
           badges,
           currentState.preferredProvider
@@ -115,21 +107,87 @@ export interface ChzzkChessBadgeState {
   preferredProvider: ChessProvider | null;
 }
 
+export type ChessBadgeState = ChzzkChessBadgeState;
+
+export async function getUserChessBadgeState(
+  uid: string
+): Promise<ChessBadgeState> {
+  const db = getFirestoreDb();
+  const userSnapshot = await db.collection("users").doc(uid).get();
+  const userData = userSnapshot.data();
+
+  if (hasUserChessBadgeState(userData)) {
+    return parseUserChessBadgeState(userData);
+  }
+
+  if (uid.startsWith("chzzk:")) {
+    const legacySnapshot = await db
+      .collection("chzzkAccounts")
+      .doc(uid.slice("chzzk:".length))
+      .get();
+    return parseChzzkChessBadgeState(legacySnapshot.data());
+  }
+
+  return { badges: {}, preferredProvider: null };
+}
+
+export async function getUserChessBadgeStateInTransaction(
+  transaction: FirebaseFirestore.Transaction,
+  uid: string,
+  userSnapshot: FirebaseFirestore.DocumentSnapshot
+): Promise<ChessBadgeState> {
+  const userData = userSnapshot.data();
+  if (hasUserChessBadgeState(userData)) {
+    return parseUserChessBadgeState(userData);
+  }
+
+  if (uid.startsWith("chzzk:")) {
+    const legacySnapshot = await transaction.get(
+      getFirestoreDb()
+        .collection("chzzkAccounts")
+        .doc(uid.slice("chzzk:".length))
+    );
+    return parseChzzkChessBadgeState(legacySnapshot.data());
+  }
+
+  return { badges: {}, preferredProvider: null };
+}
+
 export async function getChzzkChessBadgeState(
   chzzkChannelId: string
 ): Promise<ChzzkChessBadgeState> {
+  const account = await getPlatformAccount("chzzk", chzzkChannelId);
+  if (account) {
+    return getUserChessBadgeState(account.userId);
+  }
+
   const snapshot = await getFirestoreDb()
     .collection("chzzkAccounts")
     .doc(chzzkChannelId)
     .get();
-  return parseChzzkChessBadgeState(snapshot.data());
+  const legacyUid = snapshot.data()?.uid;
+  return typeof legacyUid === "string"
+    ? getUserChessBadgeState(legacyUid)
+    : parseChzzkChessBadgeState(snapshot.data());
+}
+
+export function parseUserChessBadgeState(
+  data: FirebaseFirestore.DocumentData | undefined
+): ChessBadgeState {
+  return parseChessBadgeState(data?.chessBadges, data?.preferredChessProvider);
 }
 
 export function parseChzzkChessBadgeState(
   data: FirebaseFirestore.DocumentData | undefined
 ): ChzzkChessBadgeState {
+  return parseChessBadgeState(data?.badges, data?.preferredChessProvider);
+}
+
+function parseChessBadgeState(
+  storedBadges: unknown,
+  storedPreferredProvider: unknown
+): ChessBadgeState {
   const badges: ChessBadges = {};
-  const storedBadges = data?.badges;
 
   if (storedBadges && typeof storedBadges === "object") {
     for (const provider of ["chesscom", "lichess"] as const) {
@@ -143,9 +201,9 @@ export function parseChzzkChessBadgeState(
   }
 
   const requestedProvider =
-    data?.preferredChessProvider === "chesscom" ||
-    data?.preferredChessProvider === "lichess"
-      ? data.preferredChessProvider
+    storedPreferredProvider === "chesscom" ||
+    storedPreferredProvider === "lichess"
+      ? storedPreferredProvider
       : null;
   const preferredProvider = selectPreferredChessProvider(
     badges,
@@ -153,6 +211,16 @@ export function parseChzzkChessBadgeState(
   );
 
   return { badges, preferredProvider };
+}
+
+function hasUserChessBadgeState(
+  data: FirebaseFirestore.DocumentData | undefined
+): boolean {
+  return Boolean(
+    data &&
+      (Object.hasOwn(data, "chessBadges") ||
+        Object.hasOwn(data, "preferredChessProvider"))
+  );
 }
 
 export function selectPreferredChessProvider(

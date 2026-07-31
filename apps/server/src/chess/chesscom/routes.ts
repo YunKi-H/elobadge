@@ -47,7 +47,7 @@ export interface ChessComRouteDependencies {
   getProfile(username: string): Promise<ChessComProfile>;
   getAccount(uid: string): Promise<StoredChessComAccount | null>;
   saveAccount(uid: string, player: ChessComPlayer): Promise<StoredChessComAccount>;
-  disconnectAccount(uid: string, chzzkChannelId: string): Promise<boolean>;
+  disconnectAccount(uid: string): Promise<boolean>;
   createVerification(uid: string): Promise<ChessComVerificationChallenge>;
   getPendingVerification(uid: string): Promise<PendingChessComVerification>;
   completeVerification(
@@ -56,9 +56,9 @@ export interface ChessComRouteDependencies {
     playerId: string,
     location: string | null
   ): Promise<void>;
-  ensureHighestBadge(uid: string, chzzkChannelId: string): Promise<boolean>;
+  ensureHighestBadge(uid: string): Promise<boolean>;
   refreshAccount(uid: string): Promise<void>;
-  invalidateBadge(channelId: string): void;
+  invalidateBadge(uid: string): void;
 }
 
 export async function registerChessComRoutes(
@@ -72,14 +72,11 @@ export async function registerChessComRoutes(
       const user = getRequiredFirebaseUser(request);
       let account = await dependencies.getAccount(user.uid);
 
-      if (account?.verified && !account.selectedSpeed && user.chzzkChannelId) {
-        const updated = await dependencies.ensureHighestBadge(
-          user.uid,
-          user.chzzkChannelId
-        );
+      if (account?.verified && !account.selectedSpeed) {
+        const updated = await dependencies.ensureHighestBadge(user.uid);
 
         if (updated) {
-          dependencies.invalidateBadge(user.chzzkChannelId);
+          dependencies.invalidateBadge(user.uid);
           account = await dependencies.getAccount(user.uid);
         }
       }
@@ -118,11 +115,7 @@ export async function registerChessComRoutes(
           uid,
           player
         );
-        const channelId = getRequiredFirebaseUser(request).chzzkChannelId;
-
-        if (channelId) {
-          dependencies.invalidateBadge(channelId);
-        }
+        dependencies.invalidateBadge(uid);
 
         return reply.code(201).send({ ok: true, account: toResponse(account) });
       } catch (error) {
@@ -158,20 +151,13 @@ export async function registerChessComRoutes(
     async (request, reply) => {
       const user = getRequiredFirebaseUser(request);
 
-      if (!user.chzzkChannelId) {
-        return reply.code(403).send({ error: "치지직 계정 정보가 없습니다." });
-      }
-
-      const disconnected = await dependencies.disconnectAccount(
-        user.uid,
-        user.chzzkChannelId
-      );
+      const disconnected = await dependencies.disconnectAccount(user.uid);
 
       if (!disconnected) {
         return reply.code(404).send({ error: "연결된 Chess.com 계정이 없습니다." });
       }
 
-      dependencies.invalidateBadge(user.chzzkChannelId);
+      dependencies.invalidateBadge(user.uid);
       return { ok: true, account: null };
     }
   );
@@ -209,8 +195,6 @@ export async function registerChessComRoutes(
     },
     async (request, reply) => {
       const uid = getRequiredFirebaseUser(request).uid;
-      const channelId = getRequiredFirebaseUser(request).chzzkChannelId;
-
       try {
         const pending = await dependencies.getPendingVerification(uid);
         const profile = await dependencies.getProfile(pending.username);
@@ -220,9 +204,7 @@ export async function registerChessComRoutes(
           profile.playerId,
           profile.location
         );
-        if (channelId) {
-          dependencies.invalidateBadge(channelId);
-        }
+        dependencies.invalidateBadge(uid);
         const account = await dependencies.getAccount(uid);
 
         if (!account) {

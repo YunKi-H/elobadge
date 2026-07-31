@@ -13,6 +13,7 @@
     "chzzk:revoke-all": "pnpm --filter @elobadge/server chzzk:revoke-all",
     "platform-accounts:migrate": "pnpm --filter @elobadge/server platform-accounts:migrate",
     "overlay-themes:migrate": "pnpm --filter @elobadge/server overlay-themes:migrate",
+    "chess-badges:migrate": "pnpm --filter @elobadge/server chess-badges:migrate",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "test:emulator": "firebase emulators:exec --only firestore --project demo-elobadge-emulator \"pnpm --filter @elobadge/server test:emulator:run\"",

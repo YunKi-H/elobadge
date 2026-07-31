@@ -31,7 +31,6 @@ const callbackQuerySchema = z.object({
 
 interface PendingLichessConnection {
   uid: string;
-  chzzkChannelId: string;
   codeVerifier: string;
 }
 
@@ -47,10 +46,10 @@ export interface LichessRouteDependencies {
   getCurrentPlayer(accessToken: string): Promise<LichessPlayer>;
   revokeToken(accessToken: string): Promise<void>;
   getAccount(uid: string): Promise<StoredLichessAccount | null>;
-  saveAccount(uid: string, channelId: string, player: LichessPlayer): Promise<StoredLichessAccount>;
-  refreshAccount(uid: string, channelId: string): Promise<StoredLichessAccount>;
-  disconnectAccount(uid: string, channelId: string): Promise<boolean>;
-  invalidateBadge(channelId: string): void;
+  saveAccount(uid: string, player: LichessPlayer): Promise<StoredLichessAccount>;
+  refreshAccount(uid: string): Promise<StoredLichessAccount>;
+  disconnectAccount(uid: string): Promise<boolean>;
+  invalidateBadge(uid: string): void;
   webAppUrl(): string;
 }
 
@@ -73,16 +72,11 @@ export async function registerLichessRoutes(
       preHandler: dependencies.authenticate,
       config: { rateLimit: { max: 10, timeWindow: "10 minutes" } }
     },
-    async (request, reply) => {
+    async (request) => {
       const user = getRequiredFirebaseUser(request);
-      if (!user.chzzkChannelId) {
-        return reply.code(403).send({ error: "치지직 계정 정보가 없습니다." });
-      }
-
       const verifier = dependencies.createVerifier();
       const state = dependencies.issueState({
         uid: user.uid,
-        chzzkChannelId: user.chzzkChannelId,
         codeVerifier: verifier
       });
       const authorizationUrl = dependencies.createAuthorizationUrl(
@@ -114,12 +108,8 @@ export async function registerLichessRoutes(
           pending.codeVerifier
         );
         const player = await dependencies.getCurrentPlayer(accessToken);
-        await dependencies.saveAccount(
-          pending.uid,
-          pending.chzzkChannelId,
-          player
-        );
-        dependencies.invalidateBadge(pending.chzzkChannelId);
+        await dependencies.saveAccount(pending.uid, player);
+        dependencies.invalidateBadge(pending.uid);
         request.log.info(
           { uid: pending.uid, lichessUserId: player.playerId },
           "Lichess account connected"
@@ -145,12 +135,9 @@ export async function registerLichessRoutes(
     { preHandler: dependencies.authenticate },
     async (request, reply) => {
       const user = getRequiredFirebaseUser(request);
-      if (!user.chzzkChannelId) {
-        return reply.code(403).send({ error: "치지직 계정 정보가 없습니다." });
-      }
       try {
-        const account = await dependencies.refreshAccount(user.uid, user.chzzkChannelId);
-        dependencies.invalidateBadge(user.chzzkChannelId);
+        const account = await dependencies.refreshAccount(user.uid);
+        dependencies.invalidateBadge(user.uid);
         return { ok: true, account: toResponse(account) };
       } catch (error) {
         return sendLichessError(error, reply);
@@ -163,17 +150,11 @@ export async function registerLichessRoutes(
     { preHandler: dependencies.authenticate },
     async (request, reply) => {
       const user = getRequiredFirebaseUser(request);
-      if (!user.chzzkChannelId) {
-        return reply.code(403).send({ error: "치지직 계정 정보가 없습니다." });
-      }
-      const disconnected = await dependencies.disconnectAccount(
-        user.uid,
-        user.chzzkChannelId
-      );
+      const disconnected = await dependencies.disconnectAccount(user.uid);
       if (!disconnected) {
         return reply.code(404).send({ error: "연결된 Lichess 계정이 없습니다." });
       }
-      dependencies.invalidateBadge(user.chzzkChannelId);
+      dependencies.invalidateBadge(user.uid);
       return { ok: true, account: null };
     }
   );
@@ -205,7 +186,7 @@ function defaultDependencies(): LichessRouteDependencies {
       return account;
     },
     disconnectAccount: disconnectLichessAccount,
-    invalidateBadge: (channelId) => ratingBadgeCache.invalidate(channelId),
+    invalidateBadge: (uid) => ratingBadgeCache.invalidate(uid),
     webAppUrl: getWebAppUrl
   };
 }

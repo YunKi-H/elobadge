@@ -137,7 +137,7 @@ export class ChessComRatingRefreshService {
       );
 
       if (completed) {
-        this.dependencies.invalidateBadge(claim.chzzkChannelId);
+        this.dependencies.invalidateBadge(claim.uid);
       }
     } catch (error) {
       await this.dependencies.fail(claim, error, this.dependencies.now());

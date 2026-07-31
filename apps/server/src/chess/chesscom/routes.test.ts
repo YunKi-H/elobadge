@@ -153,14 +153,14 @@ test("returns 404 when the Chess.com account does not exist", async () => {
 
 test("disconnects the viewer's Chess.com account and invalidates its badge", async () => {
   let disconnectedUid: string | null = null;
-  let invalidatedChannelId: string | null = null;
+  let invalidatedUid: string | null = null;
   const app = await createApp({
     disconnectAccount: async (uid) => {
       disconnectedUid = uid;
       return true;
     },
-    invalidateBadge: (channelId) => {
-      invalidatedChannelId = channelId;
+    invalidateBadge: (uid) => {
+      invalidatedUid = uid;
     }
   });
   const response = await app.inject({
@@ -171,7 +171,7 @@ test("disconnects the viewer's Chess.com account and invalidates its badge", asy
 
   assert.equal(response.statusCode, 200);
   assert.equal(disconnectedUid, "chzzk:viewer");
-  assert.equal(invalidatedChannelId, "viewer");
+  assert.equal(invalidatedUid, "chzzk:viewer");
   assert.deepEqual(response.json(), { ok: true, account: null });
   await app.close();
 });

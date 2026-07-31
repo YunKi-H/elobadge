@@ -11,8 +11,8 @@ import {
   type TwitchAuthConfig
 } from "../auth/twitch/client.js";
 import { ratingBadgeCache } from "../chess/badge-cache.js";
+import { platformUserCache } from "../chess/platform-user-cache.js";
 import type { ChzzkChessBadgeState } from "../firebase/chess-badges.js";
-import { getPlatformAccount } from "../firebase/platform-accounts.js";
 import { markTwitchStreamerReauthenticationRequired } from "../firebase/twitch-tokens.js";
 import { publishChatOverlayEvent } from "../realtime/overlay-events.js";
 import { createChatOverlayEvent } from "../chat/chat-event.js";
@@ -571,23 +571,17 @@ function emptyStatus(): TwitchSessionStatus {
 async function loadTwitchRatingBadge(
   chatterUserId: string
 ): Promise<ChzzkChessBadgeState> {
-  const account = await getPlatformAccount("twitch", chatterUserId);
-  const chzzkChannelId = account?.userId.startsWith("chzzk:")
-    ? account.userId.slice("chzzk:".length)
-    : null;
-  return chzzkChannelId
-    ? ratingBadgeCache.get(chzzkChannelId)
+  const uid = await platformUserCache.get("twitch", chatterUserId);
+  return uid
+    ? ratingBadgeCache.get(uid)
     : { badges: {}, preferredProvider: null };
 }
 
 async function getCachedTwitchRatingBadge(
   chatterUserId: string
 ): Promise<ChzzkChessBadgeState | null> {
-  const account = await getPlatformAccount("twitch", chatterUserId);
-  const chzzkChannelId = account?.userId.startsWith("chzzk:")
-    ? account.userId.slice("chzzk:".length)
-    : null;
-  return chzzkChannelId ? ratingBadgeCache.peek(chzzkChannelId) : null;
+  const uid = platformUserCache.peek("twitch", chatterUserId);
+  return uid ? ratingBadgeCache.peek(uid) : null;
 }
 
 function normalizeTwitchMessage(

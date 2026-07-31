@@ -4,7 +4,7 @@ import { getFirestoreDb } from "./admin.js";
 import { getHighestChessComRating } from "../chess/rating-selection.js";
 import { getNextChessComRefreshAt } from "../chess/chesscom/rating-refresh-policy.js";
 import {
-  parseChzzkChessBadgeState,
+  getUserChessBadgeStateInTransaction,
   selectPreferredChessProvider
 } from "./chess-badges.js";
 
@@ -126,10 +126,6 @@ export async function completeChessComLocationVerification(
   const userRef = db.collection("users").doc(uid);
   const accountRef = db.collection("chessAccounts").doc(accountId);
   const challengeRef = db.collection("chessVerificationChallenges").doc(accountId);
-  const chzzkChannelId = uid.startsWith("chzzk:") ? uid.slice(6) : null;
-  const chzzkAccountRef = chzzkChannelId
-    ? db.collection("chzzkAccounts").doc(chzzkChannelId)
-    : null;
 
   const result = await db.runTransaction(async (transaction) => {
     const [userSnapshot, accountSnapshot, challengeSnapshot] = await Promise.all([
@@ -179,9 +175,11 @@ export async function completeChessComLocationVerification(
     const ratingSnapshots = await Promise.all(
       ratingRefs.map((ratingRef) => transaction.get(ratingRef))
     );
-    const chzzkAccountSnapshot = chzzkAccountRef
-      ? await transaction.get(chzzkAccountRef)
-      : null;
+    const currentState = await getUserChessBadgeStateInTransaction(
+      transaction,
+      uid,
+      userSnapshot
+    );
     const highestRating = getHighestChessComRating(
       ratingSnapshots.flatMap((snapshot) => {
         const rating = snapshot.data();
@@ -203,7 +201,6 @@ export async function completeChessComLocationVerification(
           provisional: false
         }
       : null;
-    const currentState = parseChzzkChessBadgeState(chzzkAccountSnapshot?.data());
     const badges = { ...currentState.badges };
     if (chessComBadge) {
       badges.chesscom = chessComBadge;
@@ -228,18 +225,15 @@ export async function completeChessComLocationVerification(
       ratingRefreshFailureCount: 0,
       updatedAt: now
     });
-    if (chzzkAccountRef) {
-      transaction.set(
-        chzzkAccountRef,
-        {
-          badges,
-          preferredChessProvider:
-            preferredProvider ?? FieldValue.delete(),
-          updatedAt: now
-        },
-        { merge: true }
-      );
-    }
+    transaction.set(
+      userRef,
+      {
+        chessBadges: badges,
+        preferredChessProvider: preferredProvider ?? FieldValue.delete(),
+        updatedAt: now
+      },
+      { merge: true }
+    );
     transaction.delete(challengeRef);
     return "verified" as const;
   });

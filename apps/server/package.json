@@ -9,6 +9,7 @@
     "chzzk:revoke-all": "tsx src/scripts/revoke-chzzk-streamer-tokens.ts",
     "platform-accounts:migrate": "tsx src/scripts/migrate-platform-accounts.ts",
     "overlay-themes:migrate": "tsx src/scripts/migrate-overlay-theme-fields.ts",
+    "chess-badges:migrate": "tsx src/scripts/migrate-chess-badges-to-users.ts",
     "test": "tsx --test src/auth/*.test.ts src/auth/chzzk/*.test.ts src/auth/twitch/*.test.ts src/chat/*.test.ts src/chess/*.test.ts src/chess/chesscom/*.test.ts src/chess/lichess/*.test.ts src/chzzk/*.test.ts src/twitch/*.test.ts src/firebase/*.test.ts src/monitoring/*.test.ts src/realtime/*.test.ts src/routes/*.test.ts src/security/*.test.ts",
     "test:emulator:run": "tsx --test src/firebase/emulator/*.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",

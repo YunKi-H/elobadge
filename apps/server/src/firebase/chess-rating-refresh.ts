@@ -10,7 +10,7 @@ import {
 import { getFirestoreDb } from "./admin.js";
 import { listDueRatingRefreshAccountIds } from "./rating-refresh-queries.js";
 import {
-  parseChzzkChessBadgeState,
+  getUserChessBadgeStateInTransaction,
   selectPreferredChessProvider
 } from "./chess-badges.js";
 
@@ -36,7 +36,6 @@ export class ChessRatingRefreshError extends Error {
 export interface ChessComRatingRefreshClaim {
   accountId: string;
   uid: string;
-  chzzkChannelId: string;
   username: string;
   playerId: string;
   leaseId: string;
@@ -107,14 +106,12 @@ export async function completeChessComRatingRefresh(
 ): Promise<boolean> {
   const db = getFirestoreDb();
   const accountRef = db.collection("chessAccounts").doc(claim.accountId);
-  const chzzkAccountRef = db
-    .collection("chzzkAccounts")
-    .doc(claim.chzzkChannelId);
+  const userRef = db.collection("users").doc(claim.uid);
 
   return db.runTransaction(async (transaction) => {
-    const [accountSnapshot, chzzkAccountSnapshot] = await Promise.all([
+    const [accountSnapshot, userSnapshot] = await Promise.all([
       transaction.get(accountRef),
-      transaction.get(chzzkAccountRef)
+      transaction.get(userRef)
     ]);
     const account = accountSnapshot.data();
 
@@ -139,7 +136,11 @@ export async function completeChessComRatingRefresh(
           provisional: false
         }
       : null;
-    const currentState = parseChzzkChessBadgeState(chzzkAccountSnapshot.data());
+    const currentState = await getUserChessBadgeStateInTransaction(
+      transaction,
+      claim.uid,
+      userSnapshot
+    );
     const badges = { ...currentState.badges };
     if (chessComBadge) {
       badges.chesscom = chessComBadge;
@@ -189,9 +190,9 @@ export async function completeChessComRatingRefresh(
     });
 
     transaction.set(
-      chzzkAccountRef,
+      userRef,
       {
-        badges,
+        chessBadges: badges,
         preferredChessProvider: preferredProvider ?? FieldValue.delete(),
         updatedAt: Timestamp.fromDate(now)
       },
@@ -276,12 +277,7 @@ function claimRefresh(
     throw new ChessRatingRefreshError("in_progress", leaseUntil.toDate());
   }
 
-  const chzzkChannelId = account.uid.startsWith("chzzk:")
-    ? account.uid.slice(6)
-    : null;
-
   if (
-    !chzzkChannelId ||
     typeof account.username !== "string" ||
     typeof account.providerUserId !== "string"
   ) {
@@ -305,7 +301,6 @@ function claimRefresh(
   return {
     accountId: snapshot.id,
     uid: account.uid,
-    chzzkChannelId,
     username: account.username,
     playerId: account.providerUserId,
     leaseId

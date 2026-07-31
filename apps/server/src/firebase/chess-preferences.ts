@@ -12,9 +12,9 @@ import {
 import { getHighestRating } from "../chess/rating-selection.js";
 import { getFirestoreDb } from "./admin.js";
 import {
-  getChzzkChessBadgeState,
-  parseChzzkChessBadgeState,
-  type ChzzkChessBadgeState
+  getUserChessBadgeState,
+  getUserChessBadgeStateInTransaction,
+  type ChessBadgeState
 } from "./chess-badges.js";
 
 export class ChessBadgePreferenceError extends Error {
@@ -25,30 +25,28 @@ export class ChessBadgePreferenceError extends Error {
 }
 
 export async function getChessBadgePreference(
-  uid: string,
-  chzzkChannelId: string
-): Promise<ChzzkChessBadgeState> {
-  return reconcileLinkedChessBadges(uid, chzzkChannelId);
+  uid: string
+): Promise<ChessBadgeState> {
+  return reconcileLinkedChessBadges(uid);
 }
 
 async function reconcileLinkedChessBadges(
-  uid: string,
-  chzzkChannelId: string
-): Promise<ChzzkChessBadgeState> {
+  uid: string
+): Promise<ChessBadgeState> {
   const db = getFirestoreDb();
-  const chzzkRef = db.collection("chzzkAccounts").doc(chzzkChannelId);
+  const userRef = db.collection("users").doc(uid);
 
   return db.runTransaction(async (transaction) => {
-    const [snapshot, userSnapshot] = await Promise.all([
-      transaction.get(chzzkRef),
-      transaction.get(db.collection("users").doc(uid))
-    ]);
-
-    if (snapshot.data()?.uid !== uid) {
+    const userSnapshot = await transaction.get(userRef);
+    if (!userSnapshot.exists) {
       throw new ChessBadgePreferenceError("identity_mismatch");
     }
 
-    const state = parseChzzkChessBadgeState(snapshot.data());
+    const state = await getUserChessBadgeStateInTransaction(
+      transaction,
+      uid,
+      userSnapshot
+    );
     const accountIds = userSnapshot.data()?.chessAccountIds;
     const linkedBadges = await Promise.all(
       (["chesscom", "lichess"] as const).map(async (provider) => {
@@ -76,8 +74,8 @@ async function reconcileLinkedChessBadges(
     const reconciled = { badges, preferredProvider };
 
     if (!sameBadgeState(state, reconciled)) {
-      transaction.update(chzzkRef, {
-        badges,
+      transaction.update(userRef, {
+        chessBadges: badges,
         preferredChessProvider: preferredProvider ?? FieldValue.delete(),
         updatedAt: FieldValue.serverTimestamp()
       });
@@ -89,20 +87,22 @@ async function reconcileLinkedChessBadges(
 
 export async function updateChessBadgePreference(
   uid: string,
-  chzzkChannelId: string,
   provider: ChessProvider
-): Promise<ChzzkChessBadgeState> {
+): Promise<ChessBadgeState> {
   const db = getFirestoreDb();
-  const ref = db.collection("chzzkAccounts").doc(chzzkChannelId);
+  const ref = db.collection("users").doc(uid);
 
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
-    const data = snapshot.data();
-    if (data?.uid !== uid) {
+    if (!snapshot.exists) {
       throw new ChessBadgePreferenceError("identity_mismatch");
     }
 
-    const state = parseChzzkChessBadgeState(data);
+    const state = await getUserChessBadgeStateInTransaction(
+      transaction,
+      uid,
+      snapshot
+    );
     const badge = state.badges[provider];
 
     if (!badge) {
@@ -110,13 +110,13 @@ export async function updateChessBadgePreference(
     }
 
     transaction.update(ref, {
-      badges: state.badges,
+      chessBadges: state.badges,
       preferredChessProvider: provider,
       updatedAt: FieldValue.serverTimestamp()
     });
   });
 
-  return getChzzkChessBadgeState(chzzkChannelId);
+  return getUserChessBadgeState(uid);
 }
 
 async function deriveLinkedBadge(
@@ -185,8 +185,8 @@ function isProviderSpeed(
 }
 
 function sameBadgeState(
-  left: ChzzkChessBadgeState,
-  right: ChzzkChessBadgeState
+  left: ChessBadgeState,
+  right: ChessBadgeState
 ): boolean {
   return (
     left.preferredProvider === right.preferredProvider &&
