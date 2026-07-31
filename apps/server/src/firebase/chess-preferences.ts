@@ -7,7 +7,7 @@ import type {
 import {
   FieldValue,
   Timestamp,
-  type Transaction
+  type DocumentSnapshot
 } from "firebase-admin/firestore";
 import { getHighestRating } from "../chess/rating-selection.js";
 import { getFirestoreDb } from "./admin.js";
@@ -36,22 +36,20 @@ async function reconcileLinkedChessBadges(
   const db = getFirestoreDb();
   const userRef = db.collection("users").doc(uid);
 
-  return db.runTransaction(async (transaction) => {
-    const userSnapshot = await transaction.get(userRef);
-    if (!userSnapshot.exists) {
-      throw new ChessBadgePreferenceError("identity_mismatch");
-    }
-
-    const state = parseUserChessBadgeState(userSnapshot.data());
-    const accountIds = userSnapshot.data()?.chessAccountIds;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const initialUser = await userRef.get();
+    assertUserExists(initialUser);
+    const accountIds = readLinkedAccountIds(initialUser);
     const linkedBadges = await Promise.all(
       (["chesscom", "lichess"] as const).map(async (provider) => {
-        const accountId = accountIds?.[provider];
+        const accountId = accountIds[provider];
         return typeof accountId === "string"
-          ? deriveLinkedBadge(transaction, uid, accountId, provider)
+          ? deriveLinkedBadge(uid, accountId, provider)
           : null;
       })
     );
+
+    const state = parseUserChessBadgeState(initialUser.data());
     const badges: ChessBadges = { ...state.badges };
     for (const badge of linkedBadges) {
       if (badge) {
@@ -69,16 +67,28 @@ async function reconcileLinkedChessBadges(
             : null;
     const reconciled = { badges, preferredProvider };
 
-    if (!sameBadgeState(state, reconciled)) {
-      transaction.update(userRef, {
-        chessBadges: badges,
-        preferredChessProvider: preferredProvider ?? FieldValue.delete(),
-        updatedAt: FieldValue.serverTimestamp()
-      });
+    if (sameBadgeState(state, reconciled)) {
+      return reconciled;
     }
 
-    return reconciled;
-  });
+    try {
+      await userRef.update(
+        {
+          chessBadges: badges,
+          preferredChessProvider: preferredProvider ?? FieldValue.delete(),
+          updatedAt: FieldValue.serverTimestamp()
+        },
+        { lastUpdateTime: initialUser.updateTime }
+      );
+      return reconciled;
+    } catch (error) {
+      if (!isFailedPrecondition(error)) {
+        throw error;
+      }
+    }
+  }
+
+  return getUserChessBadgeState(uid);
 }
 
 export async function updateChessBadgePreference(
@@ -112,7 +122,6 @@ export async function updateChessBadgePreference(
 }
 
 async function deriveLinkedBadge(
-  transaction: Transaction,
   uid: string,
   accountId: string,
   provider: ChessProvider
@@ -122,8 +131,8 @@ async function deriveLinkedBadge(
     accountRef.collection("ratings").doc(speed)
   );
   const [accountSnapshot, ...ratingSnapshots] = await Promise.all([
-    transaction.get(accountRef),
-    ...ratingRefs.map((ratingRef) => transaction.get(ratingRef))
+    accountRef.get(),
+    ...ratingRefs.map((ratingRef) => ratingRef.get())
   ]);
   const account = accountSnapshot.data();
   if (
@@ -156,6 +165,37 @@ async function deriveLinkedBadge(
   return highest
     ? { provider, ...highest }
     : null;
+}
+
+type LinkedAccountIds = Partial<Record<ChessProvider, string>>;
+
+function assertUserExists(
+  snapshot: DocumentSnapshot
+): asserts snapshot is DocumentSnapshot & { exists: true } {
+  if (!snapshot.exists) {
+    throw new ChessBadgePreferenceError("identity_mismatch");
+  }
+}
+
+function readLinkedAccountIds(snapshot: DocumentSnapshot): LinkedAccountIds {
+  const value = snapshot.data()?.chessAccountIds;
+  return {
+    ...(typeof value?.chesscom === "string"
+      ? { chesscom: value.chesscom }
+      : {}),
+    ...(typeof value?.lichess === "string"
+      ? { lichess: value.lichess }
+      : {})
+  };
+}
+
+function isFailedPrecondition(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error.code === 9 || error.code === "failed-precondition")
+  );
 }
 
 function getProviderSpeeds(provider: ChessProvider): readonly ChessSpeed[] {
