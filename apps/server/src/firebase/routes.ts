@@ -4,8 +4,7 @@ import { getFirebaseAuth, getFirestoreDb } from "./admin.js";
 import { consumeFirebaseLoginCode } from "./login-exchange.js";
 import {
   getRequiredFirebaseUser,
-  requireFirebaseUser,
-  requireUnrevokedFirebaseUser
+  requireFirebaseUser
 } from "../auth/firebase.js";
 import { getChzzkAuthConfig } from "../auth/chzzk/client.js";
 import { accountDeletionService } from "./account-deletion-service.js";
@@ -49,7 +48,7 @@ export async function registerFirebaseRoutes(app: FastifyInstance) {
 
   app.get(
     "/api/me",
-    { preHandler: requireUnrevokedFirebaseUser },
+    { preHandler: requireFirebaseUser },
     async (request, reply) => {
       return reply
         .header("Cache-Control", "no-store")

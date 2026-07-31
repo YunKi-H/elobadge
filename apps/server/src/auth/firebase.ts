@@ -13,7 +13,7 @@ export interface FirebaseRequestUser {
   email: string | null;
 }
 
-interface VerifiedFirebaseToken {
+export interface VerifiedFirebaseToken {
   uid: string;
   provider?: unknown;
   chzzkChannelId?: unknown;
@@ -21,6 +21,13 @@ interface VerifiedFirebaseToken {
 }
 
 type VerifyFirebaseToken = (idToken: string) => Promise<VerifiedFirebaseToken>;
+
+interface FirebaseTokenVerifier {
+  verifyIdToken(
+    idToken: string,
+    checkRevoked?: boolean
+  ): Promise<VerifiedFirebaseToken>;
+}
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -32,14 +39,13 @@ export async function registerFirebaseAuthentication(app: FastifyInstance) {
   app.decorateRequest("firebaseUser", null);
 }
 
-export const requireFirebaseUser = createFirebaseAuthPreHandler();
-export const requireUnrevokedFirebaseUser = createFirebaseAuthPreHandler(
-  verifyUnrevokedFirebaseIdToken
+export const requireFirebaseUser = createFirebaseAuthPreHandler(
+  verifyActiveFirebaseIdToken
 );
 export const requireFirebaseAdmin = createFirebaseAdminPreHandler();
 
 export function createFirebaseAuthPreHandler(
-  verifyToken: VerifyFirebaseToken = verifyFirebaseIdToken
+  verifyToken: VerifyFirebaseToken = verifyActiveFirebaseIdToken
 ): preHandlerAsyncHookHandler {
   return async (request, reply) => {
     const idToken = extractBearerToken(request.headers.authorization);
@@ -66,7 +72,7 @@ export function createFirebaseAuthPreHandler(
 }
 
 export function createFirebaseAdminPreHandler(
-  verifyToken: VerifyFirebaseToken = verifyUnrevokedFirebaseIdToken,
+  verifyToken: VerifyFirebaseToken = verifyActiveFirebaseIdToken,
   getAdminUids: () => ReadonlySet<string> = readAdminFirebaseUids
 ): preHandlerAsyncHookHandler {
   const authenticate = createFirebaseAuthPreHandler(verifyToken);
@@ -105,14 +111,11 @@ function extractBearerToken(authorization: string | undefined): string | null {
   return match?.[1] ?? null;
 }
 
-async function verifyFirebaseIdToken(idToken: string): Promise<VerifiedFirebaseToken> {
-  return getFirebaseAuth().verifyIdToken(idToken);
-}
-
-async function verifyUnrevokedFirebaseIdToken(
-  idToken: string
+export async function verifyActiveFirebaseIdToken(
+  idToken: string,
+  verifier: FirebaseTokenVerifier = getFirebaseAuth()
 ): Promise<VerifiedFirebaseToken> {
-  return getFirebaseAuth().verifyIdToken(idToken, true);
+  return verifier.verifyIdToken(idToken, true);
 }
 
 function stringClaim(value: unknown): string | null {

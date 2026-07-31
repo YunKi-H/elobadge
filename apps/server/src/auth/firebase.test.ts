@@ -5,7 +5,8 @@ import {
   createFirebaseAdminPreHandler,
   createFirebaseAuthPreHandler,
   getRequiredFirebaseUser,
-  registerFirebaseAuthentication
+  registerFirebaseAuthentication,
+  verifyActiveFirebaseIdToken
 } from "./firebase.js";
 
 test("Firebase auth guard rejects a request without a bearer token", async () => {
@@ -122,4 +123,25 @@ test("Firebase auth guard rejects a token that fails verification", async () => 
 
   assert.equal(response.statusCode, 401);
   await app.close();
+});
+
+test("Firebase active-user verification checks revoked and deleted users", async () => {
+  let checkRevoked: boolean | undefined;
+
+  await assert.rejects(
+    verifyActiveFirebaseIdToken("deleted-user-token", {
+      verifyIdToken: async (_token, shouldCheckRevoked) => {
+        checkRevoked = shouldCheckRevoked;
+        throw Object.assign(new Error("Firebase user not found"), {
+          code: "auth/user-not-found"
+        });
+      }
+    }),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "auth/user-not-found"
+  );
+
+  assert.equal(checkRevoked, true);
 });

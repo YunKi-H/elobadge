@@ -5,6 +5,7 @@ import {
   type OverlayAppearance,
   type StreamingPlatform
 } from "@elobadge/core";
+import { signOut } from "firebase/auth";
 import { getFirebaseClientAuth } from "../firebase/client";
 
 export async function authenticatedFetch(
@@ -23,10 +24,16 @@ export async function authenticatedFetch(
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${idToken}`);
 
-  return fetch(input, {
+  const response = await fetch(input, {
     ...init,
     headers
   });
+
+  if (response.status === 401) {
+    await signOut(auth).catch(() => undefined);
+  }
+
+  return response;
 }
 
 export interface CurrentApiUser {
