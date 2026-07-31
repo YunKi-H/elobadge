@@ -130,7 +130,10 @@ export async function updateStreamerOverlayAppearance(
 
     transaction.set(
       overlayRef,
-      { theme: appearance, updatedAt: FieldValue.serverTimestamp() },
+      {
+        theme: toStoredOverlayTheme(appearance),
+        updatedAt: FieldValue.serverTimestamp()
+      },
       { merge: true }
     );
 
@@ -165,8 +168,10 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
   }
 
   const appearance = value as Record<string, unknown>;
-  const chzzkBadgeVisibility = parseChzzkBadgeVisibility(
-    appearance.chzzkBadgeVisibility
+  const platformBadgesVisible =
+    appearance.platformBadgesVisible ?? appearance.chzzkBadgesVisible;
+  const platformBadgeVisibility = parsePlatformBadgeVisibility(
+    appearance.platformBadgeVisibility ?? appearance.chzzkBadgeVisibility
   );
   const nicknameRoleColors = parseRoleColors(
     appearance.nicknameRoleColors,
@@ -188,8 +193,8 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
     !Number.isInteger(appearance.backgroundOpacity) ||
     appearance.backgroundOpacity < 0 ||
     appearance.backgroundOpacity > 100 ||
-    typeof appearance.chzzkBadgesVisible !== "boolean" ||
-    !chzzkBadgeVisibility ||
+    typeof platformBadgesVisible !== "boolean" ||
+    !platformBadgeVisibility ||
     !isRatingProviderPolicy(appearance.ratingProviderPolicy) ||
     typeof appearance.nicknameVisible !== "boolean" ||
     !isNicknameColorMode(appearance.nicknameColorMode) ||
@@ -215,8 +220,8 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
     backgroundVisible: appearance.backgroundVisible,
     backgroundColor: appearance.backgroundColor.toUpperCase(),
     backgroundOpacity: appearance.backgroundOpacity,
-    chzzkBadgesVisible: appearance.chzzkBadgesVisible,
-    chzzkBadgeVisibility,
+    chzzkBadgesVisible: platformBadgesVisible,
+    chzzkBadgeVisibility: platformBadgeVisibility,
     ratingProviderPolicy: appearance.ratingProviderPolicy,
     nicknameVisible: appearance.nicknameVisible,
     nicknameColorMode: appearance.nicknameColorMode,
@@ -233,7 +238,23 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
   };
 }
 
-function parseChzzkBadgeVisibility(
+export function toStoredOverlayTheme(
+  appearance: OverlayAppearance
+): Record<string, unknown> {
+  const {
+    chzzkBadgesVisible,
+    chzzkBadgeVisibility,
+    ...commonAppearance
+  } = appearance;
+
+  return {
+    ...commonAppearance,
+    platformBadgesVisible: chzzkBadgesVisible,
+    platformBadgeVisibility: { ...chzzkBadgeVisibility }
+  };
+}
+
+function parsePlatformBadgeVisibility(
   value: unknown
 ): OverlayAppearance["chzzkBadgeVisibility"] | null {
   if (!value || typeof value !== "object") {
@@ -366,7 +387,7 @@ async function createOrRotateOverlayAccess(
       transaction.create(candidateRef, {
         streamerUid,
         active: true,
-        theme: appearance,
+        theme: toStoredOverlayTheme(appearance),
         createdAt: now,
         updatedAt: now
       });

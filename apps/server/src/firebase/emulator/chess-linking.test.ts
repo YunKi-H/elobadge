@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, beforeEach, test } from "node:test";
 import { deleteApp } from "firebase-admin/app";
 import { Timestamp } from "firebase-admin/firestore";
+import { DEFAULT_OVERLAY_APPEARANCE } from "@elobadge/core";
 import type { ChessComPlayer } from "../../chess/chesscom/client.js";
 import {
   ChessAccountConflictError,
@@ -39,8 +40,10 @@ import {
   enableStreamerOverlayAccess,
   getStreamerOverlayAccess,
   rotateStreamerOverlayAccess,
+  toStoredOverlayTheme,
   updateStreamerOverlayAppearance
 } from "../overlays.js";
+import { migrateOverlayThemeBadgeFields } from "../overlay-theme-migration.js";
 import {
   deleteUserPlatformAccounts,
   getPlatformAccount,
@@ -824,6 +827,9 @@ test("overlay appearance persists and survives public token rotation", async () 
   await db.collection("streamers").doc(uid).set({ uid });
 
   const initial = await enableStreamerOverlayAccess(uid);
+  const initialTheme = await db.collection("overlays").doc(initial.publicToken).get();
+  assert.equal(initialTheme.get("theme.platformBadgesVisible"), true);
+  assert.equal(initialTheme.get("theme.chzzkBadgesVisible"), undefined);
   assert.deepEqual(initial.appearance, {
     messageMaxWidthPx: 600,
     backgroundVisible: true,
@@ -913,6 +919,59 @@ test("overlay appearance persists and survives public token rotation", async () 
     (await db.collection("overlays").doc(initial.publicToken).get()).exists,
     false
   );
+});
+
+test("overlay theme migration backfills platform-neutral badge fields", async () => {
+  const db = getFirestoreDb();
+  const overlays = db.collection("overlays");
+  await Promise.all([
+    overlays.doc("legacy").set({
+      theme: DEFAULT_OVERLAY_APPEARANCE
+    }),
+    overlays.doc("current").set({
+      theme: toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE)
+    }),
+    overlays.doc("invalid").set({
+      theme: { platformBadgesVisible: true }
+    })
+  ]);
+
+  assert.deepEqual(await migrateOverlayThemeBadgeFields(false, db), {
+    scanned: 3,
+    candidates: 1,
+    migrated: 0,
+    unchanged: 1,
+    invalid: 1
+  });
+  assert.equal(
+    (await overlays.doc("legacy").get()).get(
+      "theme.platformBadgesVisible"
+    ),
+    undefined
+  );
+
+  assert.deepEqual(await migrateOverlayThemeBadgeFields(true, db), {
+    scanned: 3,
+    candidates: 1,
+    migrated: 1,
+    unchanged: 1,
+    invalid: 1
+  });
+  const migrated = await overlays.doc("legacy").get();
+  assert.equal(migrated.get("theme.platformBadgesVisible"), true);
+  assert.deepEqual(
+    migrated.get("theme.platformBadgeVisibility"),
+    DEFAULT_OVERLAY_APPEARANCE.chzzkBadgeVisibility
+  );
+  assert.equal(migrated.get("theme.chzzkBadgesVisible"), true);
+
+  assert.deepEqual(await migrateOverlayThemeBadgeFields(false, db), {
+    scanned: 3,
+    candidates: 0,
+    migrated: 0,
+    unchanged: 2,
+    invalid: 1
+  });
 });
 
 function createPlayer(): ChessComPlayer {

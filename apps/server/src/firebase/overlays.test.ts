@@ -6,7 +6,8 @@ import {
 } from "@elobadge/core";
 import {
   generateOverlayPublicToken,
-  parseOverlayAppearance
+  parseOverlayAppearance,
+  toStoredOverlayTheme
 } from "./overlays.js";
 
 test("overlay public tokens are URL-safe, random 256-bit values", () => {
@@ -102,6 +103,52 @@ test("overlay appearance accepts a complete valid document", () => {
       messageDurationSeconds: 60
     }
   );
+});
+
+test("overlay appearance reads platform-neutral badge fields first", () => {
+  const storedTheme = {
+    ...toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE),
+    platformBadgesVisible: false,
+    chzzkBadgesVisible: true,
+    platformBadgeVisibility: {
+      role: false,
+      subscription: true,
+      donation: false,
+      subscription_gift: true,
+      unknown: false
+    },
+    chzzkBadgeVisibility: {
+      role: true,
+      subscription: true,
+      donation: true,
+      subscription_gift: true,
+      unknown: true
+    }
+  };
+
+  assert.deepEqual(parseOverlayAppearance(storedTheme), {
+    ...DEFAULT_OVERLAY_APPEARANCE,
+    chzzkBadgesVisible: false,
+    chzzkBadgeVisibility: {
+      role: false,
+      subscription: true,
+      donation: false,
+      subscription_gift: true,
+      unknown: false
+    }
+  });
+});
+
+test("stored overlay themes use only platform-neutral badge fields", () => {
+  const stored = toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE);
+
+  assert.equal(stored.platformBadgesVisible, true);
+  assert.deepEqual(
+    stored.platformBadgeVisibility,
+    DEFAULT_OVERLAY_APPEARANCE.chzzkBadgeVisibility
+  );
+  assert.equal("chzzkBadgesVisible" in stored, false);
+  assert.equal("chzzkBadgeVisibility" in stored, false);
 });
 
 test("overlay appearance rejects incomplete and invalid documents", () => {

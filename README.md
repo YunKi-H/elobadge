@@ -198,6 +198,27 @@ docker compose exec -T app \
   --execute --confirm-project=<FIREBASE_PROJECT_ID>
 ```
 
+After deploying the version that reads platform-neutral overlay badge fields,
+backfill existing `overlays.theme` documents. The migration copies
+`chzzkBadgesVisible` and `chzzkBadgeVisibility` into
+`platformBadgesVisible` and `platformBadgeVisibility`. It intentionally keeps
+the old fields so the previous server version remains a viable rollback.
+
+```bash
+pnpm overlay-themes:migrate
+pnpm overlay-themes:migrate --execute --confirm-project=<FIREBASE_PROJECT_ID>
+```
+
+For a built production container:
+
+```bash
+docker compose exec -T app \
+  node apps/server/dist/scripts/migrate-overlay-theme-fields.js
+docker compose exec -T app \
+  node apps/server/dist/scripts/migrate-overlay-theme-fields.js \
+  --execute --confirm-project=<FIREBASE_PROJECT_ID>
+```
+
 ## Twitch Account Link
 
 Register a dedicated EloBadge application in the
