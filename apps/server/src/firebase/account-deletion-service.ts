@@ -26,10 +26,7 @@ interface AccountDeletionDependencies {
   disconnectTwitch(uid: string): Promise<void>;
   loadTokens: typeof loadChzzkStreamerTokens;
   revokeToken: typeof revokeChzzkToken;
-  deleteFirestoreData(
-    uid: string,
-    chzzkChannelId: string | null
-  ): Promise<DeletedUserData>;
+  deleteFirestoreData(uid: string): Promise<DeletedUserData>;
   deleteAuthUser(uid: string): Promise<void>;
   revokeOverlay(publicToken: string): void;
   invalidateBadge(uid: string): void;
@@ -93,10 +90,7 @@ export class AccountDeletionService {
       await this.revokeStoredChzzkToken(uid, chzzkConfig, logger);
     }
 
-    const deleted = await this.dependencies.deleteFirestoreData(
-      uid,
-      chzzkChannelId
-    );
+    const deleted = await this.dependencies.deleteFirestoreData(uid);
 
     for (const publicToken of deleted.overlayTokens) {
       this.dependencies.revokeOverlay(publicToken);

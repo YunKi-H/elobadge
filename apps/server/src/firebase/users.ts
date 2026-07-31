@@ -24,19 +24,9 @@ export async function upsertChzzkUser(identity: ChzzkUserIdentity): Promise<stri
   const uid = toFirebaseUid(identity.channelId);
   const db = getFirestoreDb();
   const userRef = db.collection("users").doc(uid);
-  const chzzkAccountRef = db.collection("chzzkAccounts").doc(identity.channelId);
 
   await db.runTransaction(async (transaction) => {
-    const [userSnapshot, chzzkAccountSnapshot] = await Promise.all([
-      transaction.get(userRef),
-      transaction.get(chzzkAccountRef)
-    ]);
-
-    const linkedUid = chzzkAccountSnapshot.data()?.uid;
-
-    if (linkedUid && linkedUid !== uid) {
-      throw new Error("This Chzzk account is already linked to another user");
-    }
+    const userSnapshot = await transaction.get(userRef);
 
     await upsertPlatformAccountInTransaction(transaction, db, uid, {
       platform: "chzzk",
@@ -55,20 +45,6 @@ export async function upsertChzzkUser(identity: ChzzkUserIdentity): Promise<stri
       },
       { merge: true }
     );
-
-    transaction.set(
-      chzzkAccountRef,
-      {
-        uid,
-        displayName: identity.channelName,
-        ...(chzzkAccountSnapshot.exists
-          ? {}
-          : { createdAt: now }),
-        updatedAt: now
-      },
-      { merge: true }
-    );
-
   });
 
   await upsertFirebaseAuthUser(uid, identity.channelName);

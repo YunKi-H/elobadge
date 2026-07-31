@@ -194,38 +194,6 @@ test("Chess.com verification selects the highest badge and disconnect clears it"
   assert.equal(await disconnectChessComAccount(uid), true);
 });
 
-test("legacy Chzzk badge fields are ignored", async () => {
-  const uid = "chzzk:legacy-badge-viewer";
-  const channelId = "legacy-badge-viewer";
-  const db = getFirestoreDb();
-
-  await Promise.all([
-    db.collection("users").doc(uid).set({ displayName: "viewer" }),
-    db.collection("chzzkAccounts").doc(channelId).set({
-      uid,
-      badges: {
-        chesscom: {
-          provider: "chesscom",
-          speed: "rapid",
-          value: 1600,
-          provisional: false
-        }
-      },
-      preferredChessProvider: "chesscom"
-    }),
-    upsertPlatformAccount(uid, {
-      platform: "chzzk",
-      platformUserId: channelId,
-      displayName: "viewer"
-    })
-  ]);
-
-  assert.deepEqual(await getChzzkChessBadgeState(channelId), {
-    badges: {},
-    preferredProvider: null
-  });
-});
-
 test("one Chess.com account cannot be linked to two Chzzk users", async () => {
   const player = createPlayer();
 
@@ -309,7 +277,6 @@ test("Chzzk disconnect preserves EloBadge user data and other platforms", async 
       chessBadges: { chesscom: badge },
       preferredChessProvider: "chesscom"
     }),
-    db.collection("chzzkAccounts").doc(channelId).set({ uid }),
     db.collection("streamers").doc(uid).set({
       chzzkChannelId: channelId,
       chatSessionEnabled: false
@@ -332,10 +299,6 @@ test("Chzzk disconnect preserves EloBadge user data and other platforms", async 
     (await getPlatformAccount("twitch", "twitch-viewer"))?.userId,
     uid
   );
-  assert.equal(
-    (await db.collection("chzzkAccounts").doc(channelId).get()).exists,
-    false
-  );
   assert.deepEqual(
     (await db.collection("users").doc(uid).get()).get("chessBadges"),
     { chesscom: badge }
@@ -356,7 +319,6 @@ test("last Chzzk identity can be removed without deleting the EloBadge user", as
       chessBadges: {},
       preferredChessProvider: null
     }),
-    db.collection("chzzkAccounts").doc(channelId).set({ uid }),
     upsertPlatformAccount(uid, {
       platform: "chzzk",
       platformUserId: channelId,
@@ -701,7 +663,6 @@ test("account deletion removes user-owned Firestore data", async () => {
   const twitchTokenRef = db.collection("twitchTokens").doc(uid);
   const ownedDocuments = [
     db.collection("users").doc(uid),
-    db.collection("chzzkAccounts").doc(channelId),
     db.collection("streamers").doc(uid),
     db.collection("chzzkTokens").doc(uid),
     db.collection("overlays").doc("active-overlay"),
@@ -725,23 +686,22 @@ test("account deletion removes user-owned Firestore data", async () => {
     ownedDocuments[0]!.set({
       chessAccountIds: { chesscom: accountId, lichess: "lichess:delete-player" }
     }),
-    ownedDocuments[1]!.set({ uid }),
-    ownedDocuments[2]!.set({ overlayToken: "active-overlay" }),
-    ownedDocuments[3]!.set({ encryptedAccessToken: "secret" }),
-    ownedDocuments[4]!.set({ streamerUid: uid, active: true }),
-    ownedDocuments[5]!.set({ streamerUid: uid, active: false }),
-    ownedDocuments[6]!.set({ uid, provider: "chesscom" }),
-    ownedDocuments[7]!.set({ value: 1000 }),
-    ownedDocuments[8]!.set({ value: 1100 }),
-    ownedDocuments[9]!.set({ value: 1200 }),
-    ownedDocuments[10]!.set({ uid }),
-    ownedDocuments[11]!.set({ uid, provider: "lichess" }),
-    ownedDocuments[12]!.set({ value: 1300 }),
-    ownedDocuments[13]!.set({ value: 1400 }),
-    ownedDocuments[14]!.set({ value: 1500 }),
-    ownedDocuments[15]!.set({ value: 1600 }),
-    ownedDocuments[16]!.set({ userId: uid, platform: "chzzk" }),
-    ownedDocuments[17]!.set({ userId: uid, platform: "twitch" }),
+    ownedDocuments[1]!.set({ overlayToken: "active-overlay" }),
+    ownedDocuments[2]!.set({ encryptedAccessToken: "secret" }),
+    ownedDocuments[3]!.set({ streamerUid: uid, active: true }),
+    ownedDocuments[4]!.set({ streamerUid: uid, active: false }),
+    ownedDocuments[5]!.set({ uid, provider: "chesscom" }),
+    ownedDocuments[6]!.set({ value: 1000 }),
+    ownedDocuments[7]!.set({ value: 1100 }),
+    ownedDocuments[8]!.set({ value: 1200 }),
+    ownedDocuments[9]!.set({ uid }),
+    ownedDocuments[10]!.set({ uid, provider: "lichess" }),
+    ownedDocuments[11]!.set({ value: 1300 }),
+    ownedDocuments[12]!.set({ value: 1400 }),
+    ownedDocuments[13]!.set({ value: 1500 }),
+    ownedDocuments[14]!.set({ value: 1600 }),
+    ownedDocuments[15]!.set({ userId: uid, platform: "chzzk" }),
+    ownedDocuments[16]!.set({ userId: uid, platform: "twitch" }),
     twitchTokenRef.set({ encryptedAccessToken: "twitch-secret" }),
     db.collection("overlays").doc("another-overlay").set({
       streamerUid: "chzzk:another-channel",
@@ -749,7 +709,7 @@ test("account deletion removes user-owned Firestore data", async () => {
     })
   ]);
 
-  const deleted = await deleteUserFirestoreData(uid, channelId);
+  const deleted = await deleteUserFirestoreData(uid);
 
   assert.deepEqual(deleted.overlayTokens.sort(), [
     "active-overlay",

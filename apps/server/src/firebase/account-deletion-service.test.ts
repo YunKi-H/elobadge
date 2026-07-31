@@ -129,8 +129,8 @@ test("Twitch-only account deletion skips Chzzk token work", async () => {
       operations.push("load-chzzk-token");
       return tokens;
     },
-    deleteFirestoreData: async (_uid, chzzkChannelId) => {
-      operations.push(`delete-firestore:${String(chzzkChannelId)}`);
+    deleteFirestoreData: async () => {
+      operations.push("delete-firestore");
       return { overlayTokens: [] };
     },
     deleteAuthUser: async () => {
@@ -151,7 +151,7 @@ test("Twitch-only account deletion skips Chzzk token work", async () => {
   assert.deepEqual(operations, [
     "stop-chzzk-session",
     "disconnect-twitch",
-    "delete-firestore:null",
+    "delete-firestore",
     "invalidate-badge",
     "delete-auth"
   ]);

@@ -52,7 +52,7 @@ demand to keep the overlay bundle independent from account-management UI.
 GET /api/auth/chzzk/start?mode=streamer|viewer
   -> Chzzk OAuth
   -> GET /open/v1/users/me
-  -> users and chzzkAccounts upsert
+  -> users and platformAccounts upsert
   -> streamer mode only: streamers upsert and chat session start
   -> Firebase Custom Token creation
   -> web callback with a short-lived one-time code
@@ -273,9 +273,9 @@ The highest available standard rating becomes the active chat badge. Lichess
 provisional ratings preserve their provisional marker. A public profile request
 supports manual refresh with a persisted five-minute cooldown. Disconnecting
 deletes the account and all four rating documents. When both providers are
-connected, `chzzkAccounts.badges` stores both ratings and
-`preferredChessProvider` is the only viewer preference. Refreshing an account
-updates that provider's badge without changing the viewer's selection.
+connected, `users.chessBadges` stores both ratings and
+`users.preferredChessProvider` stores the viewer preference. Refreshing an
+account updates that provider's badge without changing the viewer's selection.
 
 ## First Milestone
 

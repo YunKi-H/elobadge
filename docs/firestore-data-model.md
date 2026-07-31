@@ -8,9 +8,10 @@ the browser does not read or write these collections directly.
 
 ```text
 users/{firebaseUid}
-chzzkAccounts/{chzzkChannelId}
+platformAccounts/{platform}:{platformUserId}
 streamers/{firebaseUid}
 chzzkTokens/{firebaseUid}
+twitchTokens/{firebaseUid}
 overlays/{publicToken}
 chessAccounts/{accountId}
 chessAccounts/{accountId}/ratings/{speed}
@@ -29,28 +30,26 @@ The service user created after a successful Chzzk custom-auth login.
 }
 ```
 
-### `chzzkAccounts/{chzzkChannelId}`
+### `platformAccounts/{platform}:{platformUserId}`
 
-Maps a chat sender directly to a EloBadge user. `badge` is intentionally
-denormalized so the chat path needs only one document lookup before caching it.
+Maps a Chzzk or Twitch identity to one EloBadge user. The deterministic document
+ID and transactional writes prevent the same platform identity from being
+claimed by multiple users.
 
 ```ts
 {
-  uid: string;
+  userId: string;
+  platform: "chzzk" | "twitch";
+  platformUserId: string;
   displayName: string;
-  badge: {
-    provider: "lichess" | "chesscom";
-    speed: "bullet" | "blitz" | "rapid" | "classical";
-    value: number;
-    provisional: boolean;
-  } | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 ```
 
-Use the Chzzk channel ID as the document ID. This prevents two documents from
-claiming the same Chzzk identity when writes are performed in a transaction.
+Chess badges and the selected provider belong to `users/{firebaseUid}`. Chat
+lookups resolve the platform account to its EloBadge user before reading that
+user's badge state.
 
 ### `streamers/{firebaseUid}`
 
@@ -240,8 +239,8 @@ infrastructure access logs must redact the token path segment.
 ```
 
 Ratings live under `chessAccounts/{accountId}/ratings/{speed}`. Updating the
-user's selected rating must also update `chzzkAccounts/{chzzkChannelId}.badge`
-in the same transaction or batch.
+selected rating also updates `users/{firebaseUid}.chessBadges` and
+`users/{firebaseUid}.preferredChessProvider`.
 
 Only a verified account can set `selectedSpeed`. Verification automatically
 chooses the numerically highest Bullet, Blitz, or Rapid rating and copies it to
@@ -330,9 +329,10 @@ abandoned challenges bounded.
 `DELETE /api/account` requires a Firebase ID token whose UID exactly matches
 `chzzk:{chzzkChannelId}`. The server stops any active chat session, attempts to
 revoke stored Chzzk credentials, and then deletes every overlay document owned
-by the user, the linked Chess.com and Lichess accounts and ratings, a pending verification
-challenge, `chzzkTokens`, `streamers`, `chzzkAccounts`, and `users`. It closes
-open SSE overlay connections and removes the Firebase Authentication user last.
+by the user, linked platform accounts, the linked Chess.com and Lichess accounts
+and ratings, a pending verification challenge, `chzzkTokens`, `twitchTokens`,
+`streamers`, and `users`. It closes open SSE overlay connections and removes
+the Firebase Authentication user last.
 
 Dependent documents are deleted before the identity documents so a failed
 request can be retried without losing the pointers needed for cleanup. Remote
@@ -345,8 +345,8 @@ partial multi-batch cleanup.
 
 ```text
 Chzzk CHAT event
-  -> chzzkAccounts/{senderChannelId}
-  -> badge
+  -> platformAccounts/chzzk:{senderChannelId}
+  -> users/{firebaseUid}.chessBadges
   -> in-memory or Redis cache
   -> SSE overlay event
 ```

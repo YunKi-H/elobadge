@@ -15,8 +15,8 @@ Status labels:
 | Data | Purpose | Location | Status | Current deletion behavior |
 | --- | --- | --- | --- | --- |
 | Firebase UID (`chzzk:{channelId}`) | Authenticate and join service records | Firebase Authentication, Firestore document IDs | Stored, derived | Deleted by the authenticated EloBadge account-deletion flow |
-| Chzzk channel ID | Identify viewers and streamers; match chat senders | `users`, `chzzkAccounts`, `streamers`, Firebase custom claims | Stored | Deleted from Firebase Auth and Firestore on account deletion |
-| Chzzk channel name/display name | Display account identity | Firebase Authentication, `users`, `chzzkAccounts`, `streamers` | Stored | Deleted from Firebase Auth and Firestore on account deletion |
+| Chzzk channel ID | Identify viewers and streamers; match chat senders | `platformAccounts`, `streamers`, Firebase custom claims | Stored | Deleted from Firebase Auth and Firestore on account deletion |
+| Chzzk channel name/display name | Display account identity | Firebase Authentication, `users`, `platformAccounts`, `streamers` | Stored | Deleted from Firebase Auth and Firestore on account deletion |
 | Login mode (`viewer` or `streamer`) | Route the OAuth login flow | In-memory OAuth/login exchange | Transient | OAuth state expires after 10 minutes; Firebase login exchange expires after 2 minutes |
 
 Viewer Chzzk access and refresh tokens are used for identity lookup and are not
@@ -70,7 +70,7 @@ remains personal data when EloBadge associates it with a Chzzk identity.
 | Sender channel ID | Find a rating badge and identify the SSE event source | Process memory and SSE event | Transient | Not written to Firestore or application logs per message |
 | Nickname and message content | Render the overlay | Process memory and SSE event | Transient | Not written to Firestore or application logs |
 | Chzzk role, badge image URLs and emoji image URLs | Render and classify chat | Process memory and SSE event | Transient | Not stored per message in Firestore |
-| Selected chess badge | Avoid a Firestore lookup for each message | `chzzkAccounts/{channelId}.badge`, in-memory cache | Stored plus transient cache | Cleared on chess account disconnect |
+| Selected chess badge | Avoid repeated Firestore lookups for each message | `users/{firebaseUid}.chessBadges`, in-memory cache | Stored plus transient cache | Cleared on chess account disconnect |
 | Overlay public token | Authorize an OBS browser source | `streamers`, `overlays`, browser-source URL | Stored secret-like identifier | Previous token is deleted on rotation; current disabled token is retained for reuse; orphaned legacy tokens are cleaned daily; all are deleted on account deletion |
 | Overlay appearance settings | Render streamer-selected UI | `overlays/{publicToken}.theme` | Stored | Copied to the new token on rotation and deleted with the previous document; deleted on account deletion |
 | Disclosure-section UI state | Remember expanded settings sections | Browser `localStorage` | Stored on user device | User clears browser storage |

@@ -10,8 +10,7 @@ export interface DeletedUserData {
 }
 
 export async function deleteUserFirestoreData(
-  uid: string,
-  chzzkChannelId: string | null
+  uid: string
 ): Promise<DeletedUserData> {
   const db = getFirestoreDb();
   const userRef = db.collection("users").doc(uid);
@@ -75,21 +74,6 @@ export async function deleteUserFirestoreData(
 
   const finalBatch = db.batch();
   finalBatch.delete(userRef);
-  const chzzkAccountIds = new Set(
-    platformAccountsSnapshot.docs.flatMap((document) => {
-      const data = document.data();
-      return data.platform === "chzzk" &&
-        typeof data.platformUserId === "string"
-        ? [data.platformUserId]
-        : [];
-    })
-  );
-  if (chzzkChannelId) {
-    chzzkAccountIds.add(chzzkChannelId);
-  }
-  for (const platformUserId of chzzkAccountIds) {
-    finalBatch.delete(db.collection("chzzkAccounts").doc(platformUserId));
-  }
   finalBatch.delete(db.collection("streamers").doc(uid));
   finalBatch.delete(db.collection("chzzkTokens").doc(uid));
   finalBatch.delete(db.collection("twitchTokens").doc(uid));
