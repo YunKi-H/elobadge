@@ -125,6 +125,7 @@ token fields. The current in-process refresh lock assumes one ECS server task.
     messageLayout: "inline" | "stacked" | "aligned" | "individual";
     nicknameSeparatorVisible: boolean;
     alignedNicknameRightAligned: boolean;
+    messageBoxFilled: boolean;
     backgroundColor: string; // #RRGGBB
     backgroundOpacity: number; // integer from 0 through 100
     platformBadgeSettings: {
@@ -204,6 +205,8 @@ Documents without `chatAlignment` use left alignment.
 Documents without `messageLayout` use the existing single-line layout.
 Documents without `nicknameSeparatorVisible` show the existing colon separator.
 Documents without `alignedNicknameRightAligned` keep the nickname column left-aligned.
+Documents without `messageBoxFilled` preserve the previous behavior: filled for
+`aligned`, fitted to content for the other layouts.
 
 The random document ID is the OBS browser-source token. It must be long enough
 to resist guessing and must be replaceable from the streamer dashboard. Rotation

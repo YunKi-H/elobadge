@@ -171,7 +171,7 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`overlay-message ${appearance.messageLayout === "aligned" ? "w-full" : "w-fit"} max-w-full min-w-0 shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/15" : "p-0"}`}
+            className={`overlay-message ${appearance.messageBoxFilled ? "w-full" : "w-fit"} max-w-full min-w-0 shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/15" : "p-0"}`}
             style={{
               overflowWrap: "anywhere",
               backgroundColor: overlayBackgroundColor(appearance),

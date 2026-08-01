@@ -139,6 +139,7 @@ export function parseOverlayAppearanceEvent(
       appearance.messageLayout !== "individual") ||
     typeof appearance.nicknameSeparatorVisible !== "boolean" ||
     typeof appearance.alignedNicknameRightAligned !== "boolean" ||
+    typeof appearance.messageBoxFilled !== "boolean" ||
     typeof appearance.backgroundVisible !== "boolean" ||
     typeof appearance.backgroundColor !== "string" ||
     !/^#[0-9A-Fa-f]{6}$/.test(appearance.backgroundColor) ||
@@ -194,6 +195,7 @@ export function parseOverlayAppearanceEvent(
     messageLayout: appearance.messageLayout,
     nicknameSeparatorVisible: appearance.nicknameSeparatorVisible,
     alignedNicknameRightAligned: appearance.alignedNicknameRightAligned,
+    messageBoxFilled: appearance.messageBoxFilled,
     backgroundVisible: appearance.backgroundVisible,
     backgroundColor: appearance.backgroundColor.toUpperCase(),
     backgroundOpacity: appearance.backgroundOpacity,

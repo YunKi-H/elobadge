@@ -40,6 +40,7 @@ test("overlay appearance updates are scoped to one public token", () => {
     messageLayout: "inline",
     nicknameSeparatorVisible: true,
     alignedNicknameRightAligned: false,
+    messageBoxFilled: true,
     backgroundVisible: true,
     backgroundColor: "#020617",
     backgroundOpacity: 75,

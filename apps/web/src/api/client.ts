@@ -817,6 +817,7 @@ function isOverlayAppearance(value: unknown): value is OverlayAppearance {
       appearance.messageLayout === "individual") &&
     typeof appearance.nicknameSeparatorVisible === "boolean" &&
     typeof appearance.alignedNicknameRightAligned === "boolean" &&
+    typeof appearance.messageBoxFilled === "boolean" &&
     typeof appearance.backgroundVisible === "boolean" &&
     typeof appearance.backgroundColor === "string" &&
     /^#[0-9A-Fa-f]{6}$/.test(appearance.backgroundColor) &&

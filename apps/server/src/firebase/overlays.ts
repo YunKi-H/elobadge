@@ -195,6 +195,10 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
     typeof appearance.alignedNicknameRightAligned === "boolean"
       ? appearance.alignedNicknameRightAligned
       : DEFAULT_OVERLAY_APPEARANCE.alignedNicknameRightAligned;
+  const messageBoxFilled =
+    typeof appearance.messageBoxFilled === "boolean"
+      ? appearance.messageBoxFilled
+      : messageLayout === "aligned";
   const nicknameRoleColors = parseRoleColors(
     appearance.nicknameRoleColors,
     DEFAULT_OVERLAY_APPEARANCE.nicknameRoleColors
@@ -243,6 +247,7 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
     messageLayout,
     nicknameSeparatorVisible,
     alignedNicknameRightAligned,
+    messageBoxFilled,
     backgroundVisible: appearance.backgroundVisible,
     backgroundColor: appearance.backgroundColor.toUpperCase(),
     backgroundOpacity: appearance.backgroundOpacity,

@@ -553,26 +553,38 @@ export function OverlaySettings({
                   </div>
                 </fieldset>
 
-                {overlay.appearance.messageLayout === "inline" ||
-                overlay.appearance.messageLayout === "aligned" ? (
-                  <div className="grid gap-3 rounded-md border border-white/10 bg-slate-950/50 px-3 py-3">
-                    {overlay.appearance.messageLayout === "inline" ? (
-                      <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
-                        {t("overlay.nicknameSeparatorVisible")}
-                        <input
-                          type="checkbox"
-                          checked={overlay.appearance.nicknameSeparatorVisible}
-                          disabled={!overlay.appearance.nicknameVisible}
-                          onChange={(event) =>
-                            updateAppearanceDraft({
-                              nicknameSeparatorVisible: event.target.checked
-                            })
-                          }
-                          className="size-4 accent-emerald-500 disabled:opacity-40"
-                        />
-                      </label>
-                    ) : null}
-                    {overlay.appearance.messageLayout === "aligned" ? (
+                <div className="grid gap-3 rounded-md border border-white/10 bg-slate-950/50 px-3 py-3">
+                  <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
+                    {t("overlay.messageBoxFilled")}
+                    <input
+                      type="checkbox"
+                      checked={overlay.appearance.messageBoxFilled}
+                      disabled={!overlay.appearance.backgroundVisible}
+                      onChange={(event) =>
+                        updateAppearanceDraft({
+                          messageBoxFilled: event.target.checked
+                        })
+                      }
+                      className="size-4 accent-emerald-500 disabled:opacity-40"
+                    />
+                  </label>
+                  {overlay.appearance.messageLayout === "inline" ? (
+                    <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
+                      {t("overlay.nicknameSeparatorVisible")}
+                      <input
+                        type="checkbox"
+                        checked={overlay.appearance.nicknameSeparatorVisible}
+                        disabled={!overlay.appearance.nicknameVisible}
+                        onChange={(event) =>
+                          updateAppearanceDraft({
+                            nicknameSeparatorVisible: event.target.checked
+                          })
+                        }
+                        className="size-4 accent-emerald-500 disabled:opacity-40"
+                      />
+                    </label>
+                  ) : null}
+                  {overlay.appearance.messageLayout === "aligned" ? (
                     <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
                       {t("overlay.alignedNicknameRightAligned")}
                       <input
@@ -587,9 +599,8 @@ export function OverlaySettings({
                         className="size-4 accent-emerald-500 disabled:opacity-40"
                       />
                     </label>
-                    ) : null}
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
             </SettingsDisclosure>
 
             <SettingsDisclosure

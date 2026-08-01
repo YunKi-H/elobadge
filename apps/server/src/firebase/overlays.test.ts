@@ -30,6 +30,7 @@ test("overlay appearance accepts a complete valid document", () => {
       messageLayout: "stacked",
       nicknameSeparatorVisible: false,
       alignedNicknameRightAligned: true,
+      messageBoxFilled: false,
       backgroundVisible: false,
       backgroundColor: "#abcdef",
       backgroundOpacity: 35,
@@ -73,6 +74,7 @@ test("overlay appearance accepts a complete valid document", () => {
       messageLayout: "stacked",
       nicknameSeparatorVisible: false,
       alignedNicknameRightAligned: true,
+      messageBoxFilled: false,
       backgroundVisible: false,
       backgroundColor: "#ABCDEF",
       backgroundOpacity: 35,
@@ -128,6 +130,7 @@ test("overlay appearance converts the previous shared badge settings", () => {
   delete commonTheme.messageLayout;
   delete commonTheme.nicknameSeparatorVisible;
   delete commonTheme.alignedNicknameRightAligned;
+  delete commonTheme.messageBoxFilled;
   const storedTheme = {
     ...commonTheme,
     platformBadgesVisible: false,
@@ -176,6 +179,16 @@ test("overlay appearance converts the previous shared badge settings", () => {
     }),
     null
   );
+});
+
+test("legacy aligned overlays preserve their filled message boxes", () => {
+  const storedTheme = toStoredOverlayTheme({
+    ...DEFAULT_OVERLAY_APPEARANCE,
+    messageLayout: "aligned"
+  });
+  delete storedTheme.messageBoxFilled;
+
+  assert.equal(parseOverlayAppearance(storedTheme)?.messageBoxFilled, true);
 });
 
 test("stored overlay themes keep separate platform badge settings", () => {

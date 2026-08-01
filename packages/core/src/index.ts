@@ -164,6 +164,7 @@ export interface OverlayAppearance {
   messageLayout: OverlayMessageLayout;
   nicknameSeparatorVisible: boolean;
   alignedNicknameRightAligned: boolean;
+  messageBoxFilled: boolean;
   backgroundVisible: boolean;
   backgroundColor: string;
   backgroundOpacity: number;
@@ -192,6 +193,7 @@ export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
   messageLayout: "inline",
   nicknameSeparatorVisible: true,
   alignedNicknameRightAligned: false,
+  messageBoxFilled: false,
   backgroundVisible: true,
   backgroundColor: "#020617",
   backgroundOpacity: 90,

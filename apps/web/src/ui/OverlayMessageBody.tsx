@@ -134,7 +134,9 @@ export function OverlayMessageBody({
   }
 
   return (
-    <div className="grid min-w-0 grid-cols-[minmax(0,min(12em,40%))_minmax(0,1fr)] items-start gap-x-[0.35em]">
+    <div
+      className={`${appearance.messageBoxFilled ? "grid grid-cols-[minmax(0,min(12em,40%))_minmax(0,1fr)]" : "inline-grid max-w-full grid-cols-[minmax(0,min(12em,40vw))_minmax(0,1fr)] align-top"} min-w-0 items-start gap-x-[0.35em]`}
+    >
       <div
         className={`min-w-0 overflow-hidden whitespace-nowrap ${appearance.alignedNicknameRightAligned ? "text-right" : "text-left"}`}
       >

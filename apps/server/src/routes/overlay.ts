@@ -43,6 +43,7 @@ const overlayAppearanceSchema = z.object({
   messageLayout: z.enum(OVERLAY_MESSAGE_LAYOUT_VALUES).default("inline"),
   nicknameSeparatorVisible: z.boolean().default(true),
   alignedNicknameRightAligned: z.boolean().default(false),
+  messageBoxFilled: z.boolean().default(false),
   backgroundVisible: z.boolean(),
   backgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
   backgroundOpacity: z.number().int().min(0).max(100),
