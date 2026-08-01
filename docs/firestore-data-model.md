@@ -122,7 +122,7 @@ token fields. The current in-process refresh lock assumes one ECS server task.
   theme: {
     backgroundVisible: boolean;
     chatAlignment: "left" | "center" | "right";
-    messageLayout: "inline" | "stacked" | "aligned";
+    messageLayout: "inline" | "stacked" | "aligned" | "individual";
     nicknameSeparatorVisible: boolean;
     alignedNicknameRightAligned: boolean;
     backgroundColor: string; // #RRGGBB

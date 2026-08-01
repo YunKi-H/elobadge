@@ -72,7 +72,8 @@ export type OverlayChatAlignment =
 export const OVERLAY_MESSAGE_LAYOUT_VALUES = [
   "inline",
   "stacked",
-  "aligned"
+  "aligned",
+  "individual"
 ] as const;
 
 export type OverlayMessageLayout =

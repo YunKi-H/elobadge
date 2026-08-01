@@ -200,9 +200,10 @@ const resources = {
         messageLayoutOption: {
           inline: "한 줄",
           stacked: "줄바꿈",
-          aligned: "시작라인 정렬"
+          aligned: "시작라인 정렬",
+          individual: "개별라인 정렬"
         },
-        nicknameSeparatorVisible: "닉네임 뒤 콜론(:) 표시",
+        nicknameSeparatorVisible: "닉네임 구분 선(:) 표시",
         alignedNicknameRightAligned: "닉네임 우측 정렬",
         duration: "채팅 표시 시간",
         keep: "계속 유지",
@@ -521,7 +522,8 @@ const resources = {
         messageLayoutOption: {
           inline: "Single line",
           stacked: "New line",
-          aligned: "Aligned start"
+          aligned: "Aligned start",
+          individual: "Per-message alignment"
         },
         nicknameSeparatorVisible: "Show colon (:) after nickname",
         alignedNicknameRightAligned: "Align nickname right",

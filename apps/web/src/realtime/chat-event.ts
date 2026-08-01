@@ -135,7 +135,8 @@ export function parseOverlayAppearanceEvent(
       appearance.chatAlignment !== "right") ||
     (appearance.messageLayout !== "inline" &&
       appearance.messageLayout !== "stacked" &&
-      appearance.messageLayout !== "aligned") ||
+      appearance.messageLayout !== "aligned" &&
+      appearance.messageLayout !== "individual") ||
     typeof appearance.nicknameSeparatorVisible !== "boolean" ||
     typeof appearance.alignedNicknameRightAligned !== "boolean" ||
     typeof appearance.backgroundVisible !== "boolean" ||

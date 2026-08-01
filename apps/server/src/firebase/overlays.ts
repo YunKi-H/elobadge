@@ -369,7 +369,8 @@ function isChatAlignment(
 function isMessageLayout(
   value: unknown
 ): value is OverlayAppearance["messageLayout"] {
-  return value === "inline" || value === "stacked" || value === "aligned";
+  return value === "inline" || value === "stacked" ||
+    value === "aligned" || value === "individual";
 }
 
 function isRatingProviderPolicy(
