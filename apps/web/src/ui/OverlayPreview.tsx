@@ -127,7 +127,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
           </div>
         ) : null}
         <div
-          className={`flex min-h-0 w-full flex-col justify-end overflow-hidden ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
+          className={`flex min-h-0 w-full flex-col justify-end overflow-hidden ${appearance.chatAlignment === "left" ? "items-start text-left" : appearance.chatAlignment === "center" ? "items-center text-center" : "items-end text-right"} ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
           style={{ maxWidth: `${appearance.messageMaxWidthPx}px` }}
         >
           {messages.map((message) => {

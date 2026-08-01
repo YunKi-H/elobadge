@@ -4,6 +4,7 @@ import {
   DEFAULT_OVERLAY_APPEARANCE,
   type OverlayAppearance,
   type OverlayFontFamily,
+  type OverlayChatAlignment,
   type OverlayFontLineHeight,
   type OverlayFontWeight,
   type OverlayMessageDurationSeconds,
@@ -13,6 +14,9 @@ import {
 } from "@elobadge/core";
 import {
   BadgeCheck,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   Check,
   ChevronDown,
   Clock3,
@@ -93,6 +97,15 @@ const DEFAULT_EXPANDED_APPEARANCE_SECTIONS: ExpandedAppearanceSections = {
 };
 
 const MESSAGE_DURATION_OPTIONS = [10, 20, 30, 60, 0] as const;
+
+const CHAT_ALIGNMENT_OPTIONS: ReadonlyArray<{
+  value: OverlayChatAlignment;
+  icon: typeof AlignLeft;
+}> = [
+  { value: "left", icon: AlignLeft },
+  { value: "center", icon: AlignCenter },
+  { value: "right", icon: AlignRight }
+];
 
 const FONT_FAMILY_OPTIONS: ReadonlyArray<{
   value: OverlayFontFamily;
@@ -479,6 +492,33 @@ export function OverlaySettings({
                     ))}
                   </select>
                 </label>
+
+                <fieldset className="grid gap-2">
+                  <legend className="text-sm font-medium text-slate-200">
+                    {t("overlay.alignment")}
+                  </legend>
+                  <div className="grid h-10 grid-cols-3 overflow-hidden rounded-md border border-white/10 bg-slate-950 p-1">
+                    {CHAT_ALIGNMENT_OPTIONS.map(({ value, icon: Icon }) => {
+                      const selected = overlay.appearance.chatAlignment === value;
+                      const label = t(`overlay.alignmentOption.${value}`);
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          title={label}
+                          aria-label={label}
+                          aria-pressed={selected}
+                          onClick={() =>
+                            updateAppearanceDraft({ chatAlignment: value })
+                          }
+                          className={`inline-flex min-w-0 items-center justify-center rounded-sm transition ${selected ? "bg-emerald-400/15 text-emerald-200" : "text-slate-500 hover:bg-white/5 hover:text-slate-200"}`}
+                        >
+                          <Icon aria-hidden="true" size={18} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
             </SettingsDisclosure>
 
             <SettingsDisclosure

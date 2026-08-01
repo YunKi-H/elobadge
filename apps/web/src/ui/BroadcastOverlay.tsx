@@ -159,10 +159,18 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
   return (
     <main
       className="flex h-screen items-end overflow-hidden bg-transparent p-6"
+      style={{
+        justifyContent:
+          appearance.chatAlignment === "left"
+            ? "flex-start"
+            : appearance.chatAlignment === "center"
+              ? "center"
+              : "flex-end"
+      }}
       aria-live="polite"
     >
       <div
-        className={`flex max-h-full w-full max-w-[600px] flex-col justify-end overflow-hidden ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
+        className={`flex max-h-full w-full max-w-[600px] flex-col justify-end overflow-hidden ${appearance.chatAlignment === "left" ? "items-start text-left" : appearance.chatAlignment === "center" ? "items-center text-center" : "items-end text-right"} ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
         style={{ maxWidth: `${appearance.messageMaxWidthPx}px` }}
       >
         {messages.map((message) => {

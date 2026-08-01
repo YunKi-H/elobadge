@@ -190,6 +190,12 @@ const resources = {
         colors: "채팅 색상",
         fonts: "채팅 폰트",
         maxWidth: "채팅 최대 너비",
+        alignment: "채팅 정렬",
+        alignmentOption: {
+          left: "왼쪽 정렬",
+          center: "가운데 정렬",
+          right: "오른쪽 정렬"
+        },
         duration: "채팅 표시 시간",
         keep: "계속 유지",
         seconds: "{{count}}초",
@@ -497,6 +503,12 @@ const resources = {
         colors: "Chat colors",
         fonts: "Chat font",
         maxWidth: "Maximum chat width",
+        alignment: "Chat alignment",
+        alignmentOption: {
+          left: "Align left",
+          center: "Align center",
+          right: "Align right"
+        },
         duration: "Message duration",
         keep: "Keep indefinitely",
         seconds_one: "{{count}} second",

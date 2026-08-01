@@ -181,6 +181,9 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
       : null
   );
   const twitchBadgeSettings = platformBadgeSettings?.twitch ?? chzzkBadgeSettings;
+  const chatAlignment = isChatAlignment(appearance.chatAlignment)
+    ? appearance.chatAlignment
+    : DEFAULT_OVERLAY_APPEARANCE.chatAlignment;
   const nicknameRoleColors = parseRoleColors(
     appearance.nicknameRoleColors,
     DEFAULT_OVERLAY_APPEARANCE.nicknameRoleColors
@@ -225,6 +228,7 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
 
   return {
     messageMaxWidthPx: appearance.messageMaxWidthPx,
+    chatAlignment,
     backgroundVisible: appearance.backgroundVisible,
     backgroundColor: appearance.backgroundColor.toUpperCase(),
     backgroundOpacity: appearance.backgroundOpacity,
@@ -340,6 +344,12 @@ function parseRoleColors<T extends Record<string, string>>(
 
 function isHexColor(value: unknown): value is string {
   return typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value);
+}
+
+function isChatAlignment(
+  value: unknown
+): value is OverlayAppearance["chatAlignment"] {
+  return value === "left" || value === "center" || value === "right";
 }
 
 function isRatingProviderPolicy(

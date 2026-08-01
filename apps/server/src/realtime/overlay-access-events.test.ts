@@ -36,6 +36,7 @@ test("overlay appearance updates are scoped to one public token", () => {
 
   publishOverlayAppearance("first-token", {
     messageMaxWidthPx: 600,
+    chatAlignment: "left",
     backgroundVisible: true,
     backgroundColor: "#020617",
     backgroundOpacity: 75,

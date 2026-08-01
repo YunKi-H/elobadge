@@ -121,6 +121,7 @@ token fields. The current in-process refresh lock assumes one ECS server task.
   active: boolean;
   theme: {
     backgroundVisible: boolean;
+    chatAlignment: "left" | "center" | "right";
     backgroundColor: string; // #RRGGBB
     backgroundOpacity: number; // integer from 0 through 100
     platformBadgeSettings: {
@@ -196,6 +197,7 @@ Theme documents written before platform-specific badge settings used
 shared value for both Chzzk and Twitch until the theme is saved in the new
 `platformBadgeSettings` shape. The browser keeps at most the latest 30 messages
 regardless of the duration.
+Documents without `chatAlignment` use left alignment.
 
 The random document ID is the OBS browser-source token. It must be long enough
 to resist guessing and must be replaceable from the streamer dashboard. Rotation

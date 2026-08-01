@@ -26,6 +26,7 @@ test("overlay appearance accepts a complete valid document", () => {
   assert.deepEqual(
     parseOverlayAppearance({
       messageMaxWidthPx: 480,
+      chatAlignment: "center",
       backgroundVisible: false,
       backgroundColor: "#abcdef",
       backgroundOpacity: 35,
@@ -65,6 +66,7 @@ test("overlay appearance accepts a complete valid document", () => {
     }),
     {
       messageMaxWidthPx: 480,
+      chatAlignment: "center",
       backgroundVisible: false,
       backgroundColor: "#ABCDEF",
       backgroundOpacity: 35,
@@ -116,6 +118,7 @@ test("overlay appearance accepts a complete valid document", () => {
 test("overlay appearance converts the previous shared badge settings", () => {
   const commonTheme = toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE);
   delete commonTheme.platformBadgeSettings;
+  delete commonTheme.chatAlignment;
   const storedTheme = {
     ...commonTheme,
     platformBadgesVisible: false,

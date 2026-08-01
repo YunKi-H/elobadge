@@ -130,6 +130,9 @@ export function parseOverlayAppearanceEvent(
     !Number.isInteger(appearance.messageMaxWidthPx) ||
     appearance.messageMaxWidthPx < 300 ||
     appearance.messageMaxWidthPx > 600 ||
+    (appearance.chatAlignment !== "left" &&
+      appearance.chatAlignment !== "center" &&
+      appearance.chatAlignment !== "right") ||
     typeof appearance.backgroundVisible !== "boolean" ||
     typeof appearance.backgroundColor !== "string" ||
     !/^#[0-9A-Fa-f]{6}$/.test(appearance.backgroundColor) ||
@@ -181,6 +184,7 @@ export function parseOverlayAppearanceEvent(
 
   return {
     messageMaxWidthPx: appearance.messageMaxWidthPx,
+    chatAlignment: appearance.chatAlignment,
     backgroundVisible: appearance.backgroundVisible,
     backgroundColor: appearance.backgroundColor.toUpperCase(),
     backgroundOpacity: appearance.backgroundOpacity,
