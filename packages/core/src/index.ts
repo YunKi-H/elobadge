@@ -60,6 +60,25 @@ export type ChatAuthorColors = Record<ChatAuthorKind, string>;
 
 export type OverlayMessageDurationSeconds = 0 | 10 | 20 | 30 | 60;
 
+export const OVERLAY_CHAT_ALIGNMENT_VALUES = [
+  "left",
+  "center",
+  "right"
+] as const;
+
+export type OverlayChatAlignment =
+  (typeof OVERLAY_CHAT_ALIGNMENT_VALUES)[number];
+
+export const OVERLAY_MESSAGE_LAYOUT_VALUES = [
+  "inline",
+  "stacked",
+  "aligned",
+  "individual"
+] as const;
+
+export type OverlayMessageLayout =
+  (typeof OVERLAY_MESSAGE_LAYOUT_VALUES)[number];
+
 export const MAX_OVERLAY_MESSAGES = 30;
 
 export type ChessSpeed = "bullet" | "blitz" | "rapid" | "classical";
@@ -141,6 +160,11 @@ export interface ChatOverlayEvent {
 
 export interface OverlayAppearance {
   messageMaxWidthPx: number;
+  chatAlignment: OverlayChatAlignment;
+  messageLayout: OverlayMessageLayout;
+  nicknameSeparatorVisible: boolean;
+  alignedNicknameRightAligned: boolean;
+  messageBoxFilled: boolean;
   backgroundVisible: boolean;
   backgroundColor: string;
   backgroundOpacity: number;
@@ -165,6 +189,11 @@ export interface OverlayAppearance {
 
 export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
   messageMaxWidthPx: 600,
+  chatAlignment: "left",
+  messageLayout: "inline",
+  nicknameSeparatorVisible: true,
+  alignedNicknameRightAligned: false,
+  messageBoxFilled: false,
   backgroundVisible: true,
   backgroundColor: "#020617",
   backgroundOpacity: 90,

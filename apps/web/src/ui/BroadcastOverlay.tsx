@@ -7,16 +7,11 @@ import {
   parseChatOverlayEvent,
   parseOverlayAppearanceEvent
 } from "../realtime/chat-event";
-import { RatingBadge } from "./RatingBadge";
 import {
   overlayBackgroundColor,
-  overlayFontFamily,
-  overlayMessageColor,
-  overlayNicknameColor,
-  overlayRating
+  overlayFontFamily
 } from "./overlay-appearance";
-import { PlatformBadges } from "./PlatformBadges";
-import { ChatMessageContent } from "./ChatMessageContent";
+import { OverlayMessageBody } from "./OverlayMessageBody";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
 const HEARTBEAT_TIMEOUT_MS = 45_000;
@@ -159,18 +154,24 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
   return (
     <main
       className="flex h-screen items-end overflow-hidden bg-transparent p-6"
+      style={{
+        justifyContent:
+          appearance.chatAlignment === "left"
+            ? "flex-start"
+            : appearance.chatAlignment === "center"
+              ? "center"
+              : "flex-end"
+      }}
       aria-live="polite"
     >
       <div
-        className={`flex max-h-full w-full max-w-[600px] flex-col justify-end overflow-hidden ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
+        className={`flex max-h-full w-full max-w-[600px] flex-col justify-end overflow-hidden ${appearance.chatAlignment === "left" ? "items-start text-left" : appearance.chatAlignment === "center" ? "items-center text-center" : "items-end text-right"} ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
         style={{ maxWidth: `${appearance.messageMaxWidthPx}px` }}
       >
-        {messages.map((message) => {
-          const rating = overlayRating(appearance, message);
-          return (
+        {messages.map((message) => (
           <div
             key={message.id}
-            className={`overlay-message w-fit max-w-full shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/15" : "p-0"}`}
+            className={`overlay-message ${appearance.messageBoxFilled ? "w-full" : "w-fit"} max-w-full min-w-0 shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/15" : "p-0"}`}
             style={{
               overflowWrap: "anywhere",
               backgroundColor: overlayBackgroundColor(appearance),
@@ -180,39 +181,9 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
               lineHeight: appearance.fontLineHeight
             }}
           >
-            <PlatformBadges
-              badges={message.platformBadges}
-              visibilityByPlatform={{
-                chzzk: appearance.chzzkBadgesVisible
-                  ? appearance.chzzkBadgeVisibility
-                  : undefined,
-                twitch: appearance.twitchBadgesVisible
-                  ? appearance.twitchBadgeVisibility
-                  : undefined
-              }}
-              lineHeight={appearance.fontLineHeight}
-            />
-            {rating ? (
-              <RatingBadge
-                rating={rating}
-                lineHeight={appearance.fontLineHeight}
-              />
-            ) : null}
-            {appearance.nicknameVisible ? (
-              <span
-                className="mr-[0.45em]"
-                style={{ color: overlayNicknameColor(appearance, message) }}
-              >
-                {message.nickname}:
-              </span>
-            ) : null}
-            <ChatMessageContent
-              message={message}
-              color={overlayMessageColor(appearance, message)}
-            />
+            <OverlayMessageBody appearance={appearance} message={message} />
           </div>
-          );
-        })}
+        ))}
       </div>
     </main>
   );

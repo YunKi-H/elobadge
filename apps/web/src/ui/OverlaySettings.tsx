@@ -4,15 +4,20 @@ import {
   DEFAULT_OVERLAY_APPEARANCE,
   type OverlayAppearance,
   type OverlayFontFamily,
+  type OverlayChatAlignment,
   type OverlayFontLineHeight,
   type OverlayFontWeight,
   type OverlayMessageDurationSeconds,
+  type OverlayMessageLayout,
   type PlatformBadgeKind,
   type RatingProviderPolicy,
   type StreamingPlatform
 } from "@elobadge/core";
 import {
   BadgeCheck,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   Check,
   ChevronDown,
   Clock3,
@@ -93,6 +98,22 @@ const DEFAULT_EXPANDED_APPEARANCE_SECTIONS: ExpandedAppearanceSections = {
 };
 
 const MESSAGE_DURATION_OPTIONS = [10, 20, 30, 60, 0] as const;
+
+const CHAT_ALIGNMENT_OPTIONS: ReadonlyArray<{
+  value: OverlayChatAlignment;
+  icon: typeof AlignLeft;
+}> = [
+  { value: "left", icon: AlignLeft },
+  { value: "center", icon: AlignCenter },
+  { value: "right", icon: AlignRight }
+];
+
+const MESSAGE_LAYOUT_OPTIONS: readonly OverlayMessageLayout[] = [
+  "inline",
+  "stacked",
+  "aligned",
+  "individual"
+];
 
 const FONT_FAMILY_OPTIONS: ReadonlyArray<{
   value: OverlayFontFamily;
@@ -479,6 +500,107 @@ export function OverlaySettings({
                     ))}
                   </select>
                 </label>
+
+                <fieldset className="grid gap-2">
+                  <legend className="text-sm font-medium text-slate-200">
+                    {t("overlay.alignment")}
+                  </legend>
+                  <div className="grid h-10 grid-cols-3 overflow-hidden rounded-md border border-white/10 bg-slate-950 p-1">
+                    {CHAT_ALIGNMENT_OPTIONS.map(({ value, icon: Icon }) => {
+                      const selected = overlay.appearance.chatAlignment === value;
+                      const label = t(`overlay.alignmentOption.${value}`);
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          title={label}
+                          aria-label={label}
+                          aria-pressed={selected}
+                          onClick={() =>
+                            updateAppearanceDraft({ chatAlignment: value })
+                          }
+                          className={`inline-flex min-w-0 items-center justify-center rounded-sm transition ${selected ? "bg-emerald-400/15 text-emerald-200" : "text-slate-500 hover:bg-white/5 hover:text-slate-200"}`}
+                        >
+                          <Icon aria-hidden="true" size={18} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                <fieldset className="grid gap-2">
+                  <legend className="text-sm font-medium text-slate-200">
+                    {t("overlay.messageLayout")}
+                  </legend>
+                  <div className="grid grid-cols-4 gap-1 rounded-md border border-white/10 bg-slate-950 p-1">
+                    {MESSAGE_LAYOUT_OPTIONS.map((value) => {
+                      const selected = overlay.appearance.messageLayout === value;
+                      const label = t(`overlay.messageLayoutOption.${value}`);
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() =>
+                            updateAppearanceDraft({ messageLayout: value })
+                          }
+                          className={`min-h-10 min-w-0 rounded-sm px-1 text-[11px] font-medium leading-tight transition sm:text-xs ${selected ? "bg-emerald-400/15 text-emerald-200" : "text-slate-500 hover:bg-white/5 hover:text-slate-200"}`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                <div className="grid gap-3 rounded-md border border-white/10 bg-slate-950/50 px-3 py-3">
+                  <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
+                    {t("overlay.messageBoxFilled")}
+                    <input
+                      type="checkbox"
+                      checked={overlay.appearance.messageBoxFilled}
+                      disabled={!overlay.appearance.backgroundVisible}
+                      onChange={(event) =>
+                        updateAppearanceDraft({
+                          messageBoxFilled: event.target.checked
+                        })
+                      }
+                      className="size-4 accent-emerald-500 disabled:opacity-40"
+                    />
+                  </label>
+                  {overlay.appearance.messageLayout === "inline" ? (
+                    <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
+                      {t("overlay.nicknameSeparatorVisible")}
+                      <input
+                        type="checkbox"
+                        checked={overlay.appearance.nicknameSeparatorVisible}
+                        disabled={!overlay.appearance.nicknameVisible}
+                        onChange={(event) =>
+                          updateAppearanceDraft({
+                            nicknameSeparatorVisible: event.target.checked
+                          })
+                        }
+                        className="size-4 accent-emerald-500 disabled:opacity-40"
+                      />
+                    </label>
+                  ) : null}
+                  {overlay.appearance.messageLayout === "aligned" ? (
+                    <label className="flex items-center justify-between gap-4 text-sm font-medium text-slate-200">
+                      {t("overlay.alignedNicknameRightAligned")}
+                      <input
+                        type="checkbox"
+                        checked={overlay.appearance.alignedNicknameRightAligned}
+                        disabled={!overlay.appearance.nicknameVisible}
+                        onChange={(event) =>
+                          updateAppearanceDraft({
+                            alignedNicknameRightAligned: event.target.checked
+                          })
+                        }
+                        className="size-4 accent-emerald-500 disabled:opacity-40"
+                      />
+                    </label>
+                  ) : null}
+                </div>
             </SettingsDisclosure>
 
             <SettingsDisclosure

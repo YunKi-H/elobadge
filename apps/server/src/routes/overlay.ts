@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import {
   DEFAULT_OVERLAY_APPEARANCE,
+  OVERLAY_CHAT_ALIGNMENT_VALUES,
+  OVERLAY_MESSAGE_LAYOUT_VALUES,
   OVERLAY_FONT_FAMILY_VALUES,
   type ChatOverlayEvent,
   type OverlayAppearance
@@ -37,6 +39,11 @@ const overlayParamsSchema = z.object({
 
 const overlayAppearanceSchema = z.object({
   messageMaxWidthPx: z.number().int().min(300).max(600).default(600),
+  chatAlignment: z.enum(OVERLAY_CHAT_ALIGNMENT_VALUES).default("left"),
+  messageLayout: z.enum(OVERLAY_MESSAGE_LAYOUT_VALUES).default("inline"),
+  nicknameSeparatorVisible: z.boolean().default(true),
+  alignedNicknameRightAligned: z.boolean().default(false),
+  messageBoxFilled: z.boolean().default(false),
   backgroundVisible: z.boolean(),
   backgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
   backgroundOpacity: z.number().int().min(0).max(100),

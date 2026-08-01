@@ -808,6 +808,16 @@ function isOverlayAppearance(value: unknown): value is OverlayAppearance {
     Number.isInteger(appearance.messageMaxWidthPx) &&
     appearance.messageMaxWidthPx >= 300 &&
     appearance.messageMaxWidthPx <= 600 &&
+    (appearance.chatAlignment === "left" ||
+      appearance.chatAlignment === "center" ||
+      appearance.chatAlignment === "right") &&
+    (appearance.messageLayout === "inline" ||
+      appearance.messageLayout === "stacked" ||
+      appearance.messageLayout === "aligned" ||
+      appearance.messageLayout === "individual") &&
+    typeof appearance.nicknameSeparatorVisible === "boolean" &&
+    typeof appearance.alignedNicknameRightAligned === "boolean" &&
+    typeof appearance.messageBoxFilled === "boolean" &&
     typeof appearance.backgroundVisible === "boolean" &&
     typeof appearance.backgroundColor === "string" &&
     /^#[0-9A-Fa-f]{6}$/.test(appearance.backgroundColor) &&
