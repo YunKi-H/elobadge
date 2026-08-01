@@ -811,6 +811,11 @@ function isOverlayAppearance(value: unknown): value is OverlayAppearance {
     (appearance.chatAlignment === "left" ||
       appearance.chatAlignment === "center" ||
       appearance.chatAlignment === "right") &&
+    (appearance.messageLayout === "inline" ||
+      appearance.messageLayout === "stacked" ||
+      appearance.messageLayout === "aligned") &&
+    typeof appearance.nicknameSeparatorVisible === "boolean" &&
+    typeof appearance.alignedNicknameRightAligned === "boolean" &&
     typeof appearance.backgroundVisible === "boolean" &&
     typeof appearance.backgroundColor === "string" &&
     /^#[0-9A-Fa-f]{6}$/.test(appearance.backgroundColor) &&

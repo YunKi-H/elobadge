@@ -196,6 +196,14 @@ const resources = {
           center: "가운데 정렬",
           right: "오른쪽 정렬"
         },
+        messageLayout: "닉네임·채팅 배치",
+        messageLayoutOption: {
+          inline: "한 줄",
+          stacked: "줄바꿈",
+          aligned: "시작라인 정렬"
+        },
+        nicknameSeparatorVisible: "닉네임 뒤 콜론(:) 표시",
+        alignedNicknameRightAligned: "닉네임 우측 정렬",
         duration: "채팅 표시 시간",
         keep: "계속 유지",
         seconds: "{{count}}초",
@@ -509,6 +517,14 @@ const resources = {
           center: "Align center",
           right: "Align right"
         },
+        messageLayout: "Nickname and message layout",
+        messageLayoutOption: {
+          inline: "Single line",
+          stacked: "New line",
+          aligned: "Aligned start"
+        },
+        nicknameSeparatorVisible: "Show colon (:) after nickname",
+        alignedNicknameRightAligned: "Align nickname right",
         duration: "Message duration",
         keep: "Keep indefinitely",
         seconds_one: "{{count}} second",

@@ -10,16 +10,11 @@ import { Check, ChevronDown, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getFirebaseClientAuth } from "../firebase/client";
 import { parseChatOverlayEvent } from "../realtime/chat-event";
-import { RatingBadge } from "./RatingBadge";
 import {
   overlayBackgroundColor,
-  overlayFontFamily,
-  overlayMessageColor,
-  overlayNicknameColor,
-  overlayRating
+  overlayFontFamily
 } from "./overlay-appearance";
-import { PlatformBadges } from "./PlatformBadges";
-import { ChatMessageContent } from "./ChatMessageContent";
+import { OverlayMessageBody } from "./OverlayMessageBody";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
 const AUTHOR_KIND_OPTIONS: ReadonlyArray<{
@@ -130,12 +125,10 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
           className={`flex min-h-0 w-full flex-col justify-end overflow-hidden ${appearance.chatAlignment === "left" ? "items-start text-left" : appearance.chatAlignment === "center" ? "items-center text-center" : "items-end text-right"} ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
           style={{ maxWidth: `${appearance.messageMaxWidthPx}px` }}
         >
-          {messages.map((message) => {
-            const resolvedRating = overlayRating(appearance, message);
-            return (
+          {messages.map((message) => (
             <div
               key={message.id}
-              className={`w-fit max-w-full min-w-0 shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/10" : "p-0"}`}
+              className={`${appearance.messageLayout === "aligned" ? "w-full" : "w-fit"} max-w-full min-w-0 shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/10" : "p-0"}`}
               style={{
                 overflowWrap: "anywhere",
                 backgroundColor: overlayBackgroundColor(appearance),
@@ -145,39 +138,9 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
                 lineHeight: appearance.fontLineHeight
               }}
             >
-              <PlatformBadges
-                badges={message.platformBadges}
-                visibilityByPlatform={{
-                  chzzk: appearance.chzzkBadgesVisible
-                    ? appearance.chzzkBadgeVisibility
-                    : undefined,
-                  twitch: appearance.twitchBadgesVisible
-                    ? appearance.twitchBadgeVisibility
-                    : undefined
-                }}
-                lineHeight={appearance.fontLineHeight}
-              />
-              {resolvedRating ? (
-                <RatingBadge
-                  rating={resolvedRating}
-                  lineHeight={appearance.fontLineHeight}
-                />
-              ) : null}
-              {appearance.nicknameVisible ? (
-                <span
-                  className="mr-[0.45em]"
-                  style={{ color: overlayNicknameColor(appearance, message) }}
-                >
-                  {message.nickname}:
-                </span>
-              ) : null}
-              <ChatMessageContent
-                message={message}
-                color={overlayMessageColor(appearance, message)}
-              />
+              <OverlayMessageBody appearance={appearance} message={message} />
             </div>
-            );
-          })}
+          ))}
         </div>
       </div>
 

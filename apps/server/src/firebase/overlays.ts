@@ -184,6 +184,17 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
   const chatAlignment = isChatAlignment(appearance.chatAlignment)
     ? appearance.chatAlignment
     : DEFAULT_OVERLAY_APPEARANCE.chatAlignment;
+  const messageLayout = isMessageLayout(appearance.messageLayout)
+    ? appearance.messageLayout
+    : DEFAULT_OVERLAY_APPEARANCE.messageLayout;
+  const nicknameSeparatorVisible =
+    typeof appearance.nicknameSeparatorVisible === "boolean"
+      ? appearance.nicknameSeparatorVisible
+      : DEFAULT_OVERLAY_APPEARANCE.nicknameSeparatorVisible;
+  const alignedNicknameRightAligned =
+    typeof appearance.alignedNicknameRightAligned === "boolean"
+      ? appearance.alignedNicknameRightAligned
+      : DEFAULT_OVERLAY_APPEARANCE.alignedNicknameRightAligned;
   const nicknameRoleColors = parseRoleColors(
     appearance.nicknameRoleColors,
     DEFAULT_OVERLAY_APPEARANCE.nicknameRoleColors
@@ -229,6 +240,9 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
   return {
     messageMaxWidthPx: appearance.messageMaxWidthPx,
     chatAlignment,
+    messageLayout,
+    nicknameSeparatorVisible,
+    alignedNicknameRightAligned,
     backgroundVisible: appearance.backgroundVisible,
     backgroundColor: appearance.backgroundColor.toUpperCase(),
     backgroundOpacity: appearance.backgroundOpacity,
@@ -350,6 +364,12 @@ function isChatAlignment(
   value: unknown
 ): value is OverlayAppearance["chatAlignment"] {
   return value === "left" || value === "center" || value === "right";
+}
+
+function isMessageLayout(
+  value: unknown
+): value is OverlayAppearance["messageLayout"] {
+  return value === "inline" || value === "stacked" || value === "aligned";
 }
 
 function isRatingProviderPolicy(

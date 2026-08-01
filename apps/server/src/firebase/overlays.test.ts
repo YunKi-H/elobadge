@@ -27,6 +27,9 @@ test("overlay appearance accepts a complete valid document", () => {
     parseOverlayAppearance({
       messageMaxWidthPx: 480,
       chatAlignment: "center",
+      messageLayout: "stacked",
+      nicknameSeparatorVisible: false,
+      alignedNicknameRightAligned: true,
       backgroundVisible: false,
       backgroundColor: "#abcdef",
       backgroundOpacity: 35,
@@ -67,6 +70,9 @@ test("overlay appearance accepts a complete valid document", () => {
     {
       messageMaxWidthPx: 480,
       chatAlignment: "center",
+      messageLayout: "stacked",
+      nicknameSeparatorVisible: false,
+      alignedNicknameRightAligned: true,
       backgroundVisible: false,
       backgroundColor: "#ABCDEF",
       backgroundOpacity: 35,
@@ -119,6 +125,9 @@ test("overlay appearance converts the previous shared badge settings", () => {
   const commonTheme = toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE);
   delete commonTheme.platformBadgeSettings;
   delete commonTheme.chatAlignment;
+  delete commonTheme.messageLayout;
+  delete commonTheme.nicknameSeparatorVisible;
+  delete commonTheme.alignedNicknameRightAligned;
   const storedTheme = {
     ...commonTheme,
     platformBadgesVisible: false,
