@@ -81,6 +81,13 @@ export type OverlayMessageLayout =
 
 export const MAX_OVERLAY_MESSAGES = 30;
 
+const INVISIBLE_CHAT_CONTENT_PATTERN =
+  /[\p{White_Space}\p{Cf}\u115F\u1160\u2800\u3164\uFFA0]/gu;
+
+export function hasVisibleChatContent(content: string): boolean {
+  return content.replace(INVISIBLE_CHAT_CONTENT_PATTERN, "").length > 0;
+}
+
 export type ChessSpeed = "bullet" | "blitz" | "rapid" | "classical";
 
 export interface RatingBadge {

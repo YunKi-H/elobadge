@@ -260,6 +260,39 @@ test("stalled rating lookup does not block the chat overlay", async () => {
   session.stop();
 });
 
+test("ignores Chzzk chat made only from invisible characters", async () => {
+  const sockets: FakeSocket[] = [];
+  const deps = dependencies(sockets, () => {});
+  let ratingLookups = 0;
+  deps.getRatingBadge = async () => {
+    ratingLookups += 1;
+    return { badges: {}, preferredProvider: null };
+  };
+  const session = new ChzzkSession("streamer-a", policy, deps);
+  const events: unknown[] = [];
+  const unsubscribe = subscribeStreamerChatOverlayEvents("streamer-a", (event) => {
+    events.push(event);
+  });
+
+  await session.start(config, "access-token", logger);
+  sockets[0]?.emit("CHAT", {
+    channelId: "streamer-channel",
+    senderChannelId: "viewer-channel",
+    profile: {
+      nickname: "viewer",
+      userRoleCode: "common_user"
+    },
+    content: " \u200B\u3164 ",
+    messageTime: 1_783_000_000_002
+  });
+  await nextTask();
+
+  assert.equal(ratingLookups, 0);
+  assert.equal(events.length, 0);
+  unsubscribe();
+  session.stop();
+});
+
 function dependencies(
   sockets: FakeSocket[],
   onSessionRequest: () => void

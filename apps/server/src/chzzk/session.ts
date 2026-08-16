@@ -1,12 +1,13 @@
 import socketIoClient from "socket.io-client";
 import { z } from "zod";
 import type { FastifyBaseLogger } from "fastify";
-import type {
-  ChatEmote,
-  ChatOverlayEvent,
-  ChessBadges,
-  ChessProvider,
-  PlatformChatBadge
+import {
+  hasVisibleChatContent,
+  type ChatEmote,
+  type ChatOverlayEvent,
+  type ChessBadges,
+  type ChessProvider,
+  type PlatformChatBadge
 } from "@elobadge/core";
 import type { ChzzkAuthConfig } from "../auth/chzzk/client.js";
 import {
@@ -444,6 +445,17 @@ export class ChzzkSession implements ManagedChzzkSession {
     message: z.infer<typeof chatMessageSchema>,
     generation: number
   ): Promise<void> {
+    if (!hasVisibleChatContent(message.content)) {
+      this.logger?.debug(
+        {
+          contentLength: message.content.length,
+          emojiCount: Object.keys(message.emojis ?? {}).length
+        },
+        "Blank Chzzk chat message ignored"
+      );
+      return;
+    }
+
     let badgeState: ChzzkChessBadgeState = {
       badges: {},
       preferredProvider: null

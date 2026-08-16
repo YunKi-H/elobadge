@@ -1,4 +1,5 @@
 import {
+  hasVisibleChatContent,
   isOverlayFontFamily,
   type ChatAuthorKind,
   type ChatEmote,
@@ -35,6 +36,7 @@ export function parseChatOverlayEvent(data: unknown): ChatOverlayEvent | null {
     typeof event.id !== "string" ||
     typeof event.nickname !== "string" ||
     typeof event.content !== "string" ||
+    !hasVisibleChatContent(event.content) ||
     typeof event.sentAt !== "string"
   ) {
     return null;

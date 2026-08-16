@@ -123,6 +123,32 @@ test("Twitch rating lookup failure logs no chatter identifiers", async () => {
   session.stop();
 });
 
+test("ignores Twitch chat made only from invisible characters", async () => {
+  const sockets: FakeWebSocket[] = [];
+  const published: ChatOverlayEvent[] = [];
+  let ratingLookups = 0;
+  const sessionDependencies = dependencies(
+    sockets,
+    published,
+    async () => undefined
+  );
+  sessionDependencies.getRatingBadge = async () => {
+    ratingLookups += 1;
+    return { badges: {}, preferredProvider: null };
+  };
+  const session = new TwitchSession("chzzk:owner", sessionDependencies);
+
+  session.start(config, "access-token", "broadcaster-1", logger);
+  sockets[0]!.emitMessage(welcome("session-1"));
+  await settle();
+  sockets[0]!.emitMessage(blankNotification("blank-event"));
+  await settle();
+
+  assert.equal(ratingLookups, 0);
+  assert.equal(published.length, 0);
+  session.stop();
+});
+
 test("deduplicates notifications and migrates a reconnect session", async () => {
   const sockets: FakeWebSocket[] = [];
   const published: ChatOverlayEvent[] = [];
@@ -276,11 +302,22 @@ function notification(messageId: string) {
   });
 }
 
+function blankNotification(messageId: string) {
+  const value = JSON.parse(notification(messageId));
+  value.payload.event.message_id = "blank-chat";
+  value.payload.event.message = {
+    text: " \u200B\u3164 ",
+    fragments: [{ type: "text", text: " \u200B\u3164 ", emote: null }]
+  };
+  return JSON.stringify(value);
+}
+
 function settle() {
   return new Promise<void>((resolve) => setImmediate(resolve));
 }
 
 const logger = {
+  debug() {},
   info() {},
   warn() {},
   error() {}

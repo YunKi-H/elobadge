@@ -1,9 +1,10 @@
-import type {
-  ChatAuthorKind,
-  ChatEmote,
-  ChatOverlayEvent,
-  PlatformBadgeKind,
-  PlatformChatBadge
+import {
+  hasVisibleChatContent,
+  type ChatAuthorKind,
+  type ChatEmote,
+  type ChatOverlayEvent,
+  type PlatformBadgeKind,
+  type PlatformChatBadge
 } from "@elobadge/core";
 import type { FastifyBaseLogger } from "fastify";
 import { z } from "zod";
@@ -396,6 +397,19 @@ export class TwitchSession {
     messageTimestamp: string | undefined,
     generation: number
   ) {
+    const normalized = normalizeTwitchMessage(message);
+
+    if (!hasVisibleChatContent(normalized.content)) {
+      this.logger?.debug(
+        {
+          broadcasterUserId: message.broadcaster_user_id,
+          contentLength: normalized.content.length
+        },
+        "Blank Twitch chat message ignored"
+      );
+      return;
+    }
+
     let badgeState: ChzzkChessBadgeState = {
       badges: {},
       preferredProvider: null
@@ -424,7 +438,6 @@ export class TwitchSession {
       return;
     }
 
-    const normalized = normalizeTwitchMessage(message);
     this.dependencies.publish(
       this.ownerUid,
       createChatOverlayEvent({
