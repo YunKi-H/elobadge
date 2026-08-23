@@ -55,6 +55,13 @@ export const router = createBrowserRouter([
         }
       },
       {
+        path: "custom-css",
+        lazy: async () => {
+          const module = await import("./ui/CustomCssGuidePage");
+          return { Component: module.CustomCssGuidePage };
+        }
+      },
+      {
         path: "admin",
         lazy: async () => {
           const module = await import("./ui/AdminPage");

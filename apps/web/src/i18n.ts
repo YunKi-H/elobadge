@@ -63,6 +63,50 @@ const resources = {
         notFound: "페이지를 찾을 수 없습니다",
         home: "홈으로"
       },
+      customCssGuide: {
+        title: "커스텀 CSS 가이드",
+        intro:
+          "오버레이 요소에 제공되는 클래스와 데이터 속성을 사용해 채팅 모양을 변경할 수 있습니다. 작성한 CSS는 미리보기와 실제 브라우저 소스에 동일하게 적용됩니다.",
+        back: "스트리머 화면으로",
+        selectors: {
+          title: "지원 선택자",
+          selector: "선택자",
+          target: "대상",
+          items: {
+            overlay: "오버레이 전체 영역",
+            messageList: "채팅 메시지 목록",
+            message: "개별 채팅 메시지 박스",
+            metadata: "플랫폼 배지·레이팅 배지·닉네임 영역",
+            platformBadges: "플랫폼 배지 묶음",
+            platformBadge: "개별 치지직·Twitch 배지 이미지",
+            ratingBadge: "Chess.com·Lichess 레이팅 배지 외부 영역",
+            ratingBadgeContent: "레이팅 배지의 아이콘과 숫자 영역",
+            nickname: "채팅 작성자 닉네임",
+            content: "채팅 메시지 내용",
+            emote: "채팅에 포함된 이모티콘 이미지"
+          }
+        },
+        attributes: { title: "데이터 속성" },
+        variables: {
+          title: "CSS 변수",
+          description:
+            "화면 설정에서 계산된 현재 값입니다. var(--변수명)으로 읽거나 지원 요소에서 새 값으로 덮어쓸 수 있습니다."
+        },
+        examples: {
+          title: "예제",
+          roles: "시청자 유형별 스타일",
+          ratings: "레이팅 배지 스타일",
+          bubble: "말풍선 꼬리"
+        },
+        limits: {
+          title: "제한 사항",
+          size: "CSS는 UTF-8 기준 최대 20KB까지 저장할 수 있습니다.",
+          selectors: "지원되는 오버레이 클래스에서 시작하는 선택자만 사용할 수 있습니다.",
+          resources: "url(), 외부 이미지와 외부 리소스는 사용할 수 없습니다.",
+          atRules: "@import, @font-face, @keyframes 등의 @ 규칙은 사용할 수 없습니다.",
+          disabled: "커스텀 CSS를 끄면 내용은 보존되지만 오버레이에는 적용되지 않습니다."
+        }
+      },
       badgePreference: {
         default: "기본 배지",
         error: "배지 선택 오류",
@@ -208,6 +252,7 @@ const resources = {
         messageBoxFilled: "채팅창 채우기",
         customCssEnabled: "커스텀 CSS 사용",
         customCss: "커스텀 CSS",
+        customCssGuide: "커스텀 CSS 가이드",
         customCssSize: "{{current}} / {{maximum}}",
         customCssTooLarge: "커스텀 CSS는 20KB 이하로 입력해 주세요.",
         customCssError: {
@@ -398,6 +443,50 @@ const resources = {
         notFound: "Page not found",
         home: "Back to home"
       },
+      customCssGuide: {
+        title: "Custom CSS guide",
+        intro:
+          "Use the classes and data attributes exposed by the overlay to customize chat appearance. Your CSS is applied identically to the preview and browser source.",
+        back: "Back to streamer dashboard",
+        selectors: {
+          title: "Supported selectors",
+          selector: "Selector",
+          target: "Target",
+          items: {
+            overlay: "The entire overlay area",
+            messageList: "The chat message list",
+            message: "An individual chat message box",
+            metadata: "Platform badges, rating badge, and nickname",
+            platformBadges: "The platform badge group",
+            platformBadge: "An individual Chzzk or Twitch badge image",
+            ratingBadge: "The outer Chess.com or Lichess rating badge",
+            ratingBadgeContent: "The rating badge icon and number",
+            nickname: "The chat author's nickname",
+            content: "The chat message content",
+            emote: "An emote image inside a chat message"
+          }
+        },
+        attributes: { title: "Data attributes" },
+        variables: {
+          title: "CSS variables",
+          description:
+            "These contain values calculated from the appearance settings. Read them with var(--name), or override them on supported overlay elements."
+        },
+        examples: {
+          title: "Examples",
+          roles: "Style by viewer role",
+          ratings: "Rating badge styles",
+          bubble: "Speech bubble tail"
+        },
+        limits: {
+          title: "Limitations",
+          size: "CSS is limited to 20 KB in UTF-8.",
+          selectors: "Selectors must start from a supported overlay class.",
+          resources: "url(), external images, and external resources are not allowed.",
+          atRules: "At-rules such as @import, @font-face, and @keyframes are not allowed.",
+          disabled: "Turning custom CSS off preserves the content but does not apply it to the overlay."
+        }
+      },
       badgePreference: {
         default: "Default badge",
         error: "Badge selection error",
@@ -545,6 +634,7 @@ const resources = {
         messageBoxFilled: "Fill chat box",
         customCssEnabled: "Use custom CSS",
         customCss: "Custom CSS",
+        customCssGuide: "Custom CSS guide",
         customCssSize: "{{current}} / {{maximum}}",
         customCssTooLarge: "Custom CSS must be 20 KB or smaller.",
         customCssError: {

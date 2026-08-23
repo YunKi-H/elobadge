@@ -26,13 +26,14 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  BookOpen,
   Check,
   ChevronDown,
   Clock3,
   Copy,
   Eye,
   EyeOff,
-  Link,
+  Link as LinkIcon,
   PaintBucket,
   Palette,
   Power,
@@ -41,6 +42,7 @@ import {
   Save,
   Type
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import {
@@ -378,7 +380,7 @@ export function OverlaySettings({
     <section className="mb-10 max-w-2xl border-y border-white/10 py-6">
       <div className="mb-4">
         <div className="flex items-center gap-2">
-          <Link aria-hidden="true" className="text-emerald-300" size={20} />
+          <LinkIcon aria-hidden="true" className="text-emerald-300" size={20} />
           <h2 className="text-lg font-semibold text-white">
             {t("overlay.title")}
           </h2>
@@ -656,24 +658,36 @@ export function OverlaySettings({
                     <span className="text-sm font-medium text-slate-200">
                       {t("overlay.customCssEnabled")}
                     </span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={overlay.appearance.customCssEnabled}
-                      aria-label={t("overlay.customCssEnabled")}
-                      onClick={() =>
-                        updateAppearanceDraft({
-                          customCssEnabled:
-                            !overlay.appearance.customCssEnabled
-                        })
-                      }
-                      className={`relative h-6 w-11 shrink-0 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 ${overlay.appearance.customCssEnabled ? "border-emerald-300/50 bg-emerald-500" : "border-white/15 bg-slate-700"}`}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={`absolute left-1 top-1 size-4 rounded-full bg-white shadow-sm transition-transform ${overlay.appearance.customCssEnabled ? "translate-x-5" : "translate-x-0"}`}
-                      />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to="/custom-css"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={t("overlay.customCssGuide")}
+                        aria-label={t("overlay.customCssGuide")}
+                        className="inline-flex size-8 items-center justify-center rounded-md text-slate-400 transition hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
+                      >
+                        <BookOpen aria-hidden="true" size={17} />
+                      </Link>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={overlay.appearance.customCssEnabled}
+                        aria-label={t("overlay.customCssEnabled")}
+                        onClick={() =>
+                          updateAppearanceDraft({
+                            customCssEnabled:
+                              !overlay.appearance.customCssEnabled
+                          })
+                        }
+                        className={`relative h-6 w-11 shrink-0 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 ${overlay.appearance.customCssEnabled ? "border-emerald-300/50 bg-emerald-500" : "border-white/15 bg-slate-700"}`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`absolute left-1 top-1 size-4 rounded-full bg-white shadow-sm transition-transform ${overlay.appearance.customCssEnabled ? "translate-x-5" : "translate-x-0"}`}
+                        />
+                      </button>
+                    </div>
                   </div>
 
                   {overlay.appearance.customCssEnabled ? (
