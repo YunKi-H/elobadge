@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { MAX_CUSTOM_CSS_BYTES } from "@elobadge/core";
-import { validateCustomCss } from "./custom-css.js";
+import {
+  shouldRejectCustomCss,
+  validateCustomCss
+} from "./custom-css.js";
 
 test("custom CSS accepts supported overlay selectors", () => {
   const result = validateCustomCss(`
@@ -56,4 +59,46 @@ test("custom CSS rejects invalid syntax and oversized input", () => {
     valid: false,
     reason: "too_large"
   });
+});
+
+test("custom CSS rejects invalid values for known properties", () => {
+  assert.deepEqual(
+    validateCustomCss(".message { font-weight: 1600; }", {
+      validatePropertyValues: true
+    }),
+    {
+      valid: false,
+      reason: "invalid_property_value"
+    }
+  );
+  assert.deepEqual(
+    validateCustomCss(".message { font-weight: 900; }", {
+      validatePropertyValues: true
+    }),
+    { valid: true }
+  );
+});
+
+test("disabled custom CSS ignores content errors but keeps the size limit", () => {
+  assert.equal(
+    shouldRejectCustomCss(
+      validateCustomCss("body { display: none; }"),
+      false
+    ),
+    false
+  );
+  assert.equal(
+    shouldRejectCustomCss(
+      validateCustomCss("body { display: none; }"),
+      true
+    ),
+    true
+  );
+  assert.equal(
+    shouldRejectCustomCss(
+      validateCustomCss("가".repeat(MAX_CUSTOM_CSS_BYTES)),
+      false
+    ),
+    true
+  );
 });

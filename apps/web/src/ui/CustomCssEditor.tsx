@@ -53,11 +53,13 @@ const editorTheme = EditorView.theme({
 export function CustomCssEditor({
   value,
   invalid,
+  errorId,
   label,
   onChange
 }: {
   value: string;
   invalid: boolean;
+  errorId?: string;
   label: string;
   onChange: (value: string) => void;
 }) {
@@ -66,11 +68,12 @@ export function CustomCssEditor({
       css(),
       editorTheme,
       EditorView.contentAttributes.of({
+        ...(errorId ? { "aria-describedby": errorId } : {}),
         "aria-invalid": invalid ? "true" : "false",
         "aria-label": label
       })
     ],
-    [invalid, label]
+    [errorId, invalid, label]
   );
 
   return (

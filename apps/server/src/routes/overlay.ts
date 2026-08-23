@@ -28,7 +28,10 @@ import {
 } from "../realtime/overlay-access-events.js";
 import { overlayConnectionTracker } from "../realtime/overlay-connections.js";
 import { subscribeStreamerChatOverlayEvents } from "../realtime/overlay-events.js";
-import { validateCustomCss } from "../security/custom-css.js";
+import {
+  shouldRejectCustomCss,
+  validateCustomCss
+} from "../security/custom-css.js";
 
 const testEventsQuerySchema = z.object({
   streamerUid: z.string().min(1).optional()
@@ -210,9 +213,14 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
           parsedAppearance.data.customCssEnabled ??
           currentOverlay?.appearance.customCssEnabled ??
           DEFAULT_OVERLAY_APPEARANCE.customCssEnabled;
-        const customCssValidation = validateCustomCss(customCss);
+        const customCssValidation = validateCustomCss(customCss, {
+          validatePropertyValues: true
+        });
 
-        if (!customCssValidation.valid) {
+        if (
+          !customCssValidation.valid &&
+          shouldRejectCustomCss(customCssValidation, customCssEnabled)
+        ) {
           return reply.code(400).send({
             error: "Invalid custom CSS",
             reason: customCssValidation.reason

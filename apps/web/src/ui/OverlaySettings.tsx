@@ -49,6 +49,8 @@ import {
   getOverlayAccess,
   rotateOverlayAccess,
   updateOverlayAppearance,
+  OverlayAppearanceUpdateError,
+  type CustomCssValidationReason,
   type OverlayAccess
 } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
@@ -210,6 +212,9 @@ export function OverlaySettings({
   const [copied, setCopied] = useState(false);
   const [urlVisible, setUrlVisible] = useState(false);
   const [appearanceDirty, setAppearanceDirty] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [customCssError, setCustomCssError] =
+    useState<CustomCssValidationReason | null>(null);
   const [expandedSections, setExpandedSections] = useState(
     readExpandedAppearanceSections
   );
@@ -217,6 +222,8 @@ export function OverlaySettings({
   useEffect(() => {
     return onAuthStateChanged(getFirebaseClientAuth(), (user) => {
       setUrlVisible(false);
+      setUpdateError(null);
+      setCustomCssError(null);
 
       if (!user) {
         setState({ status: "signed_out" });
@@ -241,6 +248,8 @@ export function OverlaySettings({
     setUpdating(true);
     setCopied(false);
     setUrlVisible(false);
+    setUpdateError(null);
+    setCustomCssError(null);
 
     try {
       const overlay = await operation();
@@ -250,8 +259,17 @@ export function OverlaySettings({
         onAppearanceChange(overlay.appearance);
       }
     } catch (error) {
-      setExpandedSections({ ...DEFAULT_EXPANDED_APPEARANCE_SECTIONS });
-      setState(toErrorState(error, t("overlay.requestFailed")));
+      if (
+        error instanceof OverlayAppearanceUpdateError &&
+        error.customCssReason
+      ) {
+        setCustomCssError(error.customCssReason);
+        setExpandedSections((current) => ({ ...current, general: true }));
+      } else {
+        setUpdateError(
+          error instanceof Error ? error.message : t("overlay.requestFailed")
+        );
+      }
     } finally {
       setUpdating(false);
     }
@@ -262,6 +280,9 @@ export function OverlaySettings({
     ? new TextEncoder().encode(overlay.appearance.customCss).byteLength
     : 0;
   const customCssTooLarge = customCssBytes > MAX_CUSTOM_CSS_BYTES;
+  const customCssInvalid =
+    customCssTooLarge ||
+    (overlay?.appearance.customCssEnabled === true && customCssError !== null);
 
   const updateAppearanceDraft = (patch: Partial<OverlayAppearance>) => {
     if (!overlay) {
@@ -269,6 +290,10 @@ export function OverlaySettings({
     }
 
     const appearance = { ...overlay.appearance, ...patch };
+    setUpdateError(null);
+    if ("customCss" in patch || "customCssEnabled" in patch) {
+      setCustomCssError(null);
+    }
     setState({
       status: "ready",
       overlay: { ...overlay, appearance }
@@ -375,6 +400,12 @@ export function OverlaySettings({
 
       {state.status === "error" ? (
         <p className="text-sm text-red-300">{state.message}</p>
+      ) : null}
+
+      {updateError ? (
+        <p role="alert" className="mb-4 text-sm text-red-300">
+          {updateError}
+        </p>
       ) : null}
 
       {state.status === "ready" && !overlay ? (
@@ -665,19 +696,26 @@ export function OverlaySettings({
                       >
                         <CustomCssEditor
                           value={overlay.appearance.customCss}
-                          invalid={customCssTooLarge}
+                          invalid={customCssInvalid}
+                          errorId={customCssInvalid ? "custom-css-error" : undefined}
                           label={t("overlay.customCss")}
                           onChange={(customCss) =>
                             updateAppearanceDraft({ customCss })
                           }
                         />
                       </Suspense>
-                      {customCssTooLarge ? (
-                        <span className="text-xs text-red-300">
-                          {t("overlay.customCssTooLarge")}
-                        </span>
-                      ) : null}
                     </div>
+                  ) : null}
+                  {customCssInvalid ? (
+                    <span
+                      id="custom-css-error"
+                      role="alert"
+                      className="mt-2 block text-xs text-red-300"
+                    >
+                      {customCssTooLarge
+                        ? t("overlay.customCssTooLarge")
+                        : t(`overlay.customCssError.${customCssError}`)}
+                    </span>
                   ) : null}
                 </div>
             </SettingsDisclosure>

@@ -210,6 +210,15 @@ const resources = {
         customCss: "커스텀 CSS",
         customCssSize: "{{current}} / {{maximum}}",
         customCssTooLarge: "커스텀 CSS는 20KB 이하로 입력해 주세요.",
+        customCssError: {
+          invalid_syntax: "CSS 문법을 확인해 주세요.",
+          at_rule_not_allowed: "@import, @font-face 등의 @ 규칙은 사용할 수 없습니다.",
+          external_resource_not_allowed: "외부 URL과 이미지 리소스는 사용할 수 없습니다.",
+          selector_not_allowed: "EloBadge 오버레이 요소를 벗어나는 선택자는 사용할 수 없습니다.",
+          property_not_allowed: "보안상 허용되지 않는 CSS 속성이 포함되어 있습니다.",
+          invalid_property_value: "브라우저에서 지원하지 않는 CSS 속성값이 포함되어 있습니다.",
+          too_large: "커스텀 CSS는 20KB 이하로 입력해 주세요."
+        },
         duration: "채팅 표시 시간",
         keep: "계속 유지",
         seconds: "{{count}}초",
@@ -538,6 +547,15 @@ const resources = {
         customCss: "Custom CSS",
         customCssSize: "{{current}} / {{maximum}}",
         customCssTooLarge: "Custom CSS must be 20 KB or smaller.",
+        customCssError: {
+          invalid_syntax: "Check the CSS syntax.",
+          at_rule_not_allowed: "At-rules such as @import and @font-face are not allowed.",
+          external_resource_not_allowed: "External URLs and image resources are not allowed.",
+          selector_not_allowed: "Selectors must stay within supported EloBadge overlay elements.",
+          property_not_allowed: "The CSS contains a property that is blocked for security.",
+          invalid_property_value: "The CSS contains a property value that browsers do not support.",
+          too_large: "Custom CSS must be 20 KB or smaller."
+        },
         duration: "Message duration",
         keep: "Keep indefinitely",
         seconds_one: "{{count}} second",

@@ -203,6 +203,33 @@ test("legacy custom CSS remains enabled when the toggle field is missing", () =>
   assert.equal(parseOverlayAppearance(storedTheme)?.customCssEnabled, true);
 });
 
+test("stored custom CSS tolerates property values rejected by newer writes", () => {
+  const storedTheme = toStoredOverlayTheme({
+    ...DEFAULT_OVERLAY_APPEARANCE,
+    customCssEnabled: true,
+    customCss: ".message { font-weight: 1600; }"
+  });
+
+  assert.equal(
+    parseOverlayAppearance(storedTheme)?.customCss,
+    ".message { font-weight: 1600; }"
+  );
+});
+
+test("disabled stored custom CSS preserves an invalid draft", () => {
+  const storedTheme = toStoredOverlayTheme({
+    ...DEFAULT_OVERLAY_APPEARANCE,
+    customCssEnabled: false,
+    customCss: "body { display: none; }"
+  });
+
+  assert.equal(parseOverlayAppearance(storedTheme)?.customCssEnabled, false);
+  assert.equal(
+    parseOverlayAppearance(storedTheme)?.customCss,
+    "body { display: none; }"
+  );
+});
+
 test("stored overlay themes keep separate platform badge settings", () => {
   const stored = toStoredOverlayTheme({
     ...DEFAULT_OVERLAY_APPEARANCE,
@@ -256,6 +283,7 @@ test("overlay appearance rejects incomplete and invalid documents", () => {
   assert.equal(
     parseOverlayAppearance({
       ...toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE),
+      customCssEnabled: true,
       customCss: "body { display: none; }"
     }),
     null

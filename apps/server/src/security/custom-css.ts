@@ -1,4 +1,4 @@
-import { parse, walk, type CssNode, type Selector } from "css-tree";
+import { lexer, parse, walk, type CssNode, type Selector } from "css-tree";
 import { MAX_CUSTOM_CSS_BYTES } from "@elobadge/core";
 
 const ALLOWED_ROOT_CLASSES = new Set([
@@ -21,11 +21,16 @@ export type CustomCssValidationError =
   | "at_rule_not_allowed"
   | "external_resource_not_allowed"
   | "selector_not_allowed"
-  | "property_not_allowed";
+  | "property_not_allowed"
+  | "invalid_property_value";
 
 export type CustomCssValidationResult =
   | { valid: true }
   | { valid: false; reason: CustomCssValidationError };
+
+interface CustomCssValidationOptions {
+  validatePropertyValues?: boolean;
+}
 
 class CustomCssError extends Error {
   constructor(readonly reason: CustomCssValidationError) {
@@ -33,7 +38,10 @@ class CustomCssError extends Error {
   }
 }
 
-export function validateCustomCss(css: string): CustomCssValidationResult {
+export function validateCustomCss(
+  css: string,
+  options: CustomCssValidationOptions = {}
+): CustomCssValidationResult {
   if (Buffer.byteLength(css, "utf8") > MAX_CUSTOM_CSS_BYTES) {
     return { valid: false, reason: "too_large" };
   }
@@ -96,6 +104,15 @@ export function validateCustomCss(css: string): CustomCssValidationResult {
         if (property === "behavior" || property === "-moz-binding") {
           throw new CustomCssError("property_not_allowed");
         }
+
+        if (
+          options.validatePropertyValues &&
+          !property.startsWith("--") &&
+          lexer.getProperty(property) &&
+          !lexer.matchProperty(property, node.value).matched
+        ) {
+          throw new CustomCssError("invalid_property_value");
+        }
       }
     });
     walk(ast, {
@@ -121,6 +138,15 @@ export function validateCustomCss(css: string): CustomCssValidationResult {
   }
 
   return { valid: true };
+}
+
+export function shouldRejectCustomCss(
+  result: CustomCssValidationResult,
+  enabled: boolean
+): boolean {
+  return (
+    !result.valid && (enabled || result.reason === "too_large")
+  );
 }
 
 function hasAllowedRoot(selector: Selector): boolean {

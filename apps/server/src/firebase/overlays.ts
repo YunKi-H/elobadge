@@ -5,7 +5,10 @@ import {
   type OverlayAppearance
 } from "@elobadge/core";
 import { FieldValue } from "firebase-admin/firestore";
-import { validateCustomCss } from "../security/custom-css.js";
+import {
+  shouldRejectCustomCss,
+  validateCustomCss
+} from "../security/custom-css.js";
 import { getFirestoreDb } from "./admin.js";
 
 export interface StreamerOverlayAccess {
@@ -214,16 +217,19 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
       : typeof appearance.customCss === "string"
         ? appearance.customCss
         : null;
-  const customCssValidation =
-    customCss === null ? null : validateCustomCss(customCss);
   const customCssEnabled =
     typeof appearance.customCssEnabled === "boolean"
       ? appearance.customCssEnabled
       : customCss !== null && customCss.length > 0;
+  const customCssValidation =
+    customCss === null ? null : validateCustomCss(customCss);
+  const customCssRejected =
+    customCssValidation === null ||
+    shouldRejectCustomCss(customCssValidation, customCssEnabled);
 
   if (
     customCss === null ||
-    !customCssValidation?.valid ||
+    customCssRejected ||
     typeof appearance.messageMaxWidthPx !== "number" ||
     !Number.isInteger(appearance.messageMaxWidthPx) ||
     appearance.messageMaxWidthPx < 300 ||
