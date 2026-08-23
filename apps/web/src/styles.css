@@ -217,6 +217,43 @@ body.broadcast-overlay-page {
   overflow: hidden;
 }
 
+body.overlay-preview-frame-page {
+  min-width: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+:where(.overlay) .message-list {
+  max-width: var(--message-max-width, 600px);
+}
+
+:where(.overlay) .message {
+  overflow-wrap: anywhere;
+  background-color: var(--message-background, transparent);
+  font-family: var(--message-font-family, inherit);
+  font-size: var(--message-font-size, 18px);
+  font-weight: var(--message-font-weight, 400);
+  line-height: var(--message-line-height, 1.4);
+}
+
+:where(.overlay) .nickname {
+  color: var(--nickname-color, #7dd3fc);
+}
+
+:where(.overlay) .content {
+  color: var(--message-color, #fff);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 85%);
+}
+
+:where(.overlay) .platform-badges,
+:where(.overlay) .rating-badge {
+  height: var(--badge-line-height, 1.4em);
+}
+
+:where(.overlay) .rating-badge-content {
+  color: #020617;
+}
+
 .overlay-message {
   animation: overlay-message-in 180ms ease-out;
 }

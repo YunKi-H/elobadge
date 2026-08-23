@@ -63,6 +63,50 @@ const resources = {
         notFound: "페이지를 찾을 수 없습니다",
         home: "홈으로"
       },
+      customCssGuide: {
+        title: "커스텀 CSS 가이드",
+        intro:
+          "오버레이 요소에 제공되는 클래스와 데이터 속성을 사용해 채팅 모양을 변경할 수 있습니다. 작성한 CSS는 미리보기와 실제 브라우저 소스에 동일하게 적용됩니다.",
+        back: "스트리머 화면으로",
+        selectors: {
+          title: "지원 선택자",
+          selector: "선택자",
+          target: "대상",
+          items: {
+            overlay: "오버레이 전체 영역",
+            messageList: "채팅 메시지 목록",
+            message: "개별 채팅 메시지 박스",
+            metadata: "플랫폼 배지·레이팅 배지·닉네임 영역",
+            platformBadges: "플랫폼 배지 묶음",
+            platformBadge: "개별 치지직·Twitch 배지 이미지",
+            ratingBadge: "Chess.com·Lichess 레이팅 배지 외부 영역",
+            ratingBadgeContent: "레이팅 배지의 아이콘과 숫자 영역",
+            nickname: "채팅 작성자 닉네임",
+            content: "채팅 메시지 내용",
+            emote: "채팅에 포함된 이모티콘 이미지"
+          }
+        },
+        attributes: { title: "데이터 속성" },
+        variables: {
+          title: "CSS 변수",
+          description:
+            "화면 설정에서 계산된 현재 값입니다. var(--변수명)으로 읽거나 지원 요소에서 새 값으로 덮어쓸 수 있습니다."
+        },
+        examples: {
+          title: "예제",
+          roles: "시청자 유형별 스타일",
+          ratings: "레이팅 배지 스타일",
+          bubble: "말풍선 꼬리"
+        },
+        limits: {
+          title: "제한 사항",
+          size: "CSS는 UTF-8 기준 최대 20KB까지 저장할 수 있습니다.",
+          selectors: "지원되는 오버레이 클래스에서 시작하는 선택자만 사용할 수 있습니다.",
+          resources: "url(), 외부 이미지와 외부 리소스는 사용할 수 없습니다.",
+          atRules: "@import, @font-face, @keyframes 등의 @ 규칙은 사용할 수 없습니다.",
+          disabled: "커스텀 CSS를 끄면 내용은 보존되지만 오버레이에는 적용되지 않습니다."
+        }
+      },
       badgePreference: {
         default: "기본 배지",
         error: "배지 선택 오류",
@@ -206,6 +250,33 @@ const resources = {
         nicknameSeparatorVisible: "닉네임 구분 선(:) 표시",
         alignedNicknameRightAligned: "닉네임 우측 정렬",
         messageBoxFilled: "채팅창 채우기",
+        customCssEnabled: "커스텀 CSS 사용",
+        customCss: "커스텀 CSS",
+        customCssGuide: "커스텀 CSS 가이드",
+        restoreCustomCss: "마지막 저장본으로 되돌리기",
+        restoreCustomCssConfirm: "커스텀 CSS를 마지막으로 저장한 내용으로 되돌릴까요?",
+        clearCustomCss: "커스텀 CSS 비우기",
+        clearCustomCssConfirm: "작성한 커스텀 CSS를 모두 비울까요?",
+        unsavedChangesConfirm: "저장하지 않은 화면 설정이 있습니다. 이 페이지를 나갈까요?",
+        customCssPresets: "CSS 예제 불러오기",
+        applyCustomCssPresetConfirm: "‘{{name}}’ 예제로 현재 CSS를 교체할까요?",
+        customCssPreset: {
+          defaults: "기본 스타일",
+          bubble: "말풍선",
+          transparent: "투명 채팅",
+          nickname: "닉네임 강조"
+        },
+        customCssSize: "{{current}} / {{maximum}}",
+        customCssTooLarge: "커스텀 CSS는 20KB 이하로 입력해 주세요.",
+        customCssError: {
+          invalid_syntax: "CSS 문법을 확인해 주세요.",
+          at_rule_not_allowed: "@import, @font-face 등의 @ 규칙은 사용할 수 없습니다.",
+          external_resource_not_allowed: "외부 URL과 이미지 리소스는 사용할 수 없습니다.",
+          selector_not_allowed: "EloBadge 오버레이 요소를 벗어나는 선택자는 사용할 수 없습니다.",
+          property_not_allowed: "보안상 허용되지 않는 CSS 속성이 포함되어 있습니다.",
+          invalid_property_value: "브라우저에서 지원하지 않는 CSS 속성값이 포함되어 있습니다.",
+          too_large: "커스텀 CSS는 20KB 이하로 입력해 주세요."
+        },
         duration: "채팅 표시 시간",
         keep: "계속 유지",
         seconds: "{{count}}초",
@@ -273,6 +344,7 @@ const resources = {
         requestFailed: "요청에 실패했습니다."
       },
       preview: {
+        frameLabel: "채팅 오버레이 미리보기",
         empty: "아직 표시할 메시지가 없습니다",
         nickname: "닉네임",
         nicknamePlaceholder: "시청자 닉네임",
@@ -383,6 +455,50 @@ const resources = {
         loading: "Loading page",
         notFound: "Page not found",
         home: "Back to home"
+      },
+      customCssGuide: {
+        title: "Custom CSS guide",
+        intro:
+          "Use the classes and data attributes exposed by the overlay to customize chat appearance. Your CSS is applied identically to the preview and browser source.",
+        back: "Back to streamer dashboard",
+        selectors: {
+          title: "Supported selectors",
+          selector: "Selector",
+          target: "Target",
+          items: {
+            overlay: "The entire overlay area",
+            messageList: "The chat message list",
+            message: "An individual chat message box",
+            metadata: "Platform badges, rating badge, and nickname",
+            platformBadges: "The platform badge group",
+            platformBadge: "An individual Chzzk or Twitch badge image",
+            ratingBadge: "The outer Chess.com or Lichess rating badge",
+            ratingBadgeContent: "The rating badge icon and number",
+            nickname: "The chat author's nickname",
+            content: "The chat message content",
+            emote: "An emote image inside a chat message"
+          }
+        },
+        attributes: { title: "Data attributes" },
+        variables: {
+          title: "CSS variables",
+          description:
+            "These contain values calculated from the appearance settings. Read them with var(--name), or override them on supported overlay elements."
+        },
+        examples: {
+          title: "Examples",
+          roles: "Style by viewer role",
+          ratings: "Rating badge styles",
+          bubble: "Speech bubble tail"
+        },
+        limits: {
+          title: "Limitations",
+          size: "CSS is limited to 20 KB in UTF-8.",
+          selectors: "Selectors must start from a supported overlay class.",
+          resources: "url(), external images, and external resources are not allowed.",
+          atRules: "At-rules such as @import, @font-face, and @keyframes are not allowed.",
+          disabled: "Turning custom CSS off preserves the content but does not apply it to the overlay."
+        }
       },
       badgePreference: {
         default: "Default badge",
@@ -529,6 +645,33 @@ const resources = {
         nicknameSeparatorVisible: "Show colon (:) after nickname",
         alignedNicknameRightAligned: "Align nickname right",
         messageBoxFilled: "Fill chat box",
+        customCssEnabled: "Use custom CSS",
+        customCss: "Custom CSS",
+        customCssGuide: "Custom CSS guide",
+        restoreCustomCss: "Restore last saved CSS",
+        restoreCustomCssConfirm: "Restore the last saved custom CSS?",
+        clearCustomCss: "Clear custom CSS",
+        clearCustomCssConfirm: "Clear all custom CSS content?",
+        unsavedChangesConfirm: "You have unsaved appearance settings. Leave this page?",
+        customCssPresets: "Load CSS example",
+        applyCustomCssPresetConfirm: "Replace the current CSS with the ‘{{name}}’ example?",
+        customCssPreset: {
+          defaults: "Default style",
+          bubble: "Speech bubble",
+          transparent: "Transparent chat",
+          nickname: "Nickname highlight"
+        },
+        customCssSize: "{{current}} / {{maximum}}",
+        customCssTooLarge: "Custom CSS must be 20 KB or smaller.",
+        customCssError: {
+          invalid_syntax: "Check the CSS syntax.",
+          at_rule_not_allowed: "At-rules such as @import and @font-face are not allowed.",
+          external_resource_not_allowed: "External URLs and image resources are not allowed.",
+          selector_not_allowed: "Selectors must stay within supported EloBadge overlay elements.",
+          property_not_allowed: "The CSS contains a property that is blocked for security.",
+          invalid_property_value: "The CSS contains a property value that browsers do not support.",
+          too_large: "Custom CSS must be 20 KB or smaller."
+        },
         duration: "Message duration",
         keep: "Keep indefinitely",
         seconds_one: "{{count}} second",
@@ -597,6 +740,7 @@ const resources = {
         requestFailed: "The request failed."
       },
       preview: {
+        frameLabel: "Chat overlay preview",
         empty: "No preview messages yet",
         nickname: "Nickname",
         nicknamePlaceholder: "Viewer nickname",

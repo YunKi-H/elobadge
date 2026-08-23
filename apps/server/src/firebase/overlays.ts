@@ -5,6 +5,10 @@ import {
   type OverlayAppearance
 } from "@elobadge/core";
 import { FieldValue } from "firebase-admin/firestore";
+import {
+  shouldRejectCustomCss,
+  validateCustomCss
+} from "../security/custom-css.js";
 import { getFirestoreDb } from "./admin.js";
 
 export interface StreamerOverlayAccess {
@@ -207,8 +211,25 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
     appearance.messageRoleColors,
     DEFAULT_OVERLAY_APPEARANCE.messageRoleColors
   );
+  const customCss =
+    appearance.customCss === undefined
+      ? DEFAULT_OVERLAY_APPEARANCE.customCss
+      : typeof appearance.customCss === "string"
+        ? appearance.customCss
+        : null;
+  const customCssEnabled =
+    typeof appearance.customCssEnabled === "boolean"
+      ? appearance.customCssEnabled
+      : customCss !== null && customCss.length > 0;
+  const customCssValidation =
+    customCss === null ? null : validateCustomCss(customCss);
+  const customCssRejected =
+    customCssValidation === null ||
+    shouldRejectCustomCss(customCssValidation, customCssEnabled);
 
   if (
+    customCss === null ||
+    customCssRejected ||
     typeof appearance.messageMaxWidthPx !== "number" ||
     !Number.isInteger(appearance.messageMaxWidthPx) ||
     appearance.messageMaxWidthPx < 300 ||
@@ -242,6 +263,8 @@ export function parseOverlayAppearance(value: unknown): OverlayAppearance | null
   }
 
   return {
+    customCssEnabled,
+    customCss,
     messageMaxWidthPx: appearance.messageMaxWidthPx,
     chatAlignment,
     messageLayout,

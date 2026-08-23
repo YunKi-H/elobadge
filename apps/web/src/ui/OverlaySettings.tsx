@@ -1,7 +1,15 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState
+} from "react";
 import {
   type ChatAuthorKind,
   DEFAULT_OVERLAY_APPEARANCE,
+  MAX_CUSTOM_CSS_BYTES,
   type OverlayAppearance,
   type OverlayFontFamily,
   type OverlayChatAlignment,
@@ -18,21 +26,25 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  BookOpen,
   Check,
   ChevronDown,
   Clock3,
   Copy,
+  Eraser,
   Eye,
   EyeOff,
-  Link,
+  Link as LinkIcon,
   PaintBucket,
   Palette,
   Power,
   RefreshCw,
   RotateCcw,
   Save,
-  Type
+  Type,
+  Undo2
 } from "lucide-react";
+import { Link, useBlocker } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import {
@@ -41,10 +53,19 @@ import {
   getOverlayAccess,
   rotateOverlayAccess,
   updateOverlayAppearance,
+  OverlayAppearanceUpdateError,
+  type CustomCssValidationReason,
   type OverlayAccess
 } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
+import { CustomCssPresetMenu } from "./CustomCssPresetMenu";
 import { overlayFontFamilyValue } from "./overlay-appearance";
+
+const CustomCssEditor = lazy(() =>
+  import("./CustomCssEditor").then((module) => ({
+    default: module.CustomCssEditor
+  }))
+);
 
 type SettingsState =
   | { status: "loading" }
@@ -196,15 +217,50 @@ export function OverlaySettings({
   const [copied, setCopied] = useState(false);
   const [urlVisible, setUrlVisible] = useState(false);
   const [appearanceDirty, setAppearanceDirty] = useState(false);
+  const [savedCustomCss, setSavedCustomCss] = useState("");
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [customCssError, setCustomCssError] =
+    useState<CustomCssValidationReason | null>(null);
   const [expandedSections, setExpandedSections] = useState(
     readExpandedAppearanceSections
   );
+  const navigationBlocker = useBlocker(appearanceDirty);
+
+  useEffect(() => {
+    if (!appearanceDirty) {
+      return;
+    }
+
+    const preventUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", preventUnload);
+    return () => window.removeEventListener("beforeunload", preventUnload);
+  }, [appearanceDirty]);
+
+  useEffect(() => {
+    if (navigationBlocker.state !== "blocked") {
+      return;
+    }
+
+    if (window.confirm(t("overlay.unsavedChangesConfirm"))) {
+      navigationBlocker.proceed();
+    } else {
+      navigationBlocker.reset();
+    }
+  }, [navigationBlocker, t]);
 
   useEffect(() => {
     return onAuthStateChanged(getFirebaseClientAuth(), (user) => {
       setUrlVisible(false);
+      setUpdateError(null);
+      setCustomCssError(null);
 
       if (!user) {
+        setAppearanceDirty(false);
+        setSavedCustomCss("");
         setState({ status: "signed_out" });
         return;
       }
@@ -212,6 +268,8 @@ export function OverlaySettings({
       void getOverlayAccess()
         .then((overlay) => {
           setState({ status: "ready", overlay });
+          setAppearanceDirty(false);
+          setSavedCustomCss(overlay?.appearance.customCss ?? "");
           if (overlay) {
             onAppearanceChange(overlay.appearance);
           }
@@ -223,27 +281,66 @@ export function OverlaySettings({
     });
   }, [onAppearanceChange, t]);
 
-  const runUpdate = async (operation: () => Promise<OverlayAccess | null>) => {
+  const runUpdate = async (
+    operation: () => Promise<OverlayAccess | null>,
+    appearanceSaved = false
+  ) => {
+    const currentOverlay =
+      state.status === "ready" ? state.overlay : null;
+    const draftAppearance =
+      !appearanceSaved && appearanceDirty
+        ? currentOverlay?.appearance ?? null
+        : null;
+
     setUpdating(true);
     setCopied(false);
     setUrlVisible(false);
+    setUpdateError(null);
+    setCustomCssError(null);
 
     try {
-      const overlay = await operation();
-      setState({ status: "ready", overlay });
-      setAppearanceDirty(false);
-      if (overlay) {
-        onAppearanceChange(overlay.appearance);
+      const updatedOverlay = await operation();
+      const nextOverlay =
+        updatedOverlay && draftAppearance
+          ? { ...updatedOverlay, appearance: draftAppearance }
+          : updatedOverlay;
+      setState({ status: "ready", overlay: nextOverlay });
+
+      if (appearanceSaved) {
+        setAppearanceDirty(false);
+        setSavedCustomCss(updatedOverlay?.appearance.customCss ?? "");
+      } else if (!draftAppearance && updatedOverlay) {
+        setSavedCustomCss(updatedOverlay.appearance.customCss);
+      }
+
+      if (nextOverlay) {
+        onAppearanceChange(nextOverlay.appearance);
       }
     } catch (error) {
-      setExpandedSections({ ...DEFAULT_EXPANDED_APPEARANCE_SECTIONS });
-      setState(toErrorState(error, t("overlay.requestFailed")));
+      if (
+        error instanceof OverlayAppearanceUpdateError &&
+        error.customCssReason
+      ) {
+        setCustomCssError(error.customCssReason);
+        setExpandedSections((current) => ({ ...current, general: true }));
+      } else {
+        setUpdateError(
+          error instanceof Error ? error.message : t("overlay.requestFailed")
+        );
+      }
     } finally {
       setUpdating(false);
     }
   };
 
   const overlay = state.status === "ready" ? state.overlay : null;
+  const customCssBytes = overlay
+    ? new TextEncoder().encode(overlay.appearance.customCss).byteLength
+    : 0;
+  const customCssTooLarge = customCssBytes > MAX_CUSTOM_CSS_BYTES;
+  const customCssInvalid =
+    customCssTooLarge ||
+    (overlay?.appearance.customCssEnabled === true && customCssError !== null);
 
   const updateAppearanceDraft = (patch: Partial<OverlayAppearance>) => {
     if (!overlay) {
@@ -251,6 +348,10 @@ export function OverlaySettings({
     }
 
     const appearance = { ...overlay.appearance, ...patch };
+    setUpdateError(null);
+    if ("customCss" in patch || "customCssEnabled" in patch) {
+      setCustomCssError(null);
+    }
     setState({
       status: "ready",
       overlay: { ...overlay, appearance }
@@ -335,7 +436,7 @@ export function OverlaySettings({
     <section className="mb-10 max-w-2xl border-y border-white/10 py-6">
       <div className="mb-4">
         <div className="flex items-center gap-2">
-          <Link aria-hidden="true" className="text-emerald-300" size={20} />
+          <LinkIcon aria-hidden="true" className="text-emerald-300" size={20} />
           <h2 className="text-lg font-semibold text-white">
             {t("overlay.title")}
           </h2>
@@ -357,6 +458,12 @@ export function OverlaySettings({
 
       {state.status === "error" ? (
         <p className="text-sm text-red-300">{state.message}</p>
+      ) : null}
+
+      {updateError ? (
+        <p role="alert" className="mb-4 text-sm text-red-300">
+          {updateError}
+        </p>
       ) : null}
 
       {state.status === "ready" && !overlay ? (
@@ -599,6 +706,124 @@ export function OverlaySettings({
                         className="size-4 accent-emerald-500 disabled:opacity-40"
                       />
                     </label>
+                  ) : null}
+                </div>
+
+                <div className="border-t border-white/10 pt-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-medium text-slate-200">
+                      {t("overlay.customCssEnabled")}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to="/custom-css"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={t("overlay.customCssGuide")}
+                        aria-label={t("overlay.customCssGuide")}
+                        className="inline-flex size-8 items-center justify-center rounded-md text-slate-400 transition hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
+                      >
+                        <BookOpen aria-hidden="true" size={17} />
+                      </Link>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={overlay.appearance.customCssEnabled}
+                        aria-label={t("overlay.customCssEnabled")}
+                        onClick={() =>
+                          updateAppearanceDraft({
+                            customCssEnabled:
+                              !overlay.appearance.customCssEnabled
+                          })
+                        }
+                        className={`relative h-6 w-11 shrink-0 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 ${overlay.appearance.customCssEnabled ? "border-emerald-300/50 bg-emerald-500" : "border-white/15 bg-slate-700"}`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`absolute left-1 top-1 size-4 rounded-full bg-white shadow-sm transition-transform ${overlay.appearance.customCssEnabled ? "translate-x-5" : "translate-x-0"}`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  {overlay.appearance.customCssEnabled ? (
+                    <div className="mt-4 grid gap-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-1">
+                          <CustomCssPresetMenu
+                            currentCss={overlay.appearance.customCss}
+                            onApply={(customCss) =>
+                              updateAppearanceDraft({ customCss })
+                            }
+                          />
+                          <button
+                            type="button"
+                            disabled={overlay.appearance.customCss === savedCustomCss}
+                            title={t("overlay.restoreCustomCss")}
+                            aria-label={t("overlay.restoreCustomCss")}
+                            onClick={() => {
+                              if (window.confirm(t("overlay.restoreCustomCssConfirm"))) {
+                                updateAppearanceDraft({ customCss: savedCustomCss });
+                              }
+                            }}
+                            className="inline-flex size-8 items-center justify-center rounded-md text-slate-400 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <Undo2 aria-hidden="true" size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={overlay.appearance.customCss.length === 0}
+                            title={t("overlay.clearCustomCss")}
+                            aria-label={t("overlay.clearCustomCss")}
+                            onClick={() => {
+                              if (window.confirm(t("overlay.clearCustomCssConfirm"))) {
+                                updateAppearanceDraft({ customCss: "" });
+                              }
+                            }}
+                            className="inline-flex size-8 items-center justify-center rounded-md text-slate-400 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <Eraser aria-hidden="true" size={16} />
+                          </button>
+                        </div>
+                        <span
+                          className={`text-xs tabular-nums ${customCssTooLarge ? "text-red-300" : "text-slate-500"}`}
+                        >
+                          {t("overlay.customCssSize", {
+                            current: formatCustomCssSize(customCssBytes),
+                            maximum: formatCustomCssSize(MAX_CUSTOM_CSS_BYTES)
+                          })}
+                        </span>
+                      </div>
+                      <Suspense
+                        fallback={
+                          <div
+                            aria-busy="true"
+                            className="h-[280px] rounded-md border border-white/10 bg-[#282c34]"
+                          />
+                        }
+                      >
+                        <CustomCssEditor
+                          value={overlay.appearance.customCss}
+                          invalid={customCssInvalid}
+                          errorId={customCssInvalid ? "custom-css-error" : undefined}
+                          label={t("overlay.customCss")}
+                          onChange={(customCss) =>
+                            updateAppearanceDraft({ customCss })
+                          }
+                        />
+                      </Suspense>
+                    </div>
+                  ) : null}
+                  {customCssInvalid ? (
+                    <span
+                      id="custom-css-error"
+                      role="alert"
+                      className="mt-2 block text-xs text-red-300"
+                    >
+                      {customCssTooLarge
+                        ? t("overlay.customCssTooLarge")
+                        : t(`overlay.customCssError.${customCssError}`)}
+                    </span>
                   ) : null}
                 </div>
             </SettingsDisclosure>
@@ -995,10 +1220,11 @@ export function OverlaySettings({
             <div className="flex flex-wrap gap-2 pt-5">
                 <button
                   type="button"
-                  disabled={!appearanceDirty || updating}
+                  disabled={!appearanceDirty || updating || customCssTooLarge}
                   onClick={() =>
-                    void runUpdate(() =>
-                      updateOverlayAppearance(overlay.appearance)
+                    void runUpdate(
+                      () => updateOverlayAppearance(overlay.appearance),
+                      true
                     )
                   }
                   className="inline-flex h-10 items-center gap-2 rounded-md bg-emerald-500 px-4 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
@@ -1015,10 +1241,12 @@ export function OverlaySettings({
                         t("overlay.resetConfirm")
                       )
                     ) {
-                      void runUpdate(() =>
-                        updateOverlayAppearance({
-                          ...DEFAULT_OVERLAY_APPEARANCE
-                        })
+                      void runUpdate(
+                        () =>
+                          updateOverlayAppearance({
+                            ...DEFAULT_OVERLAY_APPEARANCE
+                          }),
+                        true
                       );
                     }
                   }}
@@ -1383,4 +1611,12 @@ function toErrorState(error: unknown, fallback: string): SettingsState {
     status: "error",
     message: error instanceof Error ? error.message : fallback
   };
+}
+
+function formatCustomCssSize(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  return `${(bytes / 1024).toFixed(1)} KB`;
 }

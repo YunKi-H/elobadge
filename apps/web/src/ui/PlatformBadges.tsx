@@ -7,14 +7,12 @@ import { useTranslation } from "react-i18next";
 
 export function PlatformBadges({
   badges,
-  visibilityByPlatform,
-  lineHeight
+  visibilityByPlatform
 }: {
   badges: PlatformChatBadge[];
   visibilityByPlatform: Partial<
     Record<StreamingPlatform, PlatformBadgeVisibility>
   >;
-  lineHeight: number;
 }) {
   const { t } = useTranslation();
   const visibleBadges = badges?.filter(
@@ -27,8 +25,7 @@ export function PlatformBadges({
 
   return (
     <span
-      className="mr-[0.45em] inline-flex items-center gap-1 align-top"
-      style={{ height: `${lineHeight}em` }}
+      className="platform-badges mr-[0.45em] inline-flex items-center gap-1 align-top"
       aria-label={t("platformBadge")}
     >
       {visibleBadges.map((badge, index) => (
@@ -36,7 +33,9 @@ export function PlatformBadges({
           key={`${badge.provider}:${badge.kind}:${badge.imageUrl}:${index}`}
           src={badge.imageUrl}
           alt=""
-          className="h-[1em] max-w-[3em] shrink-0 object-contain"
+          className="platform-badge h-[1em] max-w-[3em] shrink-0 object-contain"
+          data-provider={badge.provider}
+          data-kind={badge.kind}
           referrerPolicy="no-referrer"
         />
       ))}

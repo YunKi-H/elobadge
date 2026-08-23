@@ -1,6 +1,7 @@
 import {
   hasVisibleChatContent,
   isOverlayFontFamily,
+  MAX_CUSTOM_CSS_BYTES,
   type ChatAuthorKind,
   type ChatEmote,
   type ChatEventSource,
@@ -126,8 +127,13 @@ export function parseOverlayAppearanceEvent(
   }
 
   const appearance = value as Partial<OverlayAppearance>;
+  const customCss = appearance.customCss ?? "";
+  const customCssEnabled = appearance.customCssEnabled ?? customCss.length > 0;
 
   if (
+    typeof customCssEnabled !== "boolean" ||
+    typeof customCss !== "string" ||
+    new TextEncoder().encode(customCss).byteLength > MAX_CUSTOM_CSS_BYTES ||
     typeof appearance.messageMaxWidthPx !== "number" ||
     !Number.isInteger(appearance.messageMaxWidthPx) ||
     appearance.messageMaxWidthPx < 300 ||
@@ -192,6 +198,8 @@ export function parseOverlayAppearanceEvent(
   }
 
   return {
+    customCssEnabled,
+    customCss,
     messageMaxWidthPx: appearance.messageMaxWidthPx,
     chatAlignment: appearance.chatAlignment,
     messageLayout: appearance.messageLayout,

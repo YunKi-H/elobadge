@@ -6,11 +6,7 @@ import type {
   StreamingPlatform
 } from "@elobadge/core";
 import { ChatMessageContent } from "./ChatMessageContent";
-import {
-  overlayMessageColor,
-  overlayNicknameColor,
-  overlayRating
-} from "./overlay-appearance";
+import { overlayRating } from "./overlay-appearance";
 import { PlatformBadges } from "./PlatformBadges";
 import { RatingBadge } from "./RatingBadge";
 
@@ -45,17 +41,11 @@ export function OverlayMessageBody({
       <PlatformBadges
         badges={message.platformBadges}
         visibilityByPlatform={visibilityByPlatform}
-        lineHeight={appearance.fontLineHeight}
       />
-      {rating ? (
-        <RatingBadge rating={rating} lineHeight={appearance.fontLineHeight} />
-      ) : null}
+      {rating ? <RatingBadge rating={rating} /> : null}
       {appearance.nicknameVisible ? (
         <span
-          className={
-            appearance.messageLayout === "aligned" ? "" : "mr-[0.45em]"
-          }
-          style={{ color: overlayNicknameColor(appearance, message) }}
+          className={`nickname ${appearance.messageLayout === "aligned" ? "" : "mr-[0.45em]"}`}
         >
           {message.nickname}
           {appearance.messageLayout === "inline" &&
@@ -66,12 +56,7 @@ export function OverlayMessageBody({
       ) : null}
     </>
   );
-  const content = (
-    <ChatMessageContent
-      message={message}
-      color={overlayMessageColor(appearance, message)}
-    />
-  );
+  const content = <ChatMessageContent message={message} />;
   const messageAlignmentClass =
     !messageIsMultiline || appearance.chatAlignment === "left"
       ? "text-left"
@@ -107,13 +92,20 @@ export function OverlayMessageBody({
   }, [appearance.messageLayout, appearance.fontFamily, appearance.fontSizePx]);
 
   if (!hasMetadata || appearance.messageLayout === "inline") {
-    return <>{metadata}{content}</>;
+    return (
+      <>
+        {hasMetadata ? (
+          <span className="metadata contents">{metadata}</span>
+        ) : null}
+        {content}
+      </>
+    );
   }
 
   if (appearance.messageLayout === "stacked") {
     return (
       <>
-        <div>{metadata}</div>
+        <div className="metadata">{metadata}</div>
         <div className="mt-[0.15em] min-w-0">{content}</div>
       </>
     );
@@ -122,7 +114,7 @@ export function OverlayMessageBody({
   if (appearance.messageLayout === "individual") {
     return (
       <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start">
-        <div className="whitespace-nowrap">{metadata}</div>
+        <div className="metadata whitespace-nowrap">{metadata}</div>
         <div
           ref={messageContentRef}
           className={`min-w-0 ${messageAlignmentClass}`}
@@ -138,7 +130,7 @@ export function OverlayMessageBody({
       className={`${appearance.messageBoxFilled ? "grid grid-cols-[minmax(0,min(12em,40%))_minmax(0,1fr)]" : "inline-grid max-w-full grid-cols-[minmax(0,min(12em,40vw))_minmax(0,1fr)] align-top"} min-w-0 items-start gap-x-[0.35em]`}
     >
       <div
-        className={`min-w-0 overflow-hidden whitespace-nowrap ${appearance.alignedNicknameRightAligned ? "text-right" : "text-left"}`}
+        className={`metadata min-w-0 overflow-hidden whitespace-nowrap ${appearance.alignedNicknameRightAligned ? "text-right" : "text-left"}`}
       >
         {metadata}
       </div>

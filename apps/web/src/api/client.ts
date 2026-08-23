@@ -96,6 +96,25 @@ export interface OverlayAccess {
   appearance: OverlayAppearance;
 }
 
+export type CustomCssValidationReason =
+  | "too_large"
+  | "invalid_syntax"
+  | "at_rule_not_allowed"
+  | "external_resource_not_allowed"
+  | "selector_not_allowed"
+  | "property_not_allowed"
+  | "invalid_property_value";
+
+export class OverlayAppearanceUpdateError extends Error {
+  constructor(
+    message: string,
+    readonly customCssReason: CustomCssValidationReason | null
+  ) {
+    super(message);
+    this.name = "OverlayAppearanceUpdateError";
+  }
+}
+
 export interface ChessComAccount {
   provider: "chesscom";
   username: string;
@@ -632,10 +651,33 @@ export async function updateOverlayAppearance(
   const body: unknown = await response.json().catch(() => null);
 
   if (!response.ok || !isOverlayResponse(body) || !body.overlay) {
-    throw new Error(apiError(body, "오버레이 화면 설정을 저장하지 못했습니다."));
+    throw new OverlayAppearanceUpdateError(
+      apiError(body, "오버레이 화면 설정을 저장하지 못했습니다."),
+      customCssValidationReason(body)
+    );
   }
 
   return body.overlay;
+}
+
+function customCssValidationReason(
+  value: unknown
+): CustomCssValidationReason | null {
+  if (!value || typeof value !== "object" || !("reason" in value)) {
+    return null;
+  }
+
+  const reason = value.reason;
+
+  return reason === "too_large" ||
+    reason === "invalid_syntax" ||
+    reason === "at_rule_not_allowed" ||
+    reason === "external_resource_not_allowed" ||
+    reason === "selector_not_allowed" ||
+    reason === "property_not_allowed" ||
+    reason === "invalid_property_value"
+    ? reason
+    : null;
 }
 
 async function updateOverlayAccess(path: string): Promise<OverlayAccess> {

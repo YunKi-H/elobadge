@@ -4,6 +4,11 @@ import type {
   OverlayFontFamily
 } from "@elobadge/core";
 import { resolveRatingBadge, type RatingBadge } from "@elobadge/core";
+import type { CSSProperties } from "react";
+
+export type OverlayCssProperties = CSSProperties & {
+  [property: `--${string}`]: string | number;
+};
 
 export function overlayRating(
   appearance: OverlayAppearance,
@@ -49,7 +54,7 @@ const USER_NICKNAME_COLORS = [
   "#F0ABFC"
 ] as const;
 
-export function overlayBackgroundColor(
+function overlayBackgroundColor(
   appearance: OverlayAppearance
 ): string {
   if (!appearance.backgroundVisible) {
@@ -63,7 +68,7 @@ export function overlayBackgroundColor(
   return `rgb(${red} ${green} ${blue} / ${appearance.backgroundOpacity}%)`;
 }
 
-export function overlayNicknameColor(
+function overlayNicknameColor(
   appearance: OverlayAppearance,
   message: ChatOverlayEvent
 ): string {
@@ -85,7 +90,7 @@ export function overlayNicknameColor(
   return USER_NICKNAME_COLORS[hash % USER_NICKNAME_COLORS.length]!;
 }
 
-export function overlayMessageColor(
+function overlayMessageColor(
   appearance: OverlayAppearance,
   message: ChatOverlayEvent
 ): string {
@@ -94,10 +99,30 @@ export function overlayMessageColor(
     : appearance.messageColor;
 }
 
-export function overlayFontFamily(appearance: OverlayAppearance): string {
-  return overlayFontFamilyValue(appearance.fontFamily);
-}
-
 export function overlayFontFamilyValue(fontFamily: OverlayFontFamily): string {
   return OVERLAY_FONT_FAMILIES[fontFamily];
+}
+
+export function overlayCssVariables(
+  appearance: OverlayAppearance
+): OverlayCssProperties {
+  return {
+    "--message-max-width": `${appearance.messageMaxWidthPx}px`,
+    "--message-background": overlayBackgroundColor(appearance),
+    "--message-font-family": overlayFontFamilyValue(appearance.fontFamily),
+    "--message-font-size": `${appearance.fontSizePx}px`,
+    "--message-font-weight": appearance.fontWeight,
+    "--message-line-height": appearance.fontLineHeight,
+    "--badge-line-height": `${appearance.fontLineHeight}em`
+  };
+}
+
+export function overlayMessageCssVariables(
+  appearance: OverlayAppearance,
+  message: ChatOverlayEvent
+): OverlayCssProperties {
+  return {
+    "--nickname-color": overlayNicknameColor(appearance, message),
+    "--message-color": overlayMessageColor(appearance, message)
+  };
 }
