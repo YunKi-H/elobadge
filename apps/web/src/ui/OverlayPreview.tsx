@@ -1,4 +1,11 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from "react";
+import { createPortal } from "react-dom";
 import type {
   ChatAuthorKind,
   ChatOverlayEvent,
@@ -115,31 +122,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
 
   return (
     <section className="max-w-[600px]">
-      <div
-        className="overlay flex aspect-video w-full flex-col justify-end overflow-hidden rounded-md bg-slate-950/60 p-4 ring-1 ring-white/10"
-        style={overlayCssVariables(appearance)}
-      >
-        {messages.length === 0 ? (
-          <div className="border-l-2 border-slate-700 py-2 pl-4 text-sm text-slate-400">
-            {t("preview.empty")}
-          </div>
-        ) : null}
-        <div
-          className={`message-list flex min-h-0 w-full flex-col justify-end overflow-hidden ${appearance.chatAlignment === "left" ? "items-start text-left" : appearance.chatAlignment === "center" ? "items-center text-center" : "items-end text-right"} ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
-        >
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`message ${appearance.messageBoxFilled ? "w-full" : "w-fit"} max-w-full min-w-0 shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/10" : "p-0"}`}
-              data-author-kind={message.authorKind}
-              data-platform={message.source.provider}
-              style={overlayMessageCssVariables(appearance, message)}
-            >
-              <OverlayMessageBody appearance={appearance} message={message} />
-            </div>
-          ))}
-        </div>
-      </div>
+      <OverlayPreviewFrame appearance={appearance} messages={messages} />
 
       <form
         onSubmit={addPreviewMessage}
@@ -201,6 +184,124 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
         </div>
       </form>
     </section>
+  );
+}
+
+function OverlayPreviewFrame({
+  appearance,
+  messages
+}: {
+  appearance: OverlayAppearance;
+  messages: ChatOverlayEvent[];
+}) {
+  const { t, i18n } = useTranslation();
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const [frameBody, setFrameBody] = useState<HTMLElement | null>(null);
+
+  const prepareFrame = useCallback(() => {
+    const frameDocument = frameRef.current?.contentDocument;
+
+    if (!frameDocument) {
+      return;
+    }
+
+    frameDocument.documentElement.lang = i18n.resolvedLanguage ?? "ko";
+    frameDocument.body.className = "overlay-preview-frame-page";
+    setFrameBody(frameDocument.body);
+  }, [i18n.resolvedLanguage]);
+
+  useEffect(() => {
+    const frameDocument = frameBody?.ownerDocument;
+
+    if (!frameDocument) {
+      return;
+    }
+
+    const syncStyles = () => {
+      frameDocument.head
+        .querySelectorAll("[data-overlay-preview-style]")
+        .forEach((element) => element.remove());
+
+      document.head
+        .querySelectorAll('style, link[rel="stylesheet"]')
+        .forEach((element) => {
+          const clone = element.cloneNode(true) as HTMLElement;
+          clone.dataset.overlayPreviewStyle = "";
+          frameDocument.head.append(clone);
+        });
+    };
+
+    syncStyles();
+    const styleObserver = new MutationObserver(syncStyles);
+    styleObserver.observe(document.head, {
+      attributes: true,
+      childList: true,
+      characterData: true,
+      subtree: true
+    });
+
+    return () => styleObserver.disconnect();
+  }, [frameBody]);
+
+  return (
+    <>
+      <iframe
+        ref={frameRef}
+        title={t("preview.frameLabel")}
+        srcDoc="<!doctype html><html><head></head><body></body></html>"
+        onLoad={prepareFrame}
+        className="block aspect-video w-full rounded-md border-0 bg-slate-950/60 ring-1 ring-white/10"
+      />
+      {frameBody
+        ? createPortal(
+            <OverlayPreviewCanvas
+              appearance={appearance}
+              messages={messages}
+              emptyMessage={t("preview.empty")}
+            />,
+            frameBody
+          )
+        : null}
+    </>
+  );
+}
+
+function OverlayPreviewCanvas({
+  appearance,
+  messages,
+  emptyMessage
+}: {
+  appearance: OverlayAppearance;
+  messages: ChatOverlayEvent[];
+  emptyMessage: string;
+}) {
+  return (
+    <main
+      className="overlay flex h-screen w-full flex-col justify-end overflow-hidden bg-slate-950/60 p-4"
+      style={overlayCssVariables(appearance)}
+      aria-live="polite"
+    >
+      {messages.length === 0 ? (
+        <div className="border-l-2 border-slate-700 py-2 pl-4 text-sm text-slate-400">
+          {emptyMessage}
+        </div>
+      ) : null}
+      <div
+        className={`message-list flex min-h-0 w-full flex-col justify-end overflow-hidden ${appearance.chatAlignment === "left" ? "items-start text-left" : appearance.chatAlignment === "center" ? "items-center text-center" : "items-end text-right"} ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
+      >
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`message ${appearance.messageBoxFilled ? "w-full" : "w-fit"} max-w-full min-w-0 shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/10" : "p-0"}`}
+            data-author-kind={message.authorKind}
+            data-platform={message.source.provider}
+            style={overlayMessageCssVariables(appearance, message)}
+          >
+            <OverlayMessageBody appearance={appearance} message={message} />
+          </div>
+        ))}
+      </div>
+    </main>
   );
 }
 

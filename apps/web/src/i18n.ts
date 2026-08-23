@@ -273,6 +273,7 @@ const resources = {
         requestFailed: "요청에 실패했습니다."
       },
       preview: {
+        frameLabel: "채팅 오버레이 미리보기",
         empty: "아직 표시할 메시지가 없습니다",
         nickname: "닉네임",
         nicknamePlaceholder: "시청자 닉네임",
@@ -597,6 +598,7 @@ const resources = {
         requestFailed: "The request failed."
       },
       preview: {
+        frameLabel: "Chat overlay preview",
         empty: "No preview messages yet",
         nickname: "Nickname",
         nicknamePlaceholder: "Viewer nickname",

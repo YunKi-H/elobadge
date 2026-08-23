@@ -217,6 +217,12 @@ body.broadcast-overlay-page {
   overflow: hidden;
 }
 
+body.overlay-preview-frame-page {
+  min-width: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
 :where(.overlay) .message-list {
   max-width: var(--message-max-width, 600px);
 }
