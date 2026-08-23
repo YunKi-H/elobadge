@@ -166,6 +166,7 @@ export interface ChatOverlayEvent {
 }
 
 export interface OverlayAppearance {
+  customCssEnabled: boolean;
   customCss: string;
   messageMaxWidthPx: number;
   chatAlignment: OverlayChatAlignment;
@@ -198,6 +199,7 @@ export interface OverlayAppearance {
 export const MAX_CUSTOM_CSS_BYTES = 20 * 1024;
 
 export const DEFAULT_OVERLAY_APPEARANCE: OverlayAppearance = {
+  customCssEnabled: false,
   customCss: "",
   messageMaxWidthPx: 600,
   chatAlignment: "left",

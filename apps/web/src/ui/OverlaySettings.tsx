@@ -1,7 +1,15 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState
+} from "react";
 import {
   type ChatAuthorKind,
   DEFAULT_OVERLAY_APPEARANCE,
+  MAX_CUSTOM_CSS_BYTES,
   type OverlayAppearance,
   type OverlayFontFamily,
   type OverlayChatAlignment,
@@ -45,6 +53,12 @@ import {
 } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
 import { overlayFontFamilyValue } from "./overlay-appearance";
+
+const CustomCssEditor = lazy(() =>
+  import("./CustomCssEditor").then((module) => ({
+    default: module.CustomCssEditor
+  }))
+);
 
 type SettingsState =
   | { status: "loading" }
@@ -244,6 +258,10 @@ export function OverlaySettings({
   };
 
   const overlay = state.status === "ready" ? state.overlay : null;
+  const customCssBytes = overlay
+    ? new TextEncoder().encode(overlay.appearance.customCss).byteLength
+    : 0;
+  const customCssTooLarge = customCssBytes > MAX_CUSTOM_CSS_BYTES;
 
   const updateAppearanceDraft = (patch: Partial<OverlayAppearance>) => {
     if (!overlay) {
@@ -599,6 +617,67 @@ export function OverlaySettings({
                         className="size-4 accent-emerald-500 disabled:opacity-40"
                       />
                     </label>
+                  ) : null}
+                </div>
+
+                <div className="border-t border-white/10 pt-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-medium text-slate-200">
+                      {t("overlay.customCssEnabled")}
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={overlay.appearance.customCssEnabled}
+                      aria-label={t("overlay.customCssEnabled")}
+                      onClick={() =>
+                        updateAppearanceDraft({
+                          customCssEnabled:
+                            !overlay.appearance.customCssEnabled
+                        })
+                      }
+                      className={`relative h-6 w-11 shrink-0 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 ${overlay.appearance.customCssEnabled ? "border-emerald-300/50 bg-emerald-500" : "border-white/15 bg-slate-700"}`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`absolute left-1 top-1 size-4 rounded-full bg-white shadow-sm transition-transform ${overlay.appearance.customCssEnabled ? "translate-x-5" : "translate-x-0"}`}
+                      />
+                    </button>
+                  </div>
+
+                  {overlay.appearance.customCssEnabled ? (
+                    <div className="mt-4 grid gap-2">
+                      <span
+                        className={`justify-self-end text-xs tabular-nums ${customCssTooLarge ? "text-red-300" : "text-slate-500"}`}
+                      >
+                        {t("overlay.customCssSize", {
+                          current: formatCustomCssSize(customCssBytes),
+                          maximum: formatCustomCssSize(MAX_CUSTOM_CSS_BYTES)
+                        })}
+                      </span>
+                      <Suspense
+                        fallback={
+                          <div
+                            aria-busy="true"
+                            className="h-[280px] rounded-md border border-white/10 bg-[#282c34]"
+                          />
+                        }
+                      >
+                        <CustomCssEditor
+                          value={overlay.appearance.customCss}
+                          invalid={customCssTooLarge}
+                          label={t("overlay.customCss")}
+                          onChange={(customCss) =>
+                            updateAppearanceDraft({ customCss })
+                          }
+                        />
+                      </Suspense>
+                      {customCssTooLarge ? (
+                        <span className="text-xs text-red-300">
+                          {t("overlay.customCssTooLarge")}
+                        </span>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
             </SettingsDisclosure>
@@ -995,7 +1074,7 @@ export function OverlaySettings({
             <div className="flex flex-wrap gap-2 pt-5">
                 <button
                   type="button"
-                  disabled={!appearanceDirty || updating}
+                  disabled={!appearanceDirty || updating || customCssTooLarge}
                   onClick={() =>
                     void runUpdate(() =>
                       updateOverlayAppearance(overlay.appearance)
@@ -1383,4 +1462,12 @@ function toErrorState(error: unknown, fallback: string): SettingsState {
     status: "error",
     message: error instanceof Error ? error.message : fallback
   };
+}
+
+function formatCustomCssSize(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  return `${(bytes / 1024).toFixed(1)} KB`;
 }

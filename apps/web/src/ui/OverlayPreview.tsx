@@ -202,7 +202,10 @@ function OverlayPreviewFrame({
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [frameBody, setFrameBody] = useState<HTMLElement | null>(null);
   const frameDocument = frameBody?.ownerDocument ?? null;
-  useOverlayCustomStyle(frameDocument, appearance.customCss);
+  useOverlayCustomStyle(
+    frameDocument,
+    appearance.customCssEnabled ? appearance.customCss : ""
+  );
 
   const prepareFrame = useCallback(() => {
     const frameDocument = frameRef.current?.contentDocument;

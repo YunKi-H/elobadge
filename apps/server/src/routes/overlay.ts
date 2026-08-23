@@ -39,6 +39,7 @@ const overlayParamsSchema = z.object({
 });
 
 const overlayAppearanceSchema = z.object({
+  customCssEnabled: z.boolean().optional(),
   customCss: z.string().optional(),
   messageMaxWidthPx: z.number().int().min(300).max(600).default(600),
   chatAlignment: z.enum(OVERLAY_CHAT_ALIGNMENT_VALUES).default("left"),
@@ -205,6 +206,10 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
           parsedAppearance.data.customCss ??
           currentOverlay?.appearance.customCss ??
           DEFAULT_OVERLAY_APPEARANCE.customCss;
+        const customCssEnabled =
+          parsedAppearance.data.customCssEnabled ??
+          currentOverlay?.appearance.customCssEnabled ??
+          DEFAULT_OVERLAY_APPEARANCE.customCssEnabled;
         const customCssValidation = validateCustomCss(customCss);
 
         if (!customCssValidation.valid) {
@@ -216,6 +221,7 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
 
         const appearance: OverlayAppearance = {
           ...parsedAppearance.data,
+          customCssEnabled,
           customCss,
           twitchBadgesVisible:
             parsedAppearance.data.twitchBadgesVisible ??

@@ -26,7 +26,10 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
   const { messages, addMessage, clearMessages } = useOverlayMessageQueue(
     appearance.messageDurationSeconds
   );
-  useOverlayCustomStyle(document, appearance.customCss);
+  useOverlayCustomStyle(
+    document,
+    appearance.customCssEnabled ? appearance.customCss : ""
+  );
 
   useEffect(() => {
     document.body.classList.add("broadcast-overlay-page");

@@ -69,6 +69,7 @@ test("overlay appearance accepts a complete valid document", () => {
       messageDurationSeconds: 60
     }),
     {
+      customCssEnabled: false,
       customCss: "",
       messageMaxWidthPx: 480,
       chatAlignment: "center",
@@ -192,9 +193,20 @@ test("legacy aligned overlays preserve their filled message boxes", () => {
   assert.equal(parseOverlayAppearance(storedTheme)?.messageBoxFilled, true);
 });
 
+test("legacy custom CSS remains enabled when the toggle field is missing", () => {
+  const storedTheme = toStoredOverlayTheme({
+    ...DEFAULT_OVERLAY_APPEARANCE,
+    customCss: ".message { border-radius: 0; }"
+  });
+  delete storedTheme.customCssEnabled;
+
+  assert.equal(parseOverlayAppearance(storedTheme)?.customCssEnabled, true);
+});
+
 test("stored overlay themes keep separate platform badge settings", () => {
   const stored = toStoredOverlayTheme({
     ...DEFAULT_OVERLAY_APPEARANCE,
+    customCssEnabled: true,
     customCss: ".message { border-radius: 0; }"
   });
 
@@ -216,6 +228,7 @@ test("stored overlay themes keep separate platform badge settings", () => {
   assert.equal("chzzkBadgesVisible" in stored, false);
   assert.equal("chzzkBadgeVisibility" in stored, false);
   assert.equal(stored.customCss, ".message { border-radius: 0; }");
+  assert.equal(stored.customCssEnabled, true);
 });
 
 test("overlay appearance rejects incomplete and invalid documents", () => {

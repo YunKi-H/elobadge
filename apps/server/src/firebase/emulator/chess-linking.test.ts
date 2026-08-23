@@ -975,6 +975,7 @@ test("overlay appearance persists and survives public token rotation", async () 
   );
   assert.equal(initialTheme.get("theme.chzzkBadgesVisible"), undefined);
   assert.deepEqual(initial.appearance, {
+    customCssEnabled: false,
     customCss: "",
     messageMaxWidthPx: 600,
     chatAlignment: "left",
@@ -1029,6 +1030,7 @@ test("overlay appearance persists and survives public token rotation", async () 
   });
 
   const appearance = {
+    customCssEnabled: true,
     customCss: ".nickname { color: #FDE047; }",
     messageMaxWidthPx: 480,
     chatAlignment: "right" as const,
