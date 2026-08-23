@@ -28,6 +28,7 @@ import {
 } from "../realtime/overlay-access-events.js";
 import { overlayConnectionTracker } from "../realtime/overlay-connections.js";
 import { subscribeStreamerChatOverlayEvents } from "../realtime/overlay-events.js";
+import { validateCustomCss } from "../security/custom-css.js";
 
 const testEventsQuerySchema = z.object({
   streamerUid: z.string().min(1).optional()
@@ -38,6 +39,7 @@ const overlayParamsSchema = z.object({
 });
 
 const overlayAppearanceSchema = z.object({
+  customCss: z.string().optional(),
   messageMaxWidthPx: z.number().int().min(300).max(600).default(600),
   chatAlignment: z.enum(OVERLAY_CHAT_ALIGNMENT_VALUES).default("left"),
   messageLayout: z.enum(OVERLAY_MESSAGE_LAYOUT_VALUES).default("inline"),
@@ -199,8 +201,22 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
 
       try {
         const currentOverlay = await getStreamerOverlayAccess(user.uid);
+        const customCss =
+          parsedAppearance.data.customCss ??
+          currentOverlay?.appearance.customCss ??
+          DEFAULT_OVERLAY_APPEARANCE.customCss;
+        const customCssValidation = validateCustomCss(customCss);
+
+        if (!customCssValidation.valid) {
+          return reply.code(400).send({
+            error: "Invalid custom CSS",
+            reason: customCssValidation.reason
+          });
+        }
+
         const appearance: OverlayAppearance = {
           ...parsedAppearance.data,
+          customCss,
           twitchBadgesVisible:
             parsedAppearance.data.twitchBadgesVisible ??
             currentOverlay?.appearance.twitchBadgesVisible ??

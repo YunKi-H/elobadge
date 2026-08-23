@@ -35,6 +35,7 @@ test("overlay appearance updates are scoped to one public token", () => {
   });
 
   publishOverlayAppearance("first-token", {
+    customCss: "",
     messageMaxWidthPx: 600,
     chatAlignment: "left",
     messageLayout: "inline",

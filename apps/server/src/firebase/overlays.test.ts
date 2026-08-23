@@ -69,6 +69,7 @@ test("overlay appearance accepts a complete valid document", () => {
       messageDurationSeconds: 60
     }),
     {
+      customCss: "",
       messageMaxWidthPx: 480,
       chatAlignment: "center",
       messageLayout: "stacked",
@@ -192,7 +193,10 @@ test("legacy aligned overlays preserve their filled message boxes", () => {
 });
 
 test("stored overlay themes keep separate platform badge settings", () => {
-  const stored = toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE);
+  const stored = toStoredOverlayTheme({
+    ...DEFAULT_OVERLAY_APPEARANCE,
+    customCss: ".message { border-radius: 0; }"
+  });
 
   assert.deepEqual(
     stored.platformBadgeSettings,
@@ -211,6 +215,7 @@ test("stored overlay themes keep separate platform badge settings", () => {
   assert.equal("platformBadgeVisibility" in stored, false);
   assert.equal("chzzkBadgesVisible" in stored, false);
   assert.equal("chzzkBadgeVisibility" in stored, false);
+  assert.equal(stored.customCss, ".message { border-radius: 0; }");
 });
 
 test("overlay appearance rejects incomplete and invalid documents", () => {
@@ -232,6 +237,13 @@ test("overlay appearance rejects incomplete and invalid documents", () => {
           visibility: DEFAULT_OVERLAY_APPEARANCE.twitchBadgeVisibility
         }
       }
+    }),
+    null
+  );
+  assert.equal(
+    parseOverlayAppearance({
+      ...toStoredOverlayTheme(DEFAULT_OVERLAY_APPEARANCE),
+      customCss: "body { display: none; }"
     }),
     null
   );
