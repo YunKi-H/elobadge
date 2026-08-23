@@ -2,32 +2,7 @@ import { css } from "@codemirror/lang-css";
 import { oneDark } from "@codemirror/theme-one-dark";
 import CodeMirror, { EditorView } from "@uiw/react-codemirror";
 import { useMemo } from "react";
-
-const DEFAULT_CUSTOM_CSS_EXAMPLE = `/* EloBadge default style example */
-.message-list {
-  max-width: 600px;
-}
-
-.message {
-  border-radius: 0.375rem;
-  font-size: 18px;
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-.nickname {
-  color: #7dd3fc;
-}
-
-.content {
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 85%);
-}
-
-.platform-badges,
-.rating-badge {
-  height: 1.4em;
-}`;
+import { DEFAULT_CUSTOM_CSS_EXAMPLE } from "./custom-css-presets";
 
 const editorTheme = EditorView.theme({
   "&": {

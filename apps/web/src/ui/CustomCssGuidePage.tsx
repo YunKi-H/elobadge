@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { BUBBLE_CUSTOM_CSS } from "./custom-css-presets";
 
 const SELECTORS = [
   [".overlay", "overlay"],
@@ -45,21 +46,6 @@ const RATING_EXAMPLE = `.rating-badge[data-provider="lichess"]
 
 .rating-badge[data-speed="rapid"] {
   transform: scale(1.05);
-}`;
-
-const BUBBLE_EXAMPLE = `.message {
-  position: relative;
-  border-radius: 12px;
-}
-
-.message::after {
-  content: "";
-  position: absolute;
-  bottom: -6px;
-  left: 18px;
-  border-width: 6px 6px 0;
-  border-style: solid;
-  border-color: #020617 transparent transparent;
 }`;
 
 export function CustomCssGuidePage() {
@@ -165,7 +151,7 @@ export function CustomCssGuidePage() {
         />
         <CodeExample
           title={t("customCssGuide.examples.bubble")}
-          code={BUBBLE_EXAMPLE}
+          code={BUBBLE_CUSTOM_CSS}
         />
       </GuideSection>
 

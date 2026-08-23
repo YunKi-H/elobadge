@@ -58,6 +58,7 @@ import {
   type OverlayAccess
 } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
+import { CustomCssPresetMenu } from "./CustomCssPresetMenu";
 import { overlayFontFamilyValue } from "./overlay-appearance";
 
 const CustomCssEditor = lazy(() =>
@@ -749,6 +750,12 @@ export function OverlaySettings({
                     <div className="mt-4 grid gap-2">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-1">
+                          <CustomCssPresetMenu
+                            currentCss={overlay.appearance.customCss}
+                            onApply={(customCss) =>
+                              updateAppearanceDraft({ customCss })
+                            }
+                          />
                           <button
                             type="button"
                             disabled={overlay.appearance.customCss === savedCustomCss}

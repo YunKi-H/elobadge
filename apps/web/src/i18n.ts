@@ -258,6 +258,14 @@ const resources = {
         clearCustomCss: "커스텀 CSS 비우기",
         clearCustomCssConfirm: "작성한 커스텀 CSS를 모두 비울까요?",
         unsavedChangesConfirm: "저장하지 않은 화면 설정이 있습니다. 이 페이지를 나갈까요?",
+        customCssPresets: "CSS 예제 불러오기",
+        applyCustomCssPresetConfirm: "‘{{name}}’ 예제로 현재 CSS를 교체할까요?",
+        customCssPreset: {
+          defaults: "기본 스타일",
+          bubble: "말풍선",
+          transparent: "투명 채팅",
+          nickname: "닉네임 강조"
+        },
         customCssSize: "{{current}} / {{maximum}}",
         customCssTooLarge: "커스텀 CSS는 20KB 이하로 입력해 주세요.",
         customCssError: {
@@ -645,6 +653,14 @@ const resources = {
         clearCustomCss: "Clear custom CSS",
         clearCustomCssConfirm: "Clear all custom CSS content?",
         unsavedChangesConfirm: "You have unsaved appearance settings. Leave this page?",
+        customCssPresets: "Load CSS example",
+        applyCustomCssPresetConfirm: "Replace the current CSS with the ‘{{name}}’ example?",
+        customCssPreset: {
+          defaults: "Default style",
+          bubble: "Speech bubble",
+          transparent: "Transparent chat",
+          nickname: "Nickname highlight"
+        },
         customCssSize: "{{current}} / {{maximum}}",
         customCssTooLarge: "Custom CSS must be 20 KB or smaller.",
         customCssError: {
