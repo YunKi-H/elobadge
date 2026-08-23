@@ -7,14 +7,12 @@ import { useTranslation } from "react-i18next";
 
 export function PlatformBadges({
   badges,
-  visibilityByPlatform,
-  lineHeight
+  visibilityByPlatform
 }: {
   badges: PlatformChatBadge[];
   visibilityByPlatform: Partial<
     Record<StreamingPlatform, PlatformBadgeVisibility>
   >;
-  lineHeight: number;
 }) {
   const { t } = useTranslation();
   const visibleBadges = badges?.filter(
@@ -28,7 +26,6 @@ export function PlatformBadges({
   return (
     <span
       className="platform-badges mr-[0.45em] inline-flex items-center gap-1 align-top"
-      style={{ height: `${lineHeight}em` }}
       aria-label={t("platformBadge")}
     >
       {visibleBadges.map((badge, index) => (

@@ -11,8 +11,8 @@ import { useTranslation } from "react-i18next";
 import { getFirebaseClientAuth } from "../firebase/client";
 import { parseChatOverlayEvent } from "../realtime/chat-event";
 import {
-  overlayBackgroundColor,
-  overlayFontFamily
+  overlayCssVariables,
+  overlayMessageCssVariables
 } from "./overlay-appearance";
 import { OverlayMessageBody } from "./OverlayMessageBody";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
@@ -115,7 +115,10 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
 
   return (
     <section className="max-w-[600px]">
-      <div className="overlay flex aspect-video w-full flex-col justify-end overflow-hidden rounded-md bg-slate-950/60 p-4 ring-1 ring-white/10">
+      <div
+        className="overlay flex aspect-video w-full flex-col justify-end overflow-hidden rounded-md bg-slate-950/60 p-4 ring-1 ring-white/10"
+        style={overlayCssVariables(appearance)}
+      >
         {messages.length === 0 ? (
           <div className="border-l-2 border-slate-700 py-2 pl-4 text-sm text-slate-400">
             {t("preview.empty")}
@@ -123,7 +126,6 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
         ) : null}
         <div
           className={`message-list flex min-h-0 w-full flex-col justify-end overflow-hidden ${appearance.chatAlignment === "left" ? "items-start text-left" : appearance.chatAlignment === "center" ? "items-center text-center" : "items-end text-right"} ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
-          style={{ maxWidth: `${appearance.messageMaxWidthPx}px` }}
         >
           {messages.map((message) => (
             <div
@@ -131,14 +133,7 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
               className={`message ${appearance.messageBoxFilled ? "w-full" : "w-fit"} max-w-full min-w-0 shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/10" : "p-0"}`}
               data-author-kind={message.authorKind}
               data-platform={message.source.provider}
-              style={{
-                overflowWrap: "anywhere",
-                backgroundColor: overlayBackgroundColor(appearance),
-                fontFamily: overlayFontFamily(appearance),
-                fontSize: `${appearance.fontSizePx}px`,
-                fontWeight: appearance.fontWeight,
-                lineHeight: appearance.fontLineHeight
-              }}
+              style={overlayMessageCssVariables(appearance, message)}
             >
               <OverlayMessageBody appearance={appearance} message={message} />
             </div>

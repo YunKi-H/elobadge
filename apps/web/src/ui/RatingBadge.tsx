@@ -1,11 +1,9 @@
 import type { RatingBadge as RatingBadgeData } from "@elobadge/core";
 
 export function RatingBadge({
-  rating,
-  lineHeight
+  rating
 }: {
   rating: RatingBadgeData;
-  lineHeight: number;
 }) {
   const providerName = rating.provider === "chesscom" ? "Chess.com" : "Lichess";
 
@@ -14,13 +12,11 @@ export function RatingBadge({
       className="rating-badge mr-[0.45em] inline-flex items-center align-top"
       data-provider={rating.provider}
       data-speed={rating.speed}
-      style={{ height: `${lineHeight}em` }}
       aria-label={`${providerName} rating ${rating.value}`}
       title={`${providerName} ${rating.speed} rating`}
     >
       <span
-        className="flex items-center gap-[0.25em] rounded bg-white px-[0.45em] py-[0.2em] text-[0.72em] font-bold leading-none shadow-sm ring-1 ring-black/10"
-        style={{ color: "#020617" }}
+        className="rating-badge-content flex items-center gap-[0.25em] rounded bg-white px-[0.45em] py-[0.2em] text-[0.72em] font-bold leading-none shadow-sm ring-1 ring-black/10"
       >
         <img
           src={

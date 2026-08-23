@@ -6,11 +6,7 @@ import type {
   StreamingPlatform
 } from "@elobadge/core";
 import { ChatMessageContent } from "./ChatMessageContent";
-import {
-  overlayMessageColor,
-  overlayNicknameColor,
-  overlayRating
-} from "./overlay-appearance";
+import { overlayRating } from "./overlay-appearance";
 import { PlatformBadges } from "./PlatformBadges";
 import { RatingBadge } from "./RatingBadge";
 
@@ -45,15 +41,11 @@ export function OverlayMessageBody({
       <PlatformBadges
         badges={message.platformBadges}
         visibilityByPlatform={visibilityByPlatform}
-        lineHeight={appearance.fontLineHeight}
       />
-      {rating ? (
-        <RatingBadge rating={rating} lineHeight={appearance.fontLineHeight} />
-      ) : null}
+      {rating ? <RatingBadge rating={rating} /> : null}
       {appearance.nicknameVisible ? (
         <span
           className={`nickname ${appearance.messageLayout === "aligned" ? "" : "mr-[0.45em]"}`}
-          style={{ color: overlayNicknameColor(appearance, message) }}
         >
           {message.nickname}
           {appearance.messageLayout === "inline" &&
@@ -64,12 +56,7 @@ export function OverlayMessageBody({
       ) : null}
     </>
   );
-  const content = (
-    <ChatMessageContent
-      message={message}
-      color={overlayMessageColor(appearance, message)}
-    />
-  );
+  const content = <ChatMessageContent message={message} />;
   const messageAlignmentClass =
     !messageIsMultiline || appearance.chatAlignment === "left"
       ? "text-left"

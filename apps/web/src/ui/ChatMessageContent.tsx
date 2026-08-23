@@ -4,11 +4,9 @@ import { Fragment } from "react";
 const CHAT_EMOTE_TOKEN_PATTERN = /(\{:[^{}]+:\})/g;
 
 export function ChatMessageContent({
-  message,
-  color
+  message
 }: {
   message: ChatOverlayEvent;
-  color: string;
 }) {
   const emotesByToken = new Map(
     message.emotes.map((emote) => [emote.token, emote.imageUrl])
@@ -18,10 +16,6 @@ export function ChatMessageContent({
   return (
     <span
       className="content min-w-0 break-words"
-      style={{
-        color,
-        textShadow: "0 1px 2px rgb(0 0 0 / 85%)"
-      }}
     >
       {parts.map((part, index) => {
         const imageUrl = emotesByToken.get(part);

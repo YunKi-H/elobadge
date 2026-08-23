@@ -8,8 +8,8 @@ import {
   parseOverlayAppearanceEvent
 } from "../realtime/chat-event";
 import {
-  overlayBackgroundColor,
-  overlayFontFamily
+  overlayCssVariables,
+  overlayMessageCssVariables
 } from "./overlay-appearance";
 import { OverlayMessageBody } from "./OverlayMessageBody";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
@@ -153,20 +153,12 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
 
   return (
     <main
-      className="overlay flex h-screen items-end overflow-hidden bg-transparent p-6"
-      style={{
-        justifyContent:
-          appearance.chatAlignment === "left"
-            ? "flex-start"
-            : appearance.chatAlignment === "center"
-              ? "center"
-              : "flex-end"
-      }}
+      className={`overlay flex h-screen items-end overflow-hidden bg-transparent p-6 ${appearance.chatAlignment === "left" ? "justify-start" : appearance.chatAlignment === "center" ? "justify-center" : "justify-end"}`}
+      style={overlayCssVariables(appearance)}
       aria-live="polite"
     >
       <div
         className={`message-list flex max-h-full w-full max-w-[600px] flex-col justify-end overflow-hidden ${appearance.chatAlignment === "left" ? "items-start text-left" : appearance.chatAlignment === "center" ? "items-center text-center" : "items-end text-right"} ${appearance.backgroundVisible ? "gap-2" : "gap-1"}`}
-        style={{ maxWidth: `${appearance.messageMaxWidthPx}px` }}
       >
         {messages.map((message) => (
           <div
@@ -174,14 +166,7 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
             className={`message overlay-message ${appearance.messageBoxFilled ? "w-full" : "w-fit"} max-w-full min-w-0 shrink-0 rounded-md ${appearance.backgroundVisible ? "px-3 py-2 shadow-lg ring-1 ring-white/15" : "p-0"}`}
             data-author-kind={message.authorKind}
             data-platform={message.source.provider}
-            style={{
-              overflowWrap: "anywhere",
-              backgroundColor: overlayBackgroundColor(appearance),
-              fontFamily: overlayFontFamily(appearance),
-              fontSize: `${appearance.fontSizePx}px`,
-              fontWeight: appearance.fontWeight,
-              lineHeight: appearance.fontLineHeight
-            }}
+            style={overlayMessageCssVariables(appearance, message)}
           >
             <OverlayMessageBody appearance={appearance} message={message} />
           </div>
