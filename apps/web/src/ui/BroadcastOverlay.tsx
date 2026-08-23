@@ -12,6 +12,7 @@ import {
   overlayMessageCssVariables
 } from "./overlay-appearance";
 import { OverlayMessageBody } from "./OverlayMessageBody";
+import { useOverlayCustomStyle } from "./useOverlayCustomStyle";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
 const HEARTBEAT_TIMEOUT_MS = 45_000;
@@ -25,6 +26,7 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
   const { messages, addMessage, clearMessages } = useOverlayMessageQueue(
     appearance.messageDurationSeconds
   );
+  useOverlayCustomStyle(document, appearance.customCss);
 
   useEffect(() => {
     document.body.classList.add("broadcast-overlay-page");

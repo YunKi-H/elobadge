@@ -22,6 +22,10 @@ import {
   overlayMessageCssVariables
 } from "./overlay-appearance";
 import { OverlayMessageBody } from "./OverlayMessageBody";
+import {
+  OVERLAY_CUSTOM_STYLE_SELECTOR,
+  useOverlayCustomStyle
+} from "./useOverlayCustomStyle";
 import { useOverlayMessageQueue } from "./useOverlayMessageQueue";
 
 const AUTHOR_KIND_OPTIONS: ReadonlyArray<{
@@ -197,6 +201,8 @@ function OverlayPreviewFrame({
   const { t, i18n } = useTranslation();
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [frameBody, setFrameBody] = useState<HTMLElement | null>(null);
+  const frameDocument = frameBody?.ownerDocument ?? null;
+  useOverlayCustomStyle(frameDocument, appearance.customCss);
 
   const prepareFrame = useCallback(() => {
     const frameDocument = frameRef.current?.contentDocument;
@@ -211,8 +217,6 @@ function OverlayPreviewFrame({
   }, [i18n.resolvedLanguage]);
 
   useEffect(() => {
-    const frameDocument = frameBody?.ownerDocument;
-
     if (!frameDocument) {
       return;
     }
@@ -227,7 +231,10 @@ function OverlayPreviewFrame({
         .forEach((element) => {
           const clone = element.cloneNode(true) as HTMLElement;
           clone.dataset.overlayPreviewStyle = "";
-          frameDocument.head.append(clone);
+          frameDocument.head.insertBefore(
+            clone,
+            frameDocument.head.querySelector(OVERLAY_CUSTOM_STYLE_SELECTOR)
+          );
         });
     };
 
@@ -241,7 +248,7 @@ function OverlayPreviewFrame({
     });
 
     return () => styleObserver.disconnect();
-  }, [frameBody]);
+  }, [frameDocument]);
 
   return (
     <>
