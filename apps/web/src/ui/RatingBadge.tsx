@@ -11,7 +11,9 @@ export function RatingBadge({
 
   return (
     <span
-      className="mr-[0.45em] inline-flex items-center align-top"
+      className="rating-badge mr-[0.45em] inline-flex items-center align-top"
+      data-provider={rating.provider}
+      data-speed={rating.speed}
       style={{ height: `${lineHeight}em` }}
       aria-label={`${providerName} rating ${rating.value}`}
       title={`${providerName} ${rating.speed} rating`}

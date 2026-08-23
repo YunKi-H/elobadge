@@ -52,9 +52,7 @@ export function OverlayMessageBody({
       ) : null}
       {appearance.nicknameVisible ? (
         <span
-          className={
-            appearance.messageLayout === "aligned" ? "" : "mr-[0.45em]"
-          }
+          className={`nickname ${appearance.messageLayout === "aligned" ? "" : "mr-[0.45em]"}`}
           style={{ color: overlayNicknameColor(appearance, message) }}
         >
           {message.nickname}
@@ -107,13 +105,20 @@ export function OverlayMessageBody({
   }, [appearance.messageLayout, appearance.fontFamily, appearance.fontSizePx]);
 
   if (!hasMetadata || appearance.messageLayout === "inline") {
-    return <>{metadata}{content}</>;
+    return (
+      <>
+        {hasMetadata ? (
+          <span className="metadata contents">{metadata}</span>
+        ) : null}
+        {content}
+      </>
+    );
   }
 
   if (appearance.messageLayout === "stacked") {
     return (
       <>
-        <div>{metadata}</div>
+        <div className="metadata">{metadata}</div>
         <div className="mt-[0.15em] min-w-0">{content}</div>
       </>
     );
@@ -122,7 +127,7 @@ export function OverlayMessageBody({
   if (appearance.messageLayout === "individual") {
     return (
       <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start">
-        <div className="whitespace-nowrap">{metadata}</div>
+        <div className="metadata whitespace-nowrap">{metadata}</div>
         <div
           ref={messageContentRef}
           className={`min-w-0 ${messageAlignmentClass}`}
@@ -138,7 +143,7 @@ export function OverlayMessageBody({
       className={`${appearance.messageBoxFilled ? "grid grid-cols-[minmax(0,min(12em,40%))_minmax(0,1fr)]" : "inline-grid max-w-full grid-cols-[minmax(0,min(12em,40vw))_minmax(0,1fr)] align-top"} min-w-0 items-start gap-x-[0.35em]`}
     >
       <div
-        className={`min-w-0 overflow-hidden whitespace-nowrap ${appearance.alignedNicknameRightAligned ? "text-right" : "text-left"}`}
+        className={`metadata min-w-0 overflow-hidden whitespace-nowrap ${appearance.alignedNicknameRightAligned ? "text-right" : "text-left"}`}
       >
         {metadata}
       </div>

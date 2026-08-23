@@ -27,7 +27,7 @@ export function PlatformBadges({
 
   return (
     <span
-      className="mr-[0.45em] inline-flex items-center gap-1 align-top"
+      className="platform-badges mr-[0.45em] inline-flex items-center gap-1 align-top"
       style={{ height: `${lineHeight}em` }}
       aria-label={t("platformBadge")}
     >
@@ -36,7 +36,9 @@ export function PlatformBadges({
           key={`${badge.provider}:${badge.kind}:${badge.imageUrl}:${index}`}
           src={badge.imageUrl}
           alt=""
-          className="h-[1em] max-w-[3em] shrink-0 object-contain"
+          className="platform-badge h-[1em] max-w-[3em] shrink-0 object-contain"
+          data-provider={badge.provider}
+          data-kind={badge.kind}
           referrerPolicy="no-referrer"
         />
       ))}
