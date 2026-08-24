@@ -14,7 +14,8 @@ if (overlayToken) {
     import("./i18n"),
     import("react-router-dom"),
     import("./router")
-  ]).then(([, { RouterProvider }, { router }]) => {
+  ]).then(async ([{ i18nReady }, { RouterProvider }, { router }]) => {
+    await i18nReady;
     root.render(
       <StrictMode>
         <RouterProvider router={router} />

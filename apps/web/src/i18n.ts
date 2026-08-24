@@ -1,25 +1,8 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import de from "./i18n/locales/de";
-import en from "./i18n/locales/en";
-import es from "./i18n/locales/es";
-import fr from "./i18n/locales/fr";
-import hi from "./i18n/locales/hi";
-import id from "./i18n/locales/id";
-import it from "./i18n/locales/it";
-import ja from "./i18n/locales/ja";
-import ko from "./i18n/locales/ko";
-import pl from "./i18n/locales/pl";
-import ptBR from "./i18n/locales/pt-BR";
-import ru from "./i18n/locales/ru";
-import tr from "./i18n/locales/tr";
-import uk from "./i18n/locales/uk";
-import vi from "./i18n/locales/vi";
-import zhCN from "./i18n/locales/zh-CN";
-import zhTW from "./i18n/locales/zh-TW";
+import { loadLocale } from "./i18n/locale-loaders";
 import {
   DEFAULT_LANGUAGE,
-  FALLBACK_LANGUAGE,
   matchSupportedLanguage,
   resolveSupportedLanguage,
   supportedLanguages,
@@ -35,37 +18,28 @@ export {
   type SupportedLanguage
 } from "./i18n/languages";
 
-const resources = {
-  ko: { translation: ko },
-  en: { translation: en },
-  de: { translation: de },
-  es: { translation: es },
-  fr: { translation: fr },
-  id: { translation: id },
-  it: { translation: it },
-  ja: { translation: ja },
-  pl: { translation: pl },
-  "pt-BR": { translation: ptBR },
-  ru: { translation: ru },
-  tr: { translation: tr },
-  uk: { translation: uk },
-  vi: { translation: vi },
-  hi: { translation: hi },
-  "zh-CN": { translation: zhCN },
-  "zh-TW": { translation: zhTW }
-} satisfies Record<SupportedLanguage, { translation: object }>;
-
 const LANGUAGE_STORAGE_KEY = "elobadge-language";
 
-void i18n.use(initReactI18next).init({
-  resources,
-  lng: readInitialLanguage(),
-  fallbackLng: FALLBACK_LANGUAGE,
-  supportedLngs: supportedLanguages,
-  interpolation: {
-    escapeValue: false
+export const i18nReady = initializeI18n();
+
+export async function changeAppLanguage(language: string): Promise<void> {
+  await i18nReady;
+
+  const supportedLanguage = resolveSupportedLanguage(language);
+
+  if (!i18n.hasResourceBundle(supportedLanguage, "translation")) {
+    const translation = await loadLocale(supportedLanguage);
+    i18n.addResourceBundle(
+      supportedLanguage,
+      "translation",
+      translation,
+      true,
+      true
+    );
   }
-});
+
+  await i18n.changeLanguage(supportedLanguage);
+}
 
 function readInitialLanguage(): SupportedLanguage {
   const stored = matchSupportedLanguage(
@@ -93,7 +67,45 @@ function applyLanguage(language: string): void {
   window.localStorage.setItem(LANGUAGE_STORAGE_KEY, supportedLanguage);
 }
 
-applyLanguage(i18n.language);
 i18n.on("languageChanged", applyLanguage);
+
+async function initializeI18n(): Promise<void> {
+  const requestedLanguage = readInitialLanguage();
+  const { language, translation } = await loadInitialLocale(requestedLanguage);
+
+  await i18n.use(initReactI18next).init({
+    resources: {
+      [language]: { translation }
+    },
+    lng: language,
+    fallbackLng: false,
+    supportedLngs: supportedLanguages,
+    interpolation: {
+      escapeValue: false
+    }
+  });
+}
+
+async function loadInitialLocale(language: SupportedLanguage): Promise<{
+  language: SupportedLanguage;
+  translation: object;
+}> {
+  try {
+    return {
+      language,
+      translation: await loadLocale(language)
+    };
+  } catch (error) {
+    if (language === DEFAULT_LANGUAGE) {
+      throw error;
+    }
+
+    console.error(`Failed to load locale: ${language}`, error);
+    return {
+      language: DEFAULT_LANGUAGE,
+      translation: await loadLocale(DEFAULT_LANGUAGE)
+    };
+  }
+}
 
 export default i18n;

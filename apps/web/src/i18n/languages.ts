@@ -85,7 +85,6 @@ export const supportedLanguages = (
 );
 
 export const DEFAULT_LANGUAGE: SupportedLanguage = "en";
-export const FALLBACK_LANGUAGE: SupportedLanguage = "ko";
 
 export function matchSupportedLanguage(
   language: string | null | undefined
