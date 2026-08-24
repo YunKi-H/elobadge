@@ -2,6 +2,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import de from "./i18n/locales/de";
 import en from "./i18n/locales/en";
+import fr from "./i18n/locales/fr";
 import hi from "./i18n/locales/hi";
 import ko from "./i18n/locales/ko";
 import ru from "./i18n/locales/ru";
@@ -27,6 +28,7 @@ const resources = {
   ko: { translation: ko },
   en: { translation: en },
   de: { translation: de },
+  fr: { translation: fr },
   ru: { translation: ru },
   hi: { translation: hi }
 } satisfies Record<SupportedLanguage, { translation: object }>;
