@@ -32,7 +32,7 @@ export const languageDefinitions = {
     locale: "hi-IN"
   },
   id: {
-    nativeName: "Bahasa Indonesia",
+    nativeName: "Indonesia",
     locale: "id-ID"
   },
   it: {
@@ -71,9 +71,18 @@ export const languageDefinitions = {
 
 export type SupportedLanguage = keyof typeof languageDefinitions;
 
-export const supportedLanguages = Object.keys(
-  languageDefinitions
-) as SupportedLanguage[];
+const nativeNameCollator = new Intl.Collator("en", {
+  sensitivity: "base"
+});
+
+export const supportedLanguages = (
+  Object.keys(languageDefinitions) as SupportedLanguage[]
+).sort((left, right) =>
+  nativeNameCollator.compare(
+    languageDefinitions[left].nativeName,
+    languageDefinitions[right].nativeName
+  )
+);
 
 export const DEFAULT_LANGUAGE: SupportedLanguage = "en";
 export const FALLBACK_LANGUAGE: SupportedLanguage = "ko";

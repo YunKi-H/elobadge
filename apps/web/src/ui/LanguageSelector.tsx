@@ -63,7 +63,7 @@ export function LanguageSelector() {
           id="language-options"
           role="listbox"
           aria-label={t("language.label")}
-          className="absolute right-0 top-full z-40 mt-1 w-48 overflow-hidden rounded-md border border-white/10 bg-slate-950 py-1 shadow-xl shadow-black/40"
+          className="absolute right-0 top-full z-40 mt-1 max-h-[min(70vh,32rem)] w-48 overflow-y-auto rounded-md border border-white/10 bg-slate-950 py-1 shadow-xl shadow-black/40"
         >
           {supportedLanguages.map((value) => {
             const selected = value === language;
