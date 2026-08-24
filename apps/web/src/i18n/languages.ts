@@ -13,6 +13,11 @@ export const languageDefinitions = {
     nativeName: "Deutsch",
     flag: "🇩🇪",
     locale: "de-DE"
+  },
+  ru: {
+    nativeName: "Русский",
+    flag: "🇷🇺",
+    locale: "ru-RU"
   }
 } as const;
 
