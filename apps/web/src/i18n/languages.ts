@@ -24,6 +24,11 @@ export const languageDefinitions = {
     flag: "🇫🇷",
     locale: "fr-FR"
   },
+  "pt-BR": {
+    nativeName: "Português (Brasil)",
+    flag: "🇧🇷",
+    locale: "pt-BR"
+  },
   ru: {
     nativeName: "Русский",
     flag: "🇷🇺",

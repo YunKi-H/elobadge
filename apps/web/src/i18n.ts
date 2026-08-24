@@ -6,6 +6,7 @@ import es from "./i18n/locales/es";
 import fr from "./i18n/locales/fr";
 import hi from "./i18n/locales/hi";
 import ko from "./i18n/locales/ko";
+import ptBR from "./i18n/locales/pt-BR";
 import ru from "./i18n/locales/ru";
 import {
   DEFAULT_LANGUAGE,
@@ -31,6 +32,7 @@ const resources = {
   de: { translation: de },
   es: { translation: es },
   fr: { translation: fr },
+  "pt-BR": { translation: ptBR },
   ru: { translation: ru },
   hi: { translation: hi }
 } satisfies Record<SupportedLanguage, { translation: object }>;
