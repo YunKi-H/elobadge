@@ -6,6 +6,7 @@ import es from "./i18n/locales/es";
 import fr from "./i18n/locales/fr";
 import hi from "./i18n/locales/hi";
 import id from "./i18n/locales/id";
+import it from "./i18n/locales/it";
 import ja from "./i18n/locales/ja";
 import ko from "./i18n/locales/ko";
 import pl from "./i18n/locales/pl";
@@ -41,6 +42,7 @@ const resources = {
   es: { translation: es },
   fr: { translation: fr },
   id: { translation: id },
+  it: { translation: it },
   ja: { translation: ja },
   pl: { translation: pl },
   "pt-BR": { translation: ptBR },

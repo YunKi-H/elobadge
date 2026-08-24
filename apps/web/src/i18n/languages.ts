@@ -35,6 +35,10 @@ export const languageDefinitions = {
     nativeName: "Bahasa Indonesia",
     locale: "id-ID"
   },
+  it: {
+    nativeName: "Italiano",
+    locale: "it-IT"
+  },
   ja: {
     nativeName: "日本語",
     locale: "ja-JP"
