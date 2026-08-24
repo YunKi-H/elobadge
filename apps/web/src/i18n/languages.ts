@@ -47,6 +47,10 @@ export const languageDefinitions = {
     nativeName: "Türkçe",
     locale: "tr-TR"
   },
+  vi: {
+    nativeName: "Tiếng Việt",
+    locale: "vi-VN"
+  },
   "zh-CN": {
     nativeName: "中文 (简体)",
     locale: "zh-CN"
