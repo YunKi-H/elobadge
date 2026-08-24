@@ -2,22 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
+  languageDefinitions,
+  resolveSupportedLanguage,
   supportedLanguages,
-  type SupportedLanguage
 } from "../i18n";
-
-const LANGUAGE_FLAGS: Record<SupportedLanguage, string> = {
-  ko: "🇰🇷",
-  en: "🇬🇧"
-};
 
 export function LanguageSelector() {
   const { i18n, t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const language: SupportedLanguage = i18n.resolvedLanguage === "en"
-    ? "en"
-    : "ko";
+  const language = resolveSupportedLanguage(i18n.resolvedLanguage);
+  const selectedLanguage = languageDefinitions[language];
 
   useEffect(() => {
     if (!expanded) {
@@ -57,9 +52,9 @@ export function LanguageSelector() {
       >
         <span className="flex min-w-0 items-center gap-2">
           <span aria-hidden="true" className="shrink-0 text-base leading-none">
-            {LANGUAGE_FLAGS[language]}
+            {selectedLanguage.flag}
           </span>
-          <span className="truncate">{t(`language.${language}`)}</span>
+          <span className="truncate">{selectedLanguage.nativeName}</span>
         </span>
         <ChevronDown
           aria-hidden="true"
@@ -77,6 +72,7 @@ export function LanguageSelector() {
         >
           {supportedLanguages.map((value) => {
             const selected = value === language;
+            const definition = languageDefinitions[value];
 
             return (
               <button
@@ -95,9 +91,9 @@ export function LanguageSelector() {
                     aria-hidden="true"
                     className="shrink-0 text-base leading-none"
                   >
-                    {LANGUAGE_FLAGS[value]}
+                    {definition.flag}
                   </span>
-                  <span className="truncate">{t(`language.${value}`)}</span>
+                  <span className="truncate">{definition.nativeName}</span>
                 </span>
                 {selected ? (
                   <Check aria-hidden="true" className="shrink-0" size={16} />

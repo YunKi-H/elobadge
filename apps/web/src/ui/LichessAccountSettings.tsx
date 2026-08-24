@@ -17,6 +17,7 @@ import {
   type LichessAccount
 } from "../api/client";
 import { getFirebaseClientAuth } from "../firebase/client";
+import { languageLocale } from "../i18n";
 import {
   ChessBadgePreferenceControl
 } from "./ChessBadgePreferenceSettings";
@@ -292,7 +293,7 @@ function errorMessage(error: unknown, fallback: string): string {
 
 
 function formatDateTime(value: string, language: string): string {
-  return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "ko-KR", {
+  return new Intl.DateTimeFormat(languageLocale(language), {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
