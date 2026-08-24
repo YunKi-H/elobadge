@@ -12,6 +12,7 @@ import pl from "./i18n/locales/pl";
 import ptBR from "./i18n/locales/pt-BR";
 import ru from "./i18n/locales/ru";
 import tr from "./i18n/locales/tr";
+import uk from "./i18n/locales/uk";
 import vi from "./i18n/locales/vi";
 import zhCN from "./i18n/locales/zh-CN";
 import zhTW from "./i18n/locales/zh-TW";
@@ -45,6 +46,7 @@ const resources = {
   "pt-BR": { translation: ptBR },
   ru: { translation: ru },
   tr: { translation: tr },
+  uk: { translation: uk },
   vi: { translation: vi },
   hi: { translation: hi },
   "zh-CN": { translation: zhCN },
