@@ -43,6 +43,10 @@ export const languageDefinitions = {
     nativeName: "Polski",
     locale: "pl-PL"
   },
+  tr: {
+    nativeName: "Türkçe",
+    locale: "tr-TR"
+  },
   "zh-CN": {
     nativeName: "中文 (简体)",
     locale: "zh-CN"
