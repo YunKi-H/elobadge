@@ -48,6 +48,11 @@ export const languageDefinitions = {
     nativeName: "中文 (简体)",
     flag: "🇨🇳",
     locale: "zh-CN"
+  },
+  "zh-TW": {
+    nativeName: "中文 (繁體)",
+    flag: "🇹🇼",
+    locale: "zh-TW"
   }
 } as const;
 
@@ -77,6 +82,19 @@ export function matchSupportedLanguage(
   }
 
   const baseLanguage = normalized.split("-")[0];
+
+  if (baseLanguage === "zh") {
+    const subtags = normalized.split("-").slice(1);
+    const usesTraditionalChinese = subtags.some((subtag) =>
+      ["hant", "tw", "hk", "mo"].includes(subtag)
+    );
+    const chineseVariant = usesTraditionalChinese ? "zh-TW" : "zh-CN";
+
+    if (supportedLanguages.includes(chineseVariant)) {
+      return chineseVariant;
+    }
+  }
+
   return (
     supportedLanguages.find(
       (candidate) =>
