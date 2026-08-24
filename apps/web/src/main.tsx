@@ -5,6 +5,8 @@ import "./styles.css";
 const root = createRoot(document.getElementById("root")!);
 const overlayToken = readOverlayToken(window.location.pathname);
 
+void import("./external-fonts.css");
+
 if (overlayToken) {
   void import("./ui/BroadcastOverlay").then(({ BroadcastOverlay }) => {
     root.render(<BroadcastOverlay publicToken={overlayToken} />);
