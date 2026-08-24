@@ -2,6 +2,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import de from "./i18n/locales/de";
 import en from "./i18n/locales/en";
+import hi from "./i18n/locales/hi";
 import ko from "./i18n/locales/ko";
 import ru from "./i18n/locales/ru";
 import {
@@ -26,7 +27,8 @@ const resources = {
   ko: { translation: ko },
   en: { translation: en },
   de: { translation: de },
-  ru: { translation: ru }
+  ru: { translation: ru },
+  hi: { translation: hi }
 } satisfies Record<SupportedLanguage, { translation: object }>;
 
 const LANGUAGE_STORAGE_KEY = "elobadge-language";
