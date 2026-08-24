@@ -5,6 +5,7 @@ import en from "./i18n/locales/en";
 import es from "./i18n/locales/es";
 import fr from "./i18n/locales/fr";
 import hi from "./i18n/locales/hi";
+import id from "./i18n/locales/id";
 import ko from "./i18n/locales/ko";
 import ptBR from "./i18n/locales/pt-BR";
 import ru from "./i18n/locales/ru";
@@ -32,6 +33,7 @@ const resources = {
   de: { translation: de },
   es: { translation: es },
   fr: { translation: fr },
+  id: { translation: id },
   "pt-BR": { translation: ptBR },
   ru: { translation: ru },
   hi: { translation: hi }
