@@ -5,6 +5,8 @@ import "./styles.css";
 const root = createRoot(document.getElementById("root")!);
 const overlayToken = readOverlayToken(window.location.pathname);
 
+void import("./external-fonts.css");
+
 if (overlayToken) {
   void import("./ui/BroadcastOverlay").then(({ BroadcastOverlay }) => {
     root.render(<BroadcastOverlay publicToken={overlayToken} />);
@@ -14,7 +16,8 @@ if (overlayToken) {
     import("./i18n"),
     import("react-router-dom"),
     import("./router")
-  ]).then(([, { RouterProvider }, { router }]) => {
+  ]).then(async ([{ i18nReady }, { RouterProvider }, { router }]) => {
+    await i18nReady;
     root.render(
       <StrictMode>
         <RouterProvider router={router} />

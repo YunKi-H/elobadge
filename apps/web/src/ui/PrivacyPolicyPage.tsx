@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { resolveSupportedLanguage } from "../i18n";
 
 const EFFECTIVE_DATE = "2026년 7월 31일";
 
@@ -13,7 +14,7 @@ export function PrivacyPolicyPage() {
           개인정보 처리방침
         </h1>
         <p className="mt-3 text-sm text-slate-400">시행일: {EFFECTIVE_DATE}</p>
-        {i18n.resolvedLanguage === "en" ? (
+        {resolveSupportedLanguage(i18n.resolvedLanguage) !== "ko" ? (
           <p className="mt-3 border-l-2 border-amber-400 pl-3 text-sm text-amber-100">
             {t("privacy.koreanOriginalNotice")}
           </p>

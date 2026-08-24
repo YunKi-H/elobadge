@@ -7,7 +7,7 @@ import {
 } from "@elobadge/core";
 import { signOut } from "firebase/auth";
 import { getFirebaseClientAuth } from "../firebase/client";
-import i18n from "../i18n";
+import i18n, { resolveSupportedLanguage } from "../i18n";
 
 export async function authenticatedFetch(
   input: RequestInfo | URL,
@@ -1061,17 +1061,17 @@ function isChessBadgePreferenceResponse(value: unknown): value is {
 }
 
 function apiError(value: unknown, fallback: string): string {
-  const english = i18n.resolvedLanguage === "en";
+  const korean = resolveSupportedLanguage(i18n.resolvedLanguage) === "ko";
 
   if (
     value &&
     typeof value === "object" &&
     "error" in value &&
     typeof value.error === "string" &&
-    (!english || !/[가-힣]/.test(value.error))
+    (korean || !/[가-힣]/.test(value.error))
   ) {
     return value.error;
   }
 
-  return english ? i18n.t("api.requestFailed") : fallback;
+  return korean ? fallback : i18n.t("api.requestFailed");
 }

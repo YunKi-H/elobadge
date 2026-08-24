@@ -1,9 +1,4 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/earlyaccess/notosanskr.css");
-@import url("https://fonts.googleapis.com/earlyaccess/nanumgothic.css");
-@import url("https://fonts.googleapis.com/earlyaccess/nanummyeongjo.css");
-@import url("https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css");
-@import url("https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/mona.css");
 
 @font-face {
   font-family: "Pretendard";

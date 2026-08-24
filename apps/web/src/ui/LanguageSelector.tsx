@@ -2,22 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
+  changeAppLanguage,
+  languageDefinitions,
+  resolveSupportedLanguage,
   supportedLanguages,
   type SupportedLanguage
 } from "../i18n";
 
-const LANGUAGE_FLAGS: Record<SupportedLanguage, string> = {
-  ko: "🇰🇷",
-  en: "🇬🇧"
-};
-
 export function LanguageSelector() {
   const { i18n, t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const [pendingLanguage, setPendingLanguage] =
+    useState<SupportedLanguage | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const language: SupportedLanguage = i18n.resolvedLanguage === "en"
-    ? "en"
-    : "ko";
+  const language = resolveSupportedLanguage(i18n.resolvedLanguage);
+  const selectedLanguage = languageDefinitions[language];
 
   useEffect(() => {
     if (!expanded) {
@@ -52,15 +51,12 @@ export function LanguageSelector() {
         aria-expanded={expanded}
         aria-controls="language-options"
         aria-label={t("language.label")}
+        aria-busy={pendingLanguage !== null}
+        disabled={pendingLanguage !== null}
         onClick={() => setExpanded((current) => !current)}
         className="flex h-9 min-w-28 items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-900 px-2.5 text-sm font-medium text-slate-200 outline-none transition hover:border-white/25 hover:bg-slate-800 focus-visible:border-emerald-400 focus-visible:ring-2 focus-visible:ring-emerald-400/30"
       >
-        <span className="flex min-w-0 items-center gap-2">
-          <span aria-hidden="true" className="shrink-0 text-base leading-none">
-            {LANGUAGE_FLAGS[language]}
-          </span>
-          <span className="truncate">{t(`language.${language}`)}</span>
-        </span>
+        <span className="truncate">{selectedLanguage.nativeName}</span>
         <ChevronDown
           aria-hidden="true"
           size={15}
@@ -73,10 +69,11 @@ export function LanguageSelector() {
           id="language-options"
           role="listbox"
           aria-label={t("language.label")}
-          className="absolute right-0 top-full z-40 mt-1 w-40 overflow-hidden rounded-md border border-white/10 bg-slate-950 py-1 shadow-xl shadow-black/40"
+          className="absolute right-0 top-full z-40 mt-1 max-h-[min(70vh,32rem)] w-48 overflow-y-auto rounded-md border border-white/10 bg-slate-950 py-1 shadow-xl shadow-black/40"
         >
           {supportedLanguages.map((value) => {
             const selected = value === language;
+            const definition = languageDefinitions[value];
 
             return (
               <button
@@ -84,21 +81,23 @@ export function LanguageSelector() {
                 type="button"
                 role="option"
                 aria-selected={selected}
+                disabled={pendingLanguage !== null}
                 onClick={() => {
-                  void i18n.changeLanguage(value);
-                  setExpanded(false);
+                  setPendingLanguage(value);
+                  void changeAppLanguage(value)
+                    .then(() => {
+                      setExpanded(false);
+                    })
+                    .catch((error: unknown) => {
+                      console.error(`Failed to change locale: ${value}`, error);
+                    })
+                    .finally(() => {
+                      setPendingLanguage(null);
+                    });
                 }}
                 className={`flex min-h-10 w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm font-medium transition ${selected ? "bg-emerald-400/10 text-emerald-200" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
               >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="shrink-0 text-base leading-none"
-                  >
-                    {LANGUAGE_FLAGS[value]}
-                  </span>
-                  <span className="truncate">{t(`language.${value}`)}</span>
-                </span>
+                <span className="truncate">{definition.nativeName}</span>
                 {selected ? (
                   <Check aria-hidden="true" className="shrink-0" size={16} />
                 ) : null}
