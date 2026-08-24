@@ -43,6 +43,11 @@ export const languageDefinitions = {
     nativeName: "Bahasa Indonesia",
     flag: "🇮🇩",
     locale: "id-ID"
+  },
+  "zh-CN": {
+    nativeName: "中文 (简体)",
+    flag: "🇨🇳",
+    locale: "zh-CN"
   }
 } as const;
 
