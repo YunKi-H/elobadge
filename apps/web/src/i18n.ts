@@ -8,6 +8,7 @@ import hi from "./i18n/locales/hi";
 import id from "./i18n/locales/id";
 import ja from "./i18n/locales/ja";
 import ko from "./i18n/locales/ko";
+import pl from "./i18n/locales/pl";
 import ptBR from "./i18n/locales/pt-BR";
 import ru from "./i18n/locales/ru";
 import zhCN from "./i18n/locales/zh-CN";
@@ -38,6 +39,7 @@ const resources = {
   fr: { translation: fr },
   id: { translation: id },
   ja: { translation: ja },
+  pl: { translation: pl },
   "pt-BR": { translation: ptBR },
   ru: { translation: ru },
   hi: { translation: hi },

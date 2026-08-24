@@ -39,6 +39,10 @@ export const languageDefinitions = {
     nativeName: "日本語",
     locale: "ja-JP"
   },
+  pl: {
+    nativeName: "Polski",
+    locale: "pl-PL"
+  },
   "zh-CN": {
     nativeName: "中文 (简体)",
     locale: "zh-CN"
