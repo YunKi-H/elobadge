@@ -1,57 +1,46 @@
 export const languageDefinitions = {
   ko: {
     nativeName: "한국어",
-    flag: "🇰🇷",
     locale: "ko-KR"
   },
   en: {
     nativeName: "English",
-    flag: "🇬🇧",
     locale: "en-GB"
   },
   de: {
     nativeName: "Deutsch",
-    flag: "🇩🇪",
     locale: "de-DE"
   },
   es: {
     nativeName: "Español",
-    flag: "🇪🇸",
     locale: "es-ES"
   },
   fr: {
     nativeName: "Français",
-    flag: "🇫🇷",
     locale: "fr-FR"
   },
   "pt-BR": {
     nativeName: "Português (Brasil)",
-    flag: "🇧🇷",
     locale: "pt-BR"
   },
   ru: {
     nativeName: "Русский",
-    flag: "🇷🇺",
     locale: "ru-RU"
   },
   hi: {
     nativeName: "हिन्दी",
-    flag: "🇮🇳",
     locale: "hi-IN"
   },
   id: {
     nativeName: "Bahasa Indonesia",
-    flag: "🇮🇩",
     locale: "id-ID"
   },
   "zh-CN": {
     nativeName: "中文 (简体)",
-    flag: "🇨🇳",
     locale: "zh-CN"
   },
   "zh-TW": {
     nativeName: "中文 (繁體)",
-    flag: "🇹🇼",
     locale: "zh-TW"
   }
 } as const;
