@@ -73,6 +73,7 @@ remains personal data when EloBadge associates it with a Chzzk identity.
 | Selected chess badge | Avoid repeated Firestore lookups for each message | `users/{firebaseUid}.chessBadges`, in-memory cache | Stored plus transient cache | Cleared on chess account disconnect |
 | Overlay public token | Authorize an OBS browser source | `streamers`, `overlays`, browser-source URL | Stored secret-like identifier | Previous token is deleted on rotation; current disabled token is retained for reuse; orphaned legacy tokens are cleaned daily; all are deleted on account deletion |
 | Overlay appearance settings | Render streamer-selected UI | `overlays/{publicToken}.theme` | Stored | Copied to the new token on rotation and deleted with the previous document; deleted on account deletion |
+| Last overlay connection time | Administrator recent-usage list | `streamers/{firebaseUid}.lastOverlayUsedAt` | Stored, updated at most every five minutes per server process | Only the most recent timestamp is kept; deleted on account deletion; admin list shows the last 30 days |
 | Disclosure-section UI state | Remember expanded settings sections | Browser `localStorage` | Stored on user device | User clears browser storage |
 
 The application keeps at most 30 chat messages in each open browser overlay.

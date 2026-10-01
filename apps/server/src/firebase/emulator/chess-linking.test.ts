@@ -12,6 +12,7 @@ import {
   saveUnverifiedChessComAccount
 } from "../chess-accounts.js";
 import { getFirebaseAdminApp, getFirestoreDb } from "../admin.js";
+import { listRecentOverlayStreamers, overlayUsageRecorder } from "../overlay-usage.js";
 import { deleteUserFirestoreData } from "../account-deletion.js";
 import { deleteOrphanedInactiveOverlays } from "../overlay-cleanup.js";
 import {
@@ -70,6 +71,30 @@ import {
   registerChzzkStreamer,
   upsertChzzkUserRecord
 } from "../users.js";
+
+test("recent overlay usage persists, excludes old records and never recreates deleted streamers", async () => {
+  const db = getFirestoreDb();
+  const now = Date.now();
+  await db.collection("streamers").doc("usage-recent").set({ displayName: "Recent" });
+  await overlayUsageRecorder.record("usage-recent");
+  await db.collection("streamers").doc("usage-old").set({
+    lastOverlayUsedAt: Timestamp.fromMillis(now - 31 * 86_400_000)
+  });
+  await db.collection("streamers").doc("usage-no-record").set({ displayName: "Unused" });
+  await db.collection("streamers").doc("usage-earlier").set({
+    displayName: "Earlier",
+    lastOverlayUsedAt: Timestamp.fromMillis(now - 86_400_000)
+  });
+  await db.collection("platformAccounts").doc("twitch:usage").set({
+    userId: "usage-recent", platform: "twitch", platformUserId: "usage", displayName: "Twitch user"
+  });
+  const list = await listRecentOverlayStreamers(now);
+  assert.deepEqual(list.map((item) => item.uid), ["usage-recent", "usage-earlier"]);
+  assert.equal(list[0]?.displayName, "Twitch user");
+  assert.deepEqual(list[0]?.platforms, [{ platform: "twitch", displayName: "Twitch user" }]);
+  await assert.rejects(overlayUsageRecorder.record("usage-deleted"));
+  assert.equal((await db.collection("streamers").doc("usage-deleted").get()).exists, false);
+});
 
 const projectId = "demo-elobadge-emulator";
 const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;

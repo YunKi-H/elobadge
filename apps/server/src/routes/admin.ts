@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { requireFirebaseAdmin } from "../auth/firebase.js";
 import { chzzkSessionManager } from "../chzzk/session.js";
 import { getAdminDatabaseStats } from "../firebase/admin-stats.js";
+import { listRecentOverlayStreamers } from "../firebase/overlay-usage.js";
 import { overlayConnectionTracker } from "../realtime/overlay-connections.js";
 
 export async function registerAdminRoutes(app: FastifyInstance) {
@@ -20,6 +21,10 @@ export async function registerAdminRoutes(app: FastifyInstance) {
         ok: true,
         generatedAt: new Date().toISOString(),
         database: await getAdminDatabaseStats(),
+        recentOverlayStreamers: (await listRecentOverlayStreamers()).map((streamer) => ({
+          ...streamer,
+          connections: overlayConnectionTracker.getStreamerConnectionCount(streamer.uid)
+        })),
         runtime: {
           uptimeSeconds: Math.round(process.uptime()),
           memory: {

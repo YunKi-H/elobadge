@@ -74,6 +74,12 @@ viewer or disconnects one platform.
 }
 ```
 
+`lastOverlayUsedAt` is a server timestamp updated when the public overlay SSE
+connects and at most every five minutes while connected. Dashboard preview SSE
+does not count. The administrator lists the 50 most recent streamers within 30
+days; this indicates overlay usage, not a verified live broadcast. Only the last
+timestamp is retained, and account deletion removes it with the streamer record.
+
 `chatSessionEnabled` records the streamer's desired state, not the current
 WebSocket state. A manual stop sets it to `false`; server shutdown does not. On
 startup, the server restores documents where it is `true` and the token status

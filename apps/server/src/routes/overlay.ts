@@ -28,6 +28,7 @@ import {
   subscribeOverlayRevocation
 } from "../realtime/overlay-access-events.js";
 import { overlayConnectionTracker } from "../realtime/overlay-connections.js";
+import { overlayUsageRecorder } from "../firebase/overlay-usage.js";
 import {
   subscribeStreamerChatOverlayEvents,
   subscribeStreamerChatOverlayModerationEvents
@@ -322,7 +323,13 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
     }
 
     const { streamerUid } = activeOverlay;
-    const disconnectOverlay = overlayConnectionTracker.connect(publicToken);
+    const disconnectOverlay = overlayConnectionTracker.connect(publicToken, streamerUid);
+    const recordUsage = () => {
+      void overlayUsageRecorder.record(streamerUid).catch((err: unknown) => {
+        app.log.warn({ err }, "Failed to record overlay usage");
+      });
+    };
+    recordUsage();
 
     reply.hijack();
     reply.raw.writeHead(200, {
@@ -372,6 +379,7 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
         return;
       }
 
+      recordUsage();
       reply.raw.write(`event: heartbeat\n`);
       reply.raw.write(`data: ${JSON.stringify({ at: new Date().toISOString() })}\n\n`);
     }, 15_000);

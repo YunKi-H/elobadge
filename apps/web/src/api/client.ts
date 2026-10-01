@@ -56,6 +56,13 @@ export type ChzzkSessionHealth =
 
 export interface AdminStatus {
   generatedAt: string;
+  recentOverlayStreamers: {
+    uid: string;
+    displayName: string;
+    lastUsedAt: string;
+    connections: number;
+    platforms: { platform: "chzzk" | "twitch"; displayName: string }[];
+  }[];
   database: {
     users: number;
     streamers: number;
@@ -592,6 +599,7 @@ export async function getAdminStatus(): Promise<AdminStatus> {
 
   return {
     generatedAt: body.generatedAt,
+    recentOverlayStreamers: body.recentOverlayStreamers,
     database: body.database,
     runtime: body.runtime
   };
@@ -750,6 +758,7 @@ function isAdminStatusResponse(
   const response = value as {
     ok?: unknown;
     generatedAt?: unknown;
+    recentOverlayStreamers?: unknown;
     database?: Record<string, unknown>;
     runtime?: {
       uptimeSeconds?: unknown;
@@ -762,6 +771,19 @@ function isAdminStatusResponse(
   return (
     response.ok === true &&
     typeof response.generatedAt === "string" &&
+    Array.isArray(response.recentOverlayStreamers) &&
+    response.recentOverlayStreamers.every((item: unknown) => {
+      if (!item || typeof item !== "object") return false;
+      const streamer = item as AdminStatus["recentOverlayStreamers"][number];
+      return typeof streamer.uid === "string" &&
+        typeof streamer.displayName === "string" &&
+        typeof streamer.lastUsedAt === "string" &&
+        typeof streamer.connections === "number" &&
+        Array.isArray(streamer.platforms) &&
+        streamer.platforms.every((account) => account &&
+          (account.platform === "chzzk" || account.platform === "twitch") &&
+          typeof account.displayName === "string");
+    }) &&
     hasNumericFields(response.database, [
       "users",
       "streamers",

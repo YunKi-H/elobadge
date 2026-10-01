@@ -155,6 +155,47 @@ export function AdminPage() {
             </div>
           </section>
 
+          <section className="border-t border-white/10 py-7">
+            <h2 className="font-semibold text-white">최근 오버레이 사용 스트리머</h2>
+            <p className="mt-2 text-xs text-slate-400">
+              최근 30일 · 최대 50명 · 오버레이 접속 기준이며 실제 방송 여부와는 다릅니다.
+            </p>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-white/10 text-xs text-slate-400">
+                  <tr>
+                    <th scope="col" className="py-3 pr-4 font-medium">스트리머 / 플랫폼</th>
+                    <th scope="col" className="py-3 pr-4 font-medium whitespace-nowrap">마지막 사용</th>
+                    <th scope="col" className="py-3 font-medium whitespace-nowrap">현재 연결</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {(status.recentOverlayStreamers ?? []).map((streamer) => (
+                    <tr key={streamer.uid}>
+                      <td className="py-3 pr-4 text-white">
+                        {streamer.displayName}
+                        <div className="mt-1 text-xs text-slate-400">
+                          {streamer.platforms.map((account) =>
+                            `${account.platform === "chzzk" ? "치지직" : "Twitch"}: ${account.displayName}`
+                          ).join(" · ")}
+                        </div>
+                      </td>
+                      <td className="py-3 pr-4 text-slate-300 whitespace-nowrap">
+                        {new Date(streamer.lastUsedAt).toLocaleString("ko-KR")}
+                      </td>
+                      <td className={`py-3 whitespace-nowrap ${streamer.connections > 0 ? "text-emerald-300" : "text-slate-500"}`}>
+                        {streamer.connections > 0 ? `연결됨 (${streamer.connections})` : "연결 없음"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!status.recentOverlayStreamers?.length ? (
+                <p className="py-6 text-center text-sm text-slate-500">최근 오버레이 사용 기록이 없습니다.</p>
+              ) : null}
+            </div>
+          </section>
+
           <footer className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-5 text-xs text-slate-500">
             <span className="inline-flex items-center gap-1.5">
               <Clock3 aria-hidden="true" size={14} />
