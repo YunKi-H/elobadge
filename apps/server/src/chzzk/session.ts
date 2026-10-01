@@ -32,6 +32,10 @@ import {
   type ChzzkSessionHealth,
   type ChzzkSessionPolicy
 } from "./session-watchdog.js";
+import {
+  createPrivateChatDiagnosticMonitor,
+  type ChzzkPrivateChatDiagnosticMonitor
+} from "./private-chat-diagnostics.js";
 
 export interface ChzzkSocket {
   on(event: string, listener: (...args: unknown[]) => void): void;
@@ -91,6 +95,7 @@ const systemMessageSchema = z.object({
 
 const chatMessageSchema = z.object({
   channelId: z.string(),
+  chatChannelId: z.string().min(1).optional(),
   senderChannelId: z.string(),
   profile: z.object({
     nickname: z.string(),
@@ -149,6 +154,7 @@ export class ChzzkSession implements ManagedChzzkSession {
   private healthCheckTimer: NodeJS.Timeout | null = null;
   private healthCheckInFlight = false;
   private invalidHealthChecks = 0;
+  private privateChatDiagnostics: ChzzkPrivateChatDiagnosticMonitor | null = null;
   private status: ChzzkSessionStatus = {
     health: "connecting",
     connected: false,
@@ -179,6 +185,10 @@ export class ChzzkSession implements ManagedChzzkSession {
     this.config = config;
     this.accessToken = accessToken;
     this.logger = logger;
+    this.privateChatDiagnostics = createPrivateChatDiagnosticMonitor(
+      this.ownerUid,
+      logger
+    );
     this.status = {
       health: "connecting",
       connected: false,
@@ -202,6 +212,8 @@ export class ChzzkSession implements ManagedChzzkSession {
     this.generation += 1;
     this.clearReconnectTimer();
     this.clearConnectionResources();
+    this.privateChatDiagnostics?.stop();
+    this.privateChatDiagnostics = null;
 
     this.status.connected = false;
     this.status.subscribed = false;
@@ -421,6 +433,9 @@ export class ChzzkSession implements ManagedChzzkSession {
 
     this.status.lastChatAt = new Date().toISOString();
     this.status.health = "healthy_active";
+    if (parsed.data.chatChannelId) {
+      this.privateChatDiagnostics?.observe(parsed.data.chatChannelId);
+    }
 
     if (this.logger) {
       chzzkBadgeDiagnostics.record(parsed.data.profile, this.logger);
