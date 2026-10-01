@@ -16,7 +16,10 @@ import { onAuthStateChanged } from "firebase/auth";
 import { Check, ChevronDown, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getFirebaseClientAuth } from "../firebase/client";
-import { parseChatOverlayEvent } from "../realtime/chat-event";
+import {
+  parseChatOverlayEvent,
+  parseChatOverlayModerationEvent
+} from "../realtime/chat-event";
 import {
   overlayCssVariables,
   overlayMessageCssVariables
@@ -41,9 +44,8 @@ const AUTHOR_KIND_OPTIONS: ReadonlyArray<{
 
 export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }) {
   const { t } = useTranslation();
-  const { messages, addMessage } = useOverlayMessageQueue(
-    appearance.messageDurationSeconds
-  );
+  const { messages, addMessage, removeMessagesBySender } =
+    useOverlayMessageQueue(appearance.messageDurationSeconds);
   const [nickname, setNickname] = useState("");
   const [rating, setRating] = useState("");
   const [ratingProvider, setRatingProvider] =
@@ -67,13 +69,25 @@ export function OverlayPreview({ appearance }: { appearance: OverlayAppearance }
         }
         addMessage(message);
       });
+
+      events.addEventListener("moderation", (event) => {
+        const moderation = parseChatOverlayModerationEvent(event.data);
+
+        if (moderation) {
+          removeMessagesBySender(
+            moderation.provider,
+            moderation.senderId,
+            moderation.occurredAt
+          );
+        }
+      });
     });
 
     return () => {
       unsubscribeAuth();
       events?.close();
     };
-  }, [addMessage]);
+  }, [addMessage, removeMessagesBySender]);
 
   const addPreviewMessage = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

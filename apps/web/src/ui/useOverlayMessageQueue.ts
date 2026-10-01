@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   MAX_OVERLAY_MESSAGES,
   type ChatOverlayEvent,
-  type OverlayMessageDurationSeconds
+  type OverlayMessageDurationSeconds,
+  type StreamingPlatform
 } from "@elobadge/core";
 
 export function useOverlayMessageQueue(
@@ -11,6 +12,7 @@ export function useOverlayMessageQueue(
   const [messages, setMessages] = useState<ChatOverlayEvent[]>([]);
   const messagesRef = useRef<ChatOverlayEvent[]>([]);
   const timersRef = useRef(new Map<string, number>());
+  const senderRemovalCutoffsRef = useRef(new Map<string, number>());
   const durationSecondsRef = useRef(durationSeconds);
 
   const clearRemovalTimer = useCallback((messageId: string) => {
@@ -52,6 +54,16 @@ export function useOverlayMessageQueue(
 
   const addMessage = useCallback(
     (message: ChatOverlayEvent) => {
+      const senderKey = `${message.source.provider}:${message.source.senderId}`;
+      const removalCutoff = senderRemovalCutoffsRef.current.get(senderKey);
+
+      if (
+        removalCutoff !== undefined &&
+        Date.parse(message.sentAt) <= removalCutoff
+      ) {
+        return;
+      }
+
       const next = [
         ...messagesRef.current.filter((item) => item.id !== message.id),
         message
@@ -75,8 +87,38 @@ export function useOverlayMessageQueue(
     timersRef.current.forEach((timer) => window.clearTimeout(timer));
     timersRef.current.clear();
     messagesRef.current = [];
+    senderRemovalCutoffsRef.current.clear();
     setMessages([]);
   }, []);
+
+  const removeMessagesBySender = useCallback(
+    (provider: StreamingPlatform, senderId: string, occurredAt: string) => {
+      senderRemovalCutoffsRef.current.set(
+        `${provider}:${senderId}`,
+        Date.parse(occurredAt)
+      );
+      const removedIds = messagesRef.current
+        .filter(
+          (message) =>
+            message.source.provider === provider &&
+            message.source.senderId === senderId
+        )
+        .map((message) => message.id);
+
+      if (removedIds.length === 0) {
+        return;
+      }
+
+      const removedIdSet = new Set(removedIds);
+      removedIds.forEach(clearRemovalTimer);
+      const next = messagesRef.current.filter(
+        (message) => !removedIdSet.has(message.id)
+      );
+      messagesRef.current = next;
+      setMessages(next);
+    },
+    [clearRemovalTimer]
+  );
 
   useEffect(() => {
     durationSecondsRef.current = durationSeconds;
@@ -95,5 +137,5 @@ export function useOverlayMessageQueue(
     };
   }, []);
 
-  return { messages, addMessage, clearMessages };
+  return { messages, addMessage, clearMessages, removeMessagesBySender };
 }

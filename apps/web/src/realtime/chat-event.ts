@@ -6,6 +6,7 @@ import {
   type ChatEmote,
   type ChatEventSource,
   type ChatOverlayEvent,
+  type ChatOverlayModerationEvent,
   type ChessBadges,
   type ChessProvider,
   type OverlayAppearance,
@@ -13,6 +14,46 @@ import {
   type PlatformChatBadge,
   type RatingBadge
 } from "@elobadge/core";
+
+export function parseChatOverlayModerationEvent(
+  data: unknown
+): ChatOverlayModerationEvent | null {
+  if (typeof data !== "string") {
+    return null;
+  }
+
+  let value: unknown;
+
+  try {
+    value = JSON.parse(data);
+  } catch {
+    return null;
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const event = value as Partial<ChatOverlayModerationEvent>;
+
+  if (
+    event.action !== "remove_user_messages" ||
+    (event.provider !== "chzzk" && event.provider !== "twitch") ||
+    typeof event.senderId !== "string" ||
+    event.senderId.length === 0 ||
+    typeof event.occurredAt !== "string" ||
+    !Number.isFinite(Date.parse(event.occurredAt))
+  ) {
+    return null;
+  }
+
+  return {
+    action: event.action,
+    provider: event.provider,
+    senderId: event.senderId,
+    occurredAt: event.occurredAt
+  };
+}
 
 export function parseChatOverlayEvent(data: unknown): ChatOverlayEvent | null {
   if (typeof data !== "string") {

@@ -4,6 +4,7 @@ import {
   type OverlayAppearance
 } from "@elobadge/core";
 import {
+  parseChatOverlayModerationEvent,
   parseChatOverlayEvent,
   parseOverlayAppearanceEvent
 } from "../realtime/chat-event";
@@ -23,9 +24,12 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
   const [appearance, setAppearance] = useState<OverlayAppearance>({
     ...DEFAULT_OVERLAY_APPEARANCE
   });
-  const { messages, addMessage, clearMessages } = useOverlayMessageQueue(
-    appearance.messageDurationSeconds
-  );
+  const {
+    messages,
+    addMessage,
+    clearMessages,
+    removeMessagesBySender
+  } = useOverlayMessageQueue(appearance.messageDurationSeconds);
   useOverlayCustomStyle(
     document,
     appearance.customCssEnabled ? appearance.customCss : ""
@@ -87,6 +91,23 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
 
         if (nextAppearance) {
           setAppearance(nextAppearance);
+        }
+      });
+
+      nextEvents.addEventListener("moderation", (event) => {
+        if (events !== nextEvents) {
+          return;
+        }
+
+        lastEventAt = Date.now();
+        const moderation = parseChatOverlayModerationEvent(event.data);
+
+        if (moderation) {
+          removeMessagesBySender(
+            moderation.provider,
+            moderation.senderId,
+            moderation.occurredAt
+          );
         }
       });
 
@@ -154,7 +175,7 @@ export function BroadcastOverlay({ publicToken }: { publicToken: string }) {
       events?.close();
       events = null;
     };
-  }, [addMessage, clearMessages, publicToken]);
+  }, [addMessage, clearMessages, publicToken, removeMessagesBySender]);
 
   return (
     <main

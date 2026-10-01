@@ -1,5 +1,7 @@
 import type { FastifyBaseLogger } from "fastify";
 import { z } from "zod";
+import type { ChatOverlayModerationEvent } from "@elobadge/core";
+import { publishChatOverlayModerationEvent } from "../realtime/overlay-events.js";
 
 const ACCESS_TOKEN_URL =
   "https://comm-api.game.naver.com/nng_main/v1/chats/access-token";
@@ -11,6 +13,7 @@ const CONNECT = 100;
 const CONNECTED = 10_100;
 const PING = 0;
 const PONG = 10_000;
+const REMOVE_CHAT = 94_008;
 const MODERATION_COMMANDS = new Set([94_005, 94_006, 94_008, 94_015]);
 
 const accessTokenResponseSchema = z.object({
@@ -22,6 +25,10 @@ const accessTokenResponseSchema = z.object({
 const privateChatFrameSchema = z.object({
   cmd: z.number().int(),
   bdy: z.unknown().optional()
+}).passthrough();
+
+const removeChatPayloadSchema = z.object({
+  userId: z.string().min(1)
 }).passthrough();
 
 interface PrivateChatSocket {
@@ -55,7 +62,8 @@ export class ChzzkPrivateChatDiagnosticMonitor {
     private readonly ownerUid: string,
     private readonly logger: FastifyBaseLogger,
     private readonly dependencies: PrivateChatDiagnosticDependencies =
-      defaultDependencies
+      defaultDependencies,
+    private readonly diagnosticLogging = true
   ) {}
 
   observe(chatChannelId: string): void {
@@ -184,14 +192,32 @@ export class ChzzkPrivateChatDiagnosticMonitor {
     }
 
     if (MODERATION_COMMANDS.has(frame.cmd) || isUndocumentedControlCommand(frame.cmd)) {
+      if (this.diagnosticLogging) {
+        this.logger.info(
+          {
+            ownerUid: this.ownerUid,
+            chatChannelId,
+            command: frame.cmd,
+            payload: sanitizeDiagnosticPayload(frame.bdy)
+          },
+          "Chzzk private chat moderation event received"
+        );
+      }
+
+      const moderationEvent = parsePrivateChatModerationEvent(frame);
+
+      if (!moderationEvent) {
+        return;
+      }
+
+      publishChatOverlayModerationEvent(this.ownerUid, moderationEvent);
       this.logger.info(
         {
           ownerUid: this.ownerUid,
           chatChannelId,
-          command: frame.cmd,
-          payload: sanitizeDiagnosticPayload(frame.bdy)
+          command: frame.cmd
         },
-        "Chzzk private chat moderation event received"
+        "Chzzk viewer messages removed from overlay"
       );
     }
   }
@@ -243,12 +269,41 @@ export function createPrivateChatDiagnosticMonitor(
       .map((uid) => uid.trim())
       .filter(Boolean)
   );
+  const enabledForAll =
+    process.env.CHZZK_PRIVATE_CHAT_MODERATION_ENABLED === "true";
 
-  if (!allowedUids.has(ownerUid)) {
+  if (!enabledForAll && !allowedUids.has(ownerUid)) {
     return null;
   }
 
-  return new ChzzkPrivateChatDiagnosticMonitor(ownerUid, logger);
+  return new ChzzkPrivateChatDiagnosticMonitor(
+    ownerUid,
+    logger,
+    defaultDependencies,
+    allowedUids.has(ownerUid)
+  );
+}
+
+export function parsePrivateChatModerationEvent(
+  frame: { cmd: number; bdy?: unknown },
+  occurredAt = new Date().toISOString()
+): ChatOverlayModerationEvent | null {
+  if (frame.cmd !== REMOVE_CHAT) {
+    return null;
+  }
+
+  const payload = removeChatPayloadSchema.safeParse(frame.bdy);
+
+  if (!payload.success) {
+    return null;
+  }
+
+  return {
+    action: "remove_user_messages",
+    provider: "chzzk",
+    senderId: payload.data.userId,
+    occurredAt
+  };
 }
 
 export function parsePrivateChatFrame(data: unknown): {
