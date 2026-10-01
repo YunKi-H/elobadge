@@ -5,6 +5,7 @@ import {
   OVERLAY_MESSAGE_LAYOUT_VALUES,
   OVERLAY_FONT_FAMILY_VALUES,
   type ChatOverlayEvent,
+  type ChatOverlayModerationEvent,
   type OverlayAppearance
 } from "@elobadge/core";
 import { z } from "zod";
@@ -27,7 +28,10 @@ import {
   subscribeOverlayRevocation
 } from "../realtime/overlay-access-events.js";
 import { overlayConnectionTracker } from "../realtime/overlay-connections.js";
-import { subscribeStreamerChatOverlayEvents } from "../realtime/overlay-events.js";
+import {
+  subscribeStreamerChatOverlayEvents,
+  subscribeStreamerChatOverlayModerationEvents
+} from "../realtime/overlay-events.js";
 import {
   shouldRejectCustomCss,
   validateCustomCss
@@ -276,8 +280,19 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
       reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
     };
 
-    const unsubscribe = query.streamerUid
+    const sendModeration = (event: ChatOverlayModerationEvent) => {
+      reply.raw.write("event: moderation\n");
+      reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+
+    const unsubscribeChat = query.streamerUid
       ? subscribeStreamerChatOverlayEvents(query.streamerUid, send)
+      : () => {};
+    const unsubscribeModeration = query.streamerUid
+      ? subscribeStreamerChatOverlayModerationEvents(
+          query.streamerUid,
+          sendModeration
+        )
       : () => {};
 
     const heartbeat = setInterval(() => {
@@ -286,7 +301,8 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
     }, 15000);
 
     request.raw.on("close", () => {
-      unsubscribe();
+      unsubscribeChat();
+      unsubscribeModeration();
       clearInterval(heartbeat);
     });
   });
@@ -327,9 +343,19 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
       reply.raw.write(`data: ${JSON.stringify(appearance)}\n\n`);
     };
 
+    const sendModeration = (event: ChatOverlayModerationEvent) => {
+      reply.raw.write("event: moderation\n");
+      reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+
     let closed = false;
     sendAppearance(activeOverlay.appearance);
     const unsubscribeChat = subscribeStreamerChatOverlayEvents(streamerUid, send);
+    const unsubscribeModeration =
+      subscribeStreamerChatOverlayModerationEvents(
+        streamerUid,
+        sendModeration
+      );
     const unsubscribeAppearance = subscribeOverlayAppearance(
       publicToken,
       sendAppearance
@@ -357,6 +383,7 @@ export async function registerOverlayRoutes(app: FastifyInstance) {
 
       closed = true;
       unsubscribeChat();
+      unsubscribeModeration();
       unsubscribeAppearance();
       unsubscribeRevocation();
       disconnectOverlay();

@@ -109,6 +109,20 @@ sanitized image host/path/fingerprint. It omits chat content, nicknames, channel
 IDs, full image URLs, query strings, and fragments, and logs each unique shape
 once per process. Disable the flag and restart after collecting samples.
 
+To inspect undocumented Chzzk moderation socket commands, set
+`CHZZK_PRIVATE_CHAT_DIAGNOSTIC_UIDS` to a comma-separated allowlist of test
+streamer Firebase UIDs and restart the server. After the first official chat
+event supplies a `chatChannelId`, the server opens an additional read-only
+private chat socket and logs commands in the `94000` range. Chat content,
+nicknames, and profile payloads are redacted. Empty the allowlist and restart
+after the experiment.
+
+The same monitor removes every currently displayed overlay message from a
+viewer when Chzzk sends the confirmed `94008` moderation command. Keep the UID
+allowlist for a staged rollout, or set
+`CHZZK_PRIVATE_CHAT_MODERATION_ENABLED=true` to enable the monitor for every
+Chzzk streamer. Unknown `94000` commands are logged but never remove messages.
+
 Authenticated streamers can create, rotate, enable, and disable a 256-bit public
 overlay token. `/overlay/{token}` is the browser-source page and
 `/events/overlay/{token}` streams only that token's streamer events. Rotation or

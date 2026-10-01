@@ -165,6 +165,13 @@ export interface ChatOverlayEvent {
   source: ChatEventSource;
 }
 
+export interface ChatOverlayModerationEvent {
+  action: "remove_user_messages";
+  provider: StreamingPlatform;
+  senderId: string;
+  occurredAt: string;
+}
+
 export interface OverlayAppearance {
   customCssEnabled: boolean;
   customCss: string;
