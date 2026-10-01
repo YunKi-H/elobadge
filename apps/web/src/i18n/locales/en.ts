@@ -105,6 +105,7 @@ const en = {
     saveFailed: "Could not change the badge."
   },
   chessAccount: {
+    badgeHidden: "Your badge is hidden after repeated account profile lookup failures. Your connection and badge preference are saved. Try refreshing, or disconnect and reconnect if your username changed. A successful refresh restores the badge.",
     loading: "Checking account information.",
     disconnect: "Disconnect",
     lastUpdated: "Last updated {{date}}",

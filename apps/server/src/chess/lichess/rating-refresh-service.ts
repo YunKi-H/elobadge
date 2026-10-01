@@ -99,6 +99,7 @@ export class LichessRatingRefreshService {
       if (completed) this.dependencies.invalidate(claim.uid);
     } catch (error) {
       await this.dependencies.fail(claim, error, this.dependencies.now());
+      this.dependencies.invalidate(claim.uid);
       throw error;
     }
   }

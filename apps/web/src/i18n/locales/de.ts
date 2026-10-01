@@ -105,6 +105,7 @@ const de = {
     saveFailed: "Das Abzeichen konnte nicht geändert werden."
   },
   chessAccount: {
+    badgeHidden: "Dein Abzeichen ist nach wiederholten erfolglosen Profilabfragen ausgeblendet. Verbindung und Abzeichenauswahl bleiben gespeichert. Aktualisiere erneut oder trenne und verbinde das Konto neu, wenn sich dein Benutzername geändert hat. Nach erfolgreicher Aktualisierung erscheint das Abzeichen wieder.",
     loading: "Kontoinformationen werden geprüft.",
     disconnect: "Verbindung trennen",
     lastUpdated: "Zuletzt aktualisiert: {{date}}",

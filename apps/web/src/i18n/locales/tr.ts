@@ -105,6 +105,7 @@ const tr = {
     saveFailed: "Rozet değiştirilemedi."
   },
   chessAccount: {
+    badgeHidden: "Profiliniz birkaç denemede bulunamadığı için rozet gizlendi. Bağlantınız ve rozet tercihiniz korunur. Yeniden güncelleyin veya kullanıcı adınız değiştiyse bağlantıyı kesip tekrar bağlayın. Başarılı güncelleme rozeti geri getirir.",
     loading: "Hesap bilgileri kontrol ediliyor.",
     disconnect: "Bağlantıyı kes",
     lastUpdated: "Son güncelleme: {{date}}",

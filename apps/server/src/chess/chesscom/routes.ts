@@ -246,6 +246,7 @@ function toResponse(account: StoredChessComAccount) {
     profileUrl: account.profileUrl,
     avatarUrl: account.avatarUrl,
     verified: account.verified,
+    ratingBadgeHidden: account.ratingBadgeHidden === true,
     selectedSpeed: account.selectedSpeed,
     ratingsFetchedAt: account.ratingsFetchedAt?.toISOString() ?? null,
     manualRefreshAvailableAt:

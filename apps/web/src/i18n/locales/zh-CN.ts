@@ -105,6 +105,7 @@ const zhCN = {
     saveFailed: "无法更改徽章。"
   },
   chessAccount: {
+    badgeHidden: "多次未找到账号资料，因此已隐藏徽章。账号关联和徽章选择仍会保留。请尝试刷新；若已更改用户名，请解除关联后重新关联。刷新成功后将恢复徽章。",
     loading: "正在检查账号信息。",
     disconnect: "断开连接",
     lastUpdated: "最后更新于 {{date}}",

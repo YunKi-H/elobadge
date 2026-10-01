@@ -114,7 +114,17 @@ export async function getUserChessBadgeState(
 ): Promise<ChessBadgeState> {
   const db = getFirestoreDb();
   const userSnapshot = await db.collection("users").doc(uid).get();
-  return parseUserChessBadgeState(userSnapshot.data());
+  return parseVisibleUserChessBadgeState(userSnapshot.data());
+}
+
+export function parseVisibleUserChessBadgeState(
+  data: FirebaseFirestore.DocumentData | undefined
+): ChessBadgeState {
+  const state = parseUserChessBadgeState(data);
+  for (const provider of ["chesscom", "lichess"] as const) {
+    if (data?.chessBadgeHidden?.[provider] === true) delete state.badges[provider];
+  }
+  return state;
 }
 
 export async function getChzzkChessBadgeState(

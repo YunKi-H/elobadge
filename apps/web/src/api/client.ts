@@ -116,6 +116,7 @@ export class OverlayAppearanceUpdateError extends Error {
 }
 
 export interface ChessComAccount {
+  ratingBadgeHidden: boolean;
   provider: "chesscom";
   username: string;
   profileUrl: string;
@@ -138,6 +139,7 @@ export interface ChessComVerificationChallenge {
 }
 
 export interface LichessAccount {
+  ratingBadgeHidden: boolean;
   provider: "lichess";
   username: string;
   profileUrl: string;

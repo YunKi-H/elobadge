@@ -200,6 +200,7 @@ function toResponse(account: StoredLichessAccount | null) {
     username: account.username,
     profileUrl: account.profileUrl,
     verified: true,
+    ratingBadgeHidden: account.ratingBadgeHidden === true,
     selectedSpeed: account.selectedSpeed,
     ratingsFetchedAt: account.ratingsFetchedAt?.toISOString() ?? null,
     manualRefreshAvailableAt: account.manualRefreshAvailableAt?.toISOString() ?? null,

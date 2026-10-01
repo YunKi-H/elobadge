@@ -105,6 +105,7 @@ const ptBR = {
     saveFailed: "Não foi possível alterar o badge."
   },
   chessAccount: {
+    badgeHidden: "Seu selo está oculto após várias tentativas de encontrar seu perfil. A conexão e a preferência de selo foram mantidas. Atualize novamente ou desconecte e reconecte se mudou seu nome de usuário. Uma atualização bem-sucedida restaurará o selo.",
     loading: "Verificando as informações da conta.",
     disconnect: "Desconectar",
     lastUpdated: "Última atualização: {{date}}",

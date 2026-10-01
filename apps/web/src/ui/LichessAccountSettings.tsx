@@ -106,6 +106,13 @@ export function LichessAccountSettings({
       }
     } catch (error) {
       setError(error);
+      try {
+        const account = await getLichessAccount();
+        setState({ status: "error", account, message: errorMessage(error, t("chessAccount.requestFailed")) });
+        void badgePreference.refresh();
+      } catch {
+        // Keep the current account if the status reload also fails.
+      }
     } finally {
       setRefreshing(false);
     }
@@ -223,6 +230,12 @@ export function LichessAccountSettings({
         ) : null}
       </div>
 
+      {account?.ratingBadgeHidden ? (
+        <p role="status" className="mt-4 text-sm text-amber-300">
+          {t("chessAccount.badgeHidden")}
+        </p>
+      ) : null}
+
       {!account ? (
         <button
           type="button"
@@ -268,7 +281,7 @@ export function LichessAccountSettings({
                 <p className="mt-1 text-xs text-slate-500">
                   {t("chessAccount.games", { count: rating.games })}
                 </p>
-                {account.selectedSpeed === rating.speed ? (
+                {!account.ratingBadgeHidden && account.selectedSpeed === rating.speed ? (
                   <span className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md bg-emerald-400 px-3 text-sm font-semibold text-slate-950">
                     <CheckCircle2 size={15} />
                     {t("chessAccount.highestApplied")}

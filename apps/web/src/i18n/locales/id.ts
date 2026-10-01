@@ -105,6 +105,7 @@ const id = {
     saveFailed: "Tidak dapat mengubah badge."
   },
   chessAccount: {
+    badgeHidden: "Lencana disembunyikan setelah beberapa kali profil akun tidak ditemukan. Tautan dan pilihan lencana tetap tersimpan. Perbarui lagi, atau putuskan lalu hubungkan kembali jika nama pengguna berubah. Pembaruan yang berhasil akan memulihkan lencana.",
     loading: "Memeriksa informasi akun.",
     disconnect: "Putuskan",
     lastUpdated: "Terakhir diperbarui {{date}}",

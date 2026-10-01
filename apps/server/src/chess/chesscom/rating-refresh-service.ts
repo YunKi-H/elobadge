@@ -141,6 +141,7 @@ export class ChessComRatingRefreshService {
       }
     } catch (error) {
       await this.dependencies.fail(claim, error, this.dependencies.now());
+      this.dependencies.invalidateBadge(claim.uid);
       throw error;
     }
   }

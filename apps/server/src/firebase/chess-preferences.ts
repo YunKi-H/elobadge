@@ -68,7 +68,7 @@ async function reconcileLinkedChessBadges(
     const reconciled = { badges, preferredProvider };
 
     if (sameBadgeState(state, reconciled)) {
-      return reconciled;
+      return getUserChessBadgeState(uid);
     }
 
     try {
@@ -80,7 +80,7 @@ async function reconcileLinkedChessBadges(
         },
         { lastUpdateTime: initialUser.updateTime }
       );
-      return reconciled;
+      return getUserChessBadgeState(uid);
     } catch (error) {
       if (!isFailedPrecondition(error)) {
         throw error;

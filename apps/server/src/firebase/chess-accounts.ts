@@ -20,6 +20,7 @@ export interface StoredChessComAccount {
   avatarUrl: string | null;
   status: string;
   verified: boolean;
+  ratingBadgeHidden?: boolean;
   selectedSpeed: ChessComRating["speed"] | null;
   ratingsFetchedAt: Date | null;
   manualRefreshAvailableAt: Date | null;
@@ -80,6 +81,7 @@ export async function disconnectChessComAccount(
     }
     transaction.update(userRef, {
       "chessAccountIds.chesscom": FieldValue.delete(),
+      "chessBadgeHidden.chesscom": FieldValue.delete(),
       chessBadges: remainingBadges,
       preferredChessProvider: preferredProvider ?? FieldValue.delete(),
       updatedAt: now
@@ -176,6 +178,8 @@ export async function saveUnverifiedChessComAccount(
           : Timestamp.fromDate(verificationExpiresAt),
         ratingRefreshStatus: "idle",
         ratingRefreshFailureCount: 0,
+        profileNotFoundCount: 0,
+        ratingBadgeHidden: false,
         lastRatingRefreshError: FieldValue.delete(),
         ratingRefreshLeaseId: FieldValue.delete(),
         ratingRefreshLeaseUntil: FieldValue.delete()
@@ -204,6 +208,7 @@ export async function saveUnverifiedChessComAccount(
       userRef,
       {
         chessAccountIds: { chesscom: accountId },
+        chessBadgeHidden: { chesscom: false },
         chessBadges: badges,
         preferredChessProvider: preferredProvider ?? FieldValue.delete(),
         updatedAt: now
@@ -293,6 +298,7 @@ export async function getUserChessComAccount(
     avatarUrl: typeof data.avatarUrl === "string" ? data.avatarUrl : null,
     status: String(data.accountStatus),
     verified: data.verifiedAt instanceof Timestamp,
+    ratingBadgeHidden: data.ratingBadgeHidden === true,
     selectedSpeed: isChessComSpeed(data.selectedSpeed) ? data.selectedSpeed : null,
     ratingsFetchedAt:
       data.ratingsFetchedAt instanceof Timestamp

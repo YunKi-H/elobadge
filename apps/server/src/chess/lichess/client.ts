@@ -70,7 +70,8 @@ export class LichessClientError extends Error {
   constructor(
     public readonly code: LichessClientErrorCode,
     message: string,
-    public readonly statusCode?: number
+    public readonly statusCode?: number,
+    public readonly resource?: "profile"
   ) {
     super(message);
     this.name = "LichessClientError";
@@ -132,8 +133,11 @@ export function createLichessClient(
       );
     }
 
-    if (response.status === 404) {
-      throw new LichessClientError("not_found", "Lichess account not found", 404);
+    if (response.status === 404 || response.status === 410) {
+      throw new LichessClientError(
+        "not_found", "Lichess account not found", response.status,
+        path.startsWith("/api/user/") ? "profile" : undefined
+      );
     }
     if (response.status === 429) {
       throw new LichessClientError("rate_limited", "Lichess rate limited", 429);

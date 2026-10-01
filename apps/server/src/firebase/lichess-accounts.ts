@@ -13,6 +13,7 @@ const MANUAL_REFRESH_COOLDOWN_MS = 5 * 60 * 1_000;
 
 export interface StoredLichessAccount extends LichessPlayer {
   verified: true;
+  ratingBadgeHidden?: boolean;
   selectedSpeed: LichessRating["speed"] | null;
   ratingsFetchedAt: Date | null;
   manualRefreshAvailableAt: Date | null;
@@ -87,6 +88,8 @@ export async function saveVerifiedLichessAccount(
       nextRatingRefreshAt: Timestamp.fromDate(getNextLichessRefreshAt(fetchedAt)),
       ratingRefreshStatus: "idle",
       ratingRefreshFailureCount: 0,
+      profileNotFoundCount: 0,
+      ratingBadgeHidden: false,
       lastRatingRefreshError: FieldValue.delete(),
       ratingRefreshLeaseId: FieldValue.delete(),
       ratingRefreshLeaseUntil: FieldValue.delete(),
@@ -96,6 +99,7 @@ export async function saveVerifiedLichessAccount(
     }, { merge: true });
     transaction.set(userRef, {
       chessAccountIds: { lichess: accountId },
+      chessBadgeHidden: { lichess: false },
       chessBadges: badges,
       preferredChessProvider: preferredProvider ?? FieldValue.delete(),
       updatedAt: now
@@ -169,6 +173,7 @@ export async function getUserLichessAccount(uid: string): Promise<StoredLichessA
     profileUrl: String(data.profileUrl),
     avatarUrl: null,
     status: data.accountStatus === "disabled" ? "disabled" : "active",
+    ratingBadgeHidden: data.ratingBadgeHidden === true,
     verified: true,
     selectedSpeed: isLichessSpeed(data.selectedSpeed) ? data.selectedSpeed : null,
     ratingsFetchedAt: data.ratingsFetchedAt instanceof Timestamp
@@ -217,6 +222,7 @@ export async function disconnectLichessAccount(
     transaction.delete(accountRef);
     transaction.update(userRef, {
       "chessAccountIds.lichess": FieldValue.delete(),
+      "chessBadgeHidden.lichess": FieldValue.delete(),
       chessBadges: remainingBadges,
       preferredChessProvider: preferredProvider ?? FieldValue.delete(),
       updatedAt: now

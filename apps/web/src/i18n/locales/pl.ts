@@ -105,6 +105,7 @@ const pl = {
     saveFailed: "Nie udało się zmienić odznaki."
   },
   chessAccount: {
+    badgeHidden: "Odznaka jest ukryta po kilku nieudanych próbach znalezienia profilu. Połączenie i wybór odznaki są zachowane. Odśwież dane lub odłącz i ponownie połącz konto, jeśli nazwa użytkownika się zmieniła. Udane odświeżenie przywróci odznakę.",
     loading: "Sprawdzanie informacji o koncie.",
     disconnect: "Odłącz",
     lastUpdated: "Ostatnia aktualizacja: {{date}}",

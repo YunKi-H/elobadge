@@ -105,6 +105,7 @@ const es = {
     saveFailed: "No se pudo cambiar la insignia."
   },
   chessAccount: {
+    badgeHidden: "Tu insignia está oculta tras varios intentos fallidos de encontrar tu perfil. Se conservan la conexión y tu elección de insignia. Actualiza de nuevo o desconecta y vuelve a conectar si cambiaste tu nombre de usuario. Se restaurará al actualizar correctamente.",
     loading: "Comprobando la información de la cuenta.",
     disconnect: "Desconectar",
     lastUpdated: "Última actualización: {{date}}",

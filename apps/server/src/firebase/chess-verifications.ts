@@ -225,6 +225,8 @@ export async function completeChessComLocationVerification(
       ),
       ratingRefreshStatus: "idle",
       ratingRefreshFailureCount: 0,
+      profileNotFoundCount: 0,
+      ratingBadgeHidden: false,
       verificationExpiresAt: FieldValue.delete(),
       updatedAt: now
     });
@@ -232,6 +234,7 @@ export async function completeChessComLocationVerification(
       userRef,
       {
         chessBadges: badges,
+        chessBadgeHidden: { chesscom: false },
         preferredChessProvider: preferredProvider ?? FieldValue.delete(),
         updatedAt: now
       },

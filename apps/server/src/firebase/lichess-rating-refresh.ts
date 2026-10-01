@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { nextProfileNotFoundCount } from "../chess/profile-availability.js";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { LichessPlayer } from "../chess/lichess/client.js";
 import { getHighestRating } from "../chess/rating-selection.js";
@@ -143,6 +144,8 @@ export async function completeLichessRatingRefresh(
       nextRatingRefreshAt: Timestamp.fromDate(nextRefreshAt),
       ratingRefreshStatus: "idle",
       ratingRefreshFailureCount: 0,
+      profileNotFoundCount: 0,
+      ratingBadgeHidden: false,
       lastRatingRefreshError: FieldValue.delete(),
       ratingRefreshLeaseId: FieldValue.delete(),
       ratingRefreshLeaseUntil: FieldValue.delete(),
@@ -169,6 +172,7 @@ export async function completeLichessRatingRefresh(
     );
     transaction.set(userRef, {
       chessBadges: badges,
+      chessBadgeHidden: { lichess: false },
       preferredChessProvider: preferredProvider ?? FieldValue.delete(),
       updatedAt: Timestamp.fromDate(now)
     }, { merge: true });
@@ -188,6 +192,15 @@ export async function failLichessRatingRefresh(
     if (data?.ratingRefreshLeaseId !== claim.leaseId) {
       return;
     }
+    const missingCount = nextProfileNotFoundCount(error, data.profileNotFoundCount);
+    const userRef = getFirestoreDb().collection("users").doc(claim.uid);
+    const user = missingCount >= 2 ? await transaction.get(userRef) : null;
+    if (user?.data()?.chessAccountIds?.lichess === claim.accountId) {
+      transaction.update(userRef, {
+        "chessBadgeHidden.lichess": true,
+        updatedAt: Timestamp.fromDate(now)
+      });
+    }
     const failures = typeof data.ratingRefreshFailureCount === "number"
       ? data.ratingRefreshFailureCount + 1
       : 1;
@@ -195,6 +208,8 @@ export async function failLichessRatingRefresh(
       error instanceof LichessRatingRefreshError && error.code === "identity_changed";
     transaction.update(ref, {
       ratingRefreshStatus: "failed",
+      profileNotFoundCount: missingCount,
+      ...(missingCount >= 2 ? { ratingBadgeHidden: true } : {}),
       ratingRefreshFailureCount: failures,
       lastRatingRefreshError: describeError(error),
       nextRatingRefreshAt: identityChanged

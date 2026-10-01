@@ -3,7 +3,8 @@ import { after, beforeEach, test } from "node:test";
 import { deleteApp } from "firebase-admin/app";
 import { Timestamp } from "firebase-admin/firestore";
 import { DEFAULT_OVERLAY_APPEARANCE } from "@elobadge/core";
-import type { ChessComPlayer } from "../../chess/chesscom/client.js";
+import { ChessComClientError, type ChessComPlayer } from "../../chess/chesscom/client.js";
+import { LichessClientError, type LichessPlayer } from "../../chess/lichess/client.js";
 import {
   ChessAccountConflictError,
   disconnectChessComAccount,
@@ -15,6 +16,7 @@ import { deleteUserFirestoreData } from "../account-deletion.js";
 import { deleteOrphanedInactiveOverlays } from "../overlay-cleanup.js";
 import {
   getChzzkChessBadgeState,
+  getUserChessBadgeState,
   getChzzkRatingBadge
 } from "../chess-badges.js";
 import {
@@ -31,10 +33,17 @@ import { deleteExpiredChessVerificationChallenges } from "../chess-verification-
 import {
   ChessRatingRefreshError,
   claimManualChessComRatingRefresh,
+  claimScheduledChessComRatingRefresh,
+  failChessComRatingRefresh,
   completeChessComRatingRefresh,
   listDueChessComRatingRefreshes
 } from "../chess-rating-refresh.js";
-import { listDueLichessRatingRefreshes } from "../lichess-rating-refresh.js";
+import {
+  listDueLichessRatingRefreshes,
+  claimScheduledLichessRatingRefresh,
+  failLichessRatingRefresh,
+  completeLichessRatingRefresh
+} from "../lichess-rating-refresh.js";
 import { getChessBadgePreference } from "../chess-preferences.js";
 import {
   enableStreamerOverlayAccess,
@@ -1094,6 +1103,74 @@ test("overlay appearance persists and survives public token rotation", async () 
     false
   );
 });
+
+for (const provider of ["chesscom", "lichess"] as const) {
+  test(`${provider} repeated missing profiles hide the badge and recovery preserves preference`, async () => {
+    const db = getFirestoreDb();
+    const uid = "viewer";
+    const accountId = `${provider}:testplayer`;
+    const userRef = db.collection("users").doc(uid);
+    const accountRef = db.collection("chessAccounts").doc(accountId);
+    const now = new Date("2026-10-01T00:00:00Z");
+    const badge = { provider, speed: "rapid", value: 1800, provisional: false };
+    await userRef.set({
+      chessAccountIds: { [provider]: accountId },
+      chessBadges: { [provider]: badge },
+      preferredChessProvider: provider
+    });
+    await accountRef.set({
+      uid, provider, username: "TestPlayer", normalizedUsername: "testplayer",
+      providerUserId: provider === "chesscom" ? "123456" : "testplayer",
+      verifiedAt: Timestamp.fromDate(now)
+    });
+    const lichessPlayer: LichessPlayer = {
+      username: "TestPlayer", normalizedUsername: "testplayer", playerId: "testplayer",
+      profileUrl: "https://lichess.org/@/TestPlayer", avatarUrl: null, status: "active",
+      ratings: [{ speed: "rapid", value: 1900, ratingDeviation: 40, provisional: false, games: 100 }]
+    };
+
+    async function failAt(time: Date, error: unknown) {
+      if (provider === "chesscom") {
+        const claim = await claimScheduledChessComRatingRefresh(accountId, time);
+        assert.ok(claim);
+        await failChessComRatingRefresh(claim, error, time);
+      } else {
+        const claim = await claimScheduledLichessRatingRefresh(accountId, time);
+        assert.ok(claim);
+        await failLichessRatingRefresh(claim, error, time);
+      }
+    }
+    const missing = provider === "chesscom"
+      ? new ChessComClientError("not_found", "missing", 404, "profile")
+      : new LichessClientError("not_found", "missing", 404, "profile");
+    await failAt(now, missing);
+    assert.deepEqual((await getUserChessBadgeState(uid)).badges[provider], badge);
+    await failAt(new Date(now.getTime() + 10 * 60_000), missing);
+    assert.equal((await getUserChessBadgeState(uid)).badges[provider], undefined);
+    assert.equal((await getUserChessBadgeState(uid)).preferredProvider, provider);
+    assert.equal((await getChessBadgePreference(uid)).badges[provider], undefined);
+    assert.deepEqual((await userRef.get()).data()?.chessBadges[provider], badge);
+    assert.equal((await userRef.get()).data()?.chessAccountIds[provider], accountId);
+    assert.equal((await accountRef.get()).data()?.ratingBadgeHidden, true);
+    await failAt(new Date(now.getTime() + 30 * 60_000), new Error("timeout"));
+    assert.equal((await getUserChessBadgeState(uid)).badges[provider], undefined);
+
+    const recoveryTime = new Date(now.getTime() + 60 * 60_000);
+    if (provider === "chesscom") {
+      const claim = await claimScheduledChessComRatingRefresh(accountId, recoveryTime);
+      assert.ok(claim);
+      await completeChessComRatingRefresh(claim, createPlayer(), recoveryTime, new Date(recoveryTime.getTime() + 60_000));
+    } else {
+      const claim = await claimScheduledLichessRatingRefresh(accountId, recoveryTime);
+      assert.ok(claim);
+      await completeLichessRatingRefresh(claim, lichessPlayer, recoveryTime, new Date(recoveryTime.getTime() + 60_000));
+    }
+    assert.ok((await getUserChessBadgeState(uid)).badges[provider]);
+    assert.equal((await getUserChessBadgeState(uid)).preferredProvider, provider);
+    assert.equal((await accountRef.get()).data()?.ratingBadgeHidden, false);
+    assert.equal((await accountRef.get()).data()?.profileNotFoundCount, 0);
+  });
+}
 
 function createPlayer(): ChessComPlayer {
   return {

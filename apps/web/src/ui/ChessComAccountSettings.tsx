@@ -186,6 +186,13 @@ export function ChessComAccountSettings({
       void badgePreference.refresh();
     } catch (error) {
       setVerificationError(error);
+      try {
+        const account = await getChessComAccount();
+        setState({ status: "error", account, message: errorMessage(error, t("chessAccount.requestFailed")) });
+        void badgePreference.refresh();
+      } catch {
+        // Keep the current account if the status reload also fails.
+      }
     } finally {
       setRefreshing(false);
     }
@@ -286,6 +293,12 @@ export function ChessComAccountSettings({
           </div>
         ) : null}
       </div>
+
+      {account?.ratingBadgeHidden ? (
+        <p role="status" className="mt-4 text-sm text-amber-300">
+          {t("chessAccount.badgeHidden")}
+        </p>
+      ) : null}
 
       {!account ? (
         <form
@@ -406,7 +419,7 @@ export function ChessComAccountSettings({
               <div key={rating.speed} className="bg-slate-900 px-4 py-4">
                 <dt className="text-sm text-slate-400">{speedLabels[rating.speed]}</dt>
                 <dd className="mt-1 text-2xl font-semibold text-white">{rating.value}</dd>
-                {account.verified && account.selectedSpeed === rating.speed ? (
+                {account.verified && !account.ratingBadgeHidden && account.selectedSpeed === rating.speed ? (
                   <span className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md bg-emerald-400 px-3 text-sm font-semibold text-slate-950">
                     <CheckCircle2 size={15} />
                     {t("chessAccount.highestApplied")}

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { nextProfileNotFoundCount } from "../chess/profile-availability.js";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { ChessComPlayer } from "../chess/chesscom/client.js";
 import { getHighestChessComRating } from "../chess/rating-selection.js";
@@ -179,6 +180,8 @@ export async function completeChessComRatingRefresh(
       nextRatingRefreshAt: Timestamp.fromDate(nextRefreshAt),
       ratingRefreshStatus: "idle",
       ratingRefreshFailureCount: 0,
+      profileNotFoundCount: 0,
+      ratingBadgeHidden: false,
       lastRatingRefreshError: FieldValue.delete(),
       ratingRefreshLeaseId: FieldValue.delete(),
       ratingRefreshLeaseUntil: FieldValue.delete(),
@@ -189,6 +192,7 @@ export async function completeChessComRatingRefresh(
       userRef,
       {
         chessBadges: badges,
+        chessBadgeHidden: { chesscom: false },
         preferredChessProvider: preferredProvider ?? FieldValue.delete(),
         updatedAt: Timestamp.fromDate(now)
       },
@@ -215,6 +219,16 @@ export async function failChessComRatingRefresh(
       return;
     }
 
+    const missingCount = nextProfileNotFoundCount(error, data.profileNotFoundCount);
+    const userRef = db.collection("users").doc(claim.uid);
+    const user = missingCount >= 2 ? await transaction.get(userRef) : null;
+    if (user?.data()?.chessAccountIds?.chesscom === claim.accountId) {
+      transaction.update(userRef, {
+        "chessBadgeHidden.chesscom": true,
+        updatedAt: Timestamp.fromDate(now)
+      });
+    }
+
     const failureCount =
       typeof data.ratingRefreshFailureCount === "number"
         ? data.ratingRefreshFailureCount + 1
@@ -225,6 +239,8 @@ export async function failChessComRatingRefresh(
 
     transaction.update(accountRef, {
       ratingRefreshStatus: "failed",
+      profileNotFoundCount: missingCount,
+      ...(missingCount >= 2 ? { ratingBadgeHidden: true } : {}),
       ratingRefreshFailureCount: failureCount,
       lastRatingRefreshError: describeError(error),
       nextRatingRefreshAt: permanentIdentityFailure

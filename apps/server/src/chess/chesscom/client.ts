@@ -56,7 +56,8 @@ export class ChessComClientError extends Error {
   constructor(
     public readonly code: ChessComClientErrorCode,
     message: string,
-    public readonly statusCode?: number
+    public readonly statusCode?: number,
+    public readonly resource?: "profile" | "stats"
   ) {
     super(message);
     this.name = "ChessComClientError";
@@ -112,7 +113,8 @@ export function createChessComClient(options: ChessComClientOptions) {
         throw new ChessComClientError(
           "not_found",
           "Chess.com account was not found",
-          response.status
+          response.status,
+          path.endsWith("/stats") ? "stats" : "profile"
         );
       }
 

@@ -105,6 +105,7 @@ const fr = {
     saveFailed: "Impossible de modifier le badge."
   },
   chessAccount: {
+    badgeHidden: "Votre badge est masqué après plusieurs recherches infructueuses de votre profil. La connexion et votre choix de badge sont conservés. Actualisez à nouveau ou déconnectez puis reconnectez le compte si votre pseudo a changé. Une actualisation réussie restaurera le badge.",
     loading: "Vérification des informations du compte.",
     disconnect: "Déconnecter",
     lastUpdated: "Dernière mise à jour : {{date}}",

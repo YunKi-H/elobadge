@@ -105,6 +105,7 @@ const vi = {
     saveFailed: "Không thể thay đổi huy hiệu."
   },
   chessAccount: {
+    badgeHidden: "Huy hiệu bị ẩn sau nhiều lần không tìm thấy hồ sơ. Liên kết và lựa chọn huy hiệu vẫn được giữ. Hãy cập nhật lại hoặc ngắt rồi liên kết lại nếu đã đổi tên người dùng. Cập nhật thành công sẽ khôi phục huy hiệu.",
     loading: "Đang kiểm tra thông tin tài khoản.",
     disconnect: "Ngắt kết nối",
     lastUpdated: "Cập nhật lần cuối: {{date}}",
