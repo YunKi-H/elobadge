@@ -1,50 +1,48 @@
 # Repository Structure
 
-This repository is intentionally structured as a monorepo while keeping the first deployable unit as a single ECS service.
+EloBadge is a pnpm monorepo with one production application container.
 
 ```text
 apps/
-  server/
-    src/
-      routes/       HTTP endpoints, SSE endpoints
-      auth/         Chzzk and Lichess auth flows
-      chzzk/        Session creation, event subscription, reconnect logic
-      firebase/     Firebase Admin, token verification, Firestore access
-      overlay/      Overlay token, theme, display policy
-      realtime/     SSE fan-out, later WebSocket/pub-sub
-      ratings/      Provider adapters and rating refresh jobs
-      repositories/ Firestore reads, writes, and transactions
-  web/
-    src/
-      firebase/     Firebase Web SDK and browser auth
-      ui/           Dashboard and overlay React components
-packages/
-  core/
-    src/            Shared domain types and pure rating rules
-firestore.rules     Deny-by-default client access rules
-firebase.json       Firebase CLI configuration
+  server/src/
+    auth/         Firebase authentication and platform OAuth flows
+    routes/       HTTP and SSE endpoints
+    chzzk/        Chzzk chat sessions and moderation monitor
+    twitch/       Twitch EventSub chat collection
+    chat/         Shared chat normalization
+    chess/        Chess.com and Lichess linking and rating refresh
+    firebase/     Firestore reads, writes, transactions, and emulator tests
+    realtime/     Event fan-out, overlay connections, and usage tracking
+    security/     Token encryption, HTTP security, and CSS validation
+    monitoring/   Operational health reporting
+    scripts/      Operator commands
+    config/       Environment loading
+  web/src/
+    api/          Authenticated API client
+    firebase/     Browser authentication
+    ui/           Dashboard and overlay components
+packages/core/    Shared domain types and pure rules
+deploy/           Docker Compose and Caddy
+docs/             Development and operational documentation
 ```
 
-## Initial Deployment Shape
+## Runtime
 
-```text
-ECS service: elobadge-app
-  - Fastify API
-  - React/Vite static assets
-  - SSE overlay event stream
-  - Chzzk ingestion manager
-  - rating refresh jobs
-```
+Caddy terminates HTTPS and proxies requests to Fastify. Fastify serves the built
+React app, API endpoints, and SSE streams, and runs chat collectors and background
+jobs in the same Node.js process.
 
-This should stay as one deployable service for the MVP. When multiple ECS tasks become necessary, split Chzzk ingestion and rating refresh into separate services and add Redis for locks/pub-sub.
+The browser authenticates with Firebase and sends its ID token to Fastify.
+Firestore application data is accessed only through the server's Admin SDK;
+direct browser access is denied by Firestore rules.
 
-Firestore is accessed only by the Fastify server. The React app uses Firebase
-Authentication but sends application data requests to Fastify instead of querying
-Firestore directly.
+Chzzk and Twitch collectors publish shared chat events to streamer-scoped
+overlays. Dashboard routes and the transparent browser-source route have
+separate layouts and are loaded on demand.
 
-## First Implementation Slice
+## Scaling Boundary
 
-1. Implement Chzzk OAuth routes in `apps/server/src/auth`.
-2. Implement Chzzk session client in `apps/server/src/chzzk`.
-3. Forward received chat messages into `apps/server/src/realtime`.
-4. Render those messages in `apps/web/src/ui/OverlayPreview.tsx`.
+Run one application container for now. OAuth state, login-code exchange,
+realtime subscriptions, and some token-refresh coordination are held in memory.
+Multiple instances require shared state and coordination before load balancing
+can be introduced safely.
